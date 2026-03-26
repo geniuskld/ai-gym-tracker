@@ -33,6 +33,22 @@ struct ImportView: View {
                     .buttonStyle(.bordered)
                 }
 
+                #if DEBUG
+                if let sampleURL = Bundle.main.url(
+                    forResource: "sample-plan",
+                    withExtension: "json"
+                ) {
+                    Button {
+                        vm.parseFromFile(sampleURL)
+                    } label: {
+                        Label("Load Sample", systemImage: "doc.text")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+                }
+                #endif
+
                 if !jsonText.isEmpty {
                     Button {
                         vm.parseJSON(jsonText)

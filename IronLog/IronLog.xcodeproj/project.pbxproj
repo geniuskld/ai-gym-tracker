@@ -16,6 +16,7 @@
 		5259E04EE8D7387545301C37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3546CCF1405ECC208820E429 /* Assets.xcassets */; };
 		6FD87EC938E401E6E2B01662 /* SDExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6F32CFD231D79A3F75DB70 /* SDExerciseLog.swift */; };
 		84890F720260087A8B285504 /* SDWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46FFF94744538A5FBC26E553 /* SDWorkout.swift */; };
+		8B22B015C0D78B7CD1036CB0 /* sample-plan.json in Resources */ = {isa = PBXBuildFile; fileRef = EE47161A61ADA95A2ECA149E /* sample-plan.json */; };
 		A4A07366D7ABDB6568EBB205 /* PlansListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37295F5F2868B4F81836919 /* PlansListView.swift */; };
 		AA09D5E9DA193BDF2547268E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFB2BDF5ACD13AA4AA122DE /* ContentView.swift */; };
 		AECBB84B4BFC57B1AAA028A9 /* IronLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F525BCBC44EAA20594F626 /* IronLogApp.swift */; };
@@ -61,6 +62,7 @@
 		C0437EB95D23E76AEEC6FAE9 /* SamplePlanFileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SamplePlanFileTests.swift; sourceTree = "<group>"; };
 		CDEEDB494F8D04A2017962EC /* SDExerciseGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDExerciseGroup.swift; sourceTree = "<group>"; };
 		EC09FECB8DF01D44D341CA69 /* PlansViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansViewModel.swift; sourceTree = "<group>"; };
+		EE47161A61ADA95A2ECA149E /* sample-plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "sample-plan.json"; sourceTree = "<group>"; };
 		FC640AA2E9127779FBFE493E /* SDPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDPlan.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -69,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				3546CCF1405ECC208820E429 /* Assets.xcassets */,
+				EE47161A61ADA95A2ECA149E /* sample-plan.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -263,6 +266,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5259E04EE8D7387545301C37 /* Assets.xcassets in Resources */,
+				8B22B015C0D78B7CD1036CB0 /* sample-plan.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -28,11 +28,8 @@ final class PlansViewModel {
     }
 
     func parseFromFile(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            state = .error("Cannot access file")
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
+        let needsSecurityScope = url.startAccessingSecurityScopedResource()
+        defer { if needsSecurityScope { url.stopAccessingSecurityScopedResource() } }
 
         do {
             let data = try Data(contentsOf: url)
