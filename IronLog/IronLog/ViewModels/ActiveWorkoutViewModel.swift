@@ -40,11 +40,12 @@ struct ExerciseState: Identifiable {
 // MARK: - Phases within a set
 
 enum SetPhase: Equatable {
-    case ready
-    case performing
-    case enteringWeight
-    case enteringReps
-    case resting
+    case ready          // first set of exercise only
+    case performing     // stopwatch running, slide button visible
+    case logEntry(      // weight + reps on one screen
+        weightPrefilled: Bool  // true = slide-right (weight carried over)
+    )
+    case resting        // countdown, auto-transitions to performing
 }
 
 // MARK: - ViewModel
@@ -191,39 +192,35 @@ final class ActiveWorkoutViewModel {
         )
     }
 
-    func openWeightEntry() {
-        setStopwatch.stop()
-        setPhase = .enteringWeight
-    }
-
-    func setWeight(_ kg: Double) {
-        guard currentExerciseIndex < exercises.count,
-              currentSetIndex < exercises[currentExerciseIndex].sets.count
-        else { return }
-        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = kg
-        setPhase = .enteringReps
-    }
-
-    func completeSetDone() {
-        // Slide right = done, use last weight
+    func slideRight() {
+        // Done = carry over last weight, go to log entry
         setStopwatch.stop()
         if let last = lastCompletedWeight {
             exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = last
         }
-        setPhase = .enteringReps
+        setPhase = .logEntry(weightPrefilled: true)
     }
 
-    func setReps(_ count: Int) {
+    func slideLeft() {
+        // Open full log entry (weight + reps)
+        setStopwatch.stop()
+        setPhase = .logEntry(weightPrefilled: false)
+    }
+
+    func logSet(
+        weightKg: Double,
+        reps: Int
+    ) {
         guard currentExerciseIndex < exercises.count,
               currentSetIndex < exercises[currentExerciseIndex].sets.count
         else { return }
 
-        exercises[currentExerciseIndex].sets[currentSetIndex].reps = count
+        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = weightKg
+        exercises[currentExerciseIndex].sets[currentSetIndex].reps = reps
         exercises[currentExerciseIndex].sets[currentSetIndex].isCompleted = true
         exercises[currentExerciseIndex].sets[currentSetIndex].setDurationSeconds =
             setStopwatch.elapsedSeconds
 
-        // Start rest timer
         let restSeconds = exercises[currentExerciseIndex].restSeconds
         if restSeconds > 0 {
             setPhase = .resting
@@ -248,10 +245,14 @@ final class ActiveWorkoutViewModel {
         let nextSetIdx = currentSetIndex + 1
 
         if nextSetIdx < ex.sets.count {
-            // Next set in same exercise
+            // Next set - go straight to performing (stopwatch starts)
             currentSetIndex = nextSetIdx
-            setPhase = .ready
-            state = .active
+            setPhase = .performing
+            setStopwatch.start()
+            state = .loggingSet(
+                exerciseIndex: currentExerciseIndex,
+                setIndex: nextSetIdx
+            )
         } else {
             // Exercise done - advance to next
             advanceToNextExercise()

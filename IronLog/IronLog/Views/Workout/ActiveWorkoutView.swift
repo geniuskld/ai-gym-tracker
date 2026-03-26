@@ -18,10 +18,8 @@ struct ActiveWorkoutView: View {
                 ReadyPhaseView(vm: vm)
             case .performing:
                 PerformingPhaseView(vm: vm)
-            case .enteringWeight:
-                WeightEntryView(vm: vm)
-            case .enteringReps:
-                RepsEntryView(vm: vm)
+            case .logEntry(let weightPrefilled):
+                LogEntryView(vm: vm, weightPrefilled: weightPrefilled)
             case .resting:
                 RestingPhaseView(vm: vm)
             }
@@ -33,10 +31,8 @@ struct ActiveWorkoutView: View {
                     .font(.subheadline.weight(.medium))
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Finish") {
-                    vm.beginFinishing()
-                }
-                .font(.subheadline)
+                Button("Finish") { vm.beginFinishing() }
+                    .font(.subheadline)
             }
             ToolbarItem(placement: .cancellationAction) {
                 Menu {
@@ -82,7 +78,7 @@ struct ActiveWorkoutView: View {
     }
 }
 
-// MARK: - Ready Phase (START button)
+// MARK: - Ready Phase (first set of exercise)
 
 private struct ReadyPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
@@ -93,16 +89,8 @@ private struct ReadyPhaseView: View {
 
             ExerciseHeader(vm: vm)
 
-            Text("SET \(vm.currentSetIndex + 1) of \((vm.currentExercise?.sets.count ?? 0))")
-                .font(.title3.weight(.bold))
+            SetBadge(vm: vm)
 
-            if !vm.prescribedHint.isEmpty {
-                Text(vm.prescribedHint)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Completed sets summary
             CompletedSetsSummary(vm: vm)
 
             Spacer()
@@ -119,13 +107,10 @@ private struct ReadyPhaseView: View {
             .tint(.blue)
             .padding(.horizontal, 32)
 
-            // Skip exercise
-            Button("Skip exercise") {
-                vm.skipExercise()
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .padding(.bottom, 16)
+            Button("Skip exercise") { vm.skipExercise() }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 16)
         }
         .padding()
     }
@@ -142,26 +127,16 @@ private struct PerformingPhaseView: View {
 
             ExerciseHeader(vm: vm)
 
-            Text("SET \(vm.currentSetIndex + 1)")
-                .font(.title3.weight(.bold))
+            SetBadge(vm: vm)
 
-            // Stopwatch
             Text(vm.setStopwatch.formattedTime)
                 .font(.system(size: 64, weight: .thin, design: .monospaced))
-                .foregroundStyle(.primary)
-
-            if !vm.prescribedHint.isEmpty {
-                Text(vm.prescribedHint)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
 
             Spacer()
 
-            // Slide button
             SlideButton(
-                onSlideRight: { vm.completeSetDone() },
-                onSlideLeft: { vm.openWeightEntry() }
+                onSlideRight: { vm.slideRight() },
+                onSlideLeft: { vm.slideLeft() }
             )
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
@@ -170,26 +145,29 @@ private struct PerformingPhaseView: View {
     }
 }
 
-// MARK: - Weight Entry
+// MARK: - Log Entry (weight + reps on one screen)
 
-private struct WeightEntryView: View {
+private struct LogEntryView: View {
     @Bindable var vm: ActiveWorkoutViewModel
+    let weightPrefilled: Bool
+
     @State private var weight: Double = 0
-    @FocusState private var focused: Bool
+    @State private var reps: Int = 10
+    @FocusState private var weightFocused: Bool
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Spacer()
 
-            Text("Weight (kg)")
-                .font(.title2.weight(.bold))
+            // Weight section
+            Text("Weight")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
 
             HStack(spacing: 16) {
-                Button {
-                    weight = max(0, weight - 2.5)
-                } label: {
+                Button { weight = max(0, weight - 2.5) } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.largeTitle)
+                        .font(.title)
                 }
                 .tint(.secondary)
 
@@ -198,103 +176,58 @@ private struct WeightEntryView: View {
                     value: $weight,
                     format: .number.precision(.fractionLength(1))
                 )
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                .font(.system(size: 40, weight: .bold, design: .monospaced))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
-                .frame(width: 160)
-                .focused($focused)
+                .frame(width: 140)
+                .focused($weightFocused)
 
-                Button {
-                    weight += 2.5
-                } label: {
+                Text("kg")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+
+                Button { weight += 2.5 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.largeTitle)
+                        .font(.title)
                 }
                 .tint(.secondary)
             }
 
-            // Quick weight buttons
-            if let last = vm.lastCompletedWeight {
-                Button("Use last: \(formatted(last)) kg") {
-                    vm.setWeight(last)
-                }
-                .buttonStyle(.bordered)
-            }
+            Divider().padding(.horizontal, 48)
 
-            Spacer()
-
-            Button {
-                vm.setWeight(weight)
-            } label: {
-                Text("Confirm")
-                    .font(.title3.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .padding(.horizontal, 32)
-            .padding(.bottom, 32)
-        }
-        .padding()
-        .onAppear {
-            weight = vm.lastCompletedWeight ?? 0
-            focused = true
-        }
-    }
-
-    private func formatted(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
-    }
-}
-
-// MARK: - Reps Entry
-
-private struct RepsEntryView: View {
-    @Bindable var vm: ActiveWorkoutViewModel
-    @State private var reps: Int = 10
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            if let w = vm.currentSet?.weightKg {
-                Text("\(formatted(w)) kg")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-
+            // Reps section
             Text("Reps")
-                .font(.title2.weight(.bold))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
 
             HStack(spacing: 24) {
-                Button {
-                    reps = max(1, reps - 1)
-                } label: {
+                Button { reps = max(1, reps - 1) } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.system(size: 40))
                 }
                 .tint(.secondary)
 
                 Text("\(reps)")
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
-                    .frame(width: 100)
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .frame(width: 80)
 
-                Button {
-                    reps += 1
-                } label: {
+                Button { reps += 1 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.system(size: 40))
                 }
                 .tint(.secondary)
+            }
+
+            if !vm.prescribedHint.isEmpty {
+                Text(vm.prescribedHint)
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
             Button {
-                vm.setReps(reps)
+                vm.logSet(weightKg: weight, reps: reps)
             } label: {
                 Text("Log Set")
                     .font(.title3.weight(.bold))
@@ -308,18 +241,16 @@ private struct RepsEntryView: View {
         }
         .padding()
         .onAppear {
+            weight = vm.currentSet?.weightKg ?? vm.lastCompletedWeight ?? 0
             reps = vm.currentSet?.prescribedRepsMin ?? 10
+            if !weightPrefilled {
+                weightFocused = true
+            }
         }
-    }
-
-    private func formatted(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
     }
 }
 
-// MARK: - Resting Phase (countdown on button)
+// MARK: - Resting Phase (countdown -> auto start next set)
 
 private struct RestingPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
@@ -341,23 +272,16 @@ private struct RestingPhaseView: View {
                 .tint(.blue)
                 .padding(.horizontal, 48)
 
-            Spacer()
+            CompletedSetsSummary(vm: vm)
 
-            // Countdown on button - tap to skip and start next set
-            let nextSetNum = vm.currentSetIndex + 2
-            let totalSets = vm.currentExercise?.sets.count ?? 0
+            Spacer()
 
             Button {
                 vm.skipRest()
             } label: {
                 VStack(spacing: 4) {
-                    if nextSetNum <= totalSets {
-                        Text("START SET \(nextSetNum)")
-                            .font(.title3.weight(.bold))
-                    } else {
-                        Text("NEXT EXERCISE")
-                            .font(.title3.weight(.bold))
-                    }
+                    Text(nextLabel)
+                        .font(.title3.weight(.bold))
                     Text(vm.restTimer.formattedTime)
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.white.opacity(0.7))
@@ -376,6 +300,15 @@ private struct RestingPhaseView: View {
                 vm.onRestFinished()
             }
         }
+    }
+
+    private var nextLabel: String {
+        let nextSetNum = vm.currentSetIndex + 2
+        let totalSets = vm.currentExercise?.sets.count ?? 0
+        if nextSetNum <= totalSets {
+            return "SET \(nextSetNum)"
+        }
+        return "NEXT"
     }
 }
 
@@ -403,6 +336,23 @@ private struct ExerciseHeader: View {
     }
 }
 
+private struct SetBadge: View {
+    let vm: ActiveWorkoutViewModel
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("SET \(vm.currentSetIndex + 1) of \(vm.currentExercise?.sets.count ?? 0)")
+                .font(.title3.weight(.bold))
+
+            if !vm.prescribedHint.isEmpty {
+                Text(vm.prescribedHint)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 private struct CompletedSetsSummary: View {
     let vm: ActiveWorkoutViewModel
 
@@ -413,18 +363,17 @@ private struct CompletedSetsSummary: View {
         if !completedSets.isEmpty {
             VStack(spacing: 4) {
                 ForEach(completedSets) { s in
-                    HStack {
+                    HStack(spacing: 8) {
                         Text("Set \(s.setNumber)")
                             .font(.caption.weight(.medium))
                         if let w = s.weightKg {
                             Text("\(formatted(w)) kg")
-                                .font(.caption)
                         }
                         if let r = s.reps {
                             Text("\(r) reps")
-                                .font(.caption)
                         }
                     }
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                 }
             }
