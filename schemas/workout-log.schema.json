@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workout-log.schema.json",
+  "title": "WorkoutLog",
+  "description": "Лог тренировок для анализа (экспорт из приложения)",
+  "type": "object",
+  "required": ["version", "exported_at", "user_profile", "workouts"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "export_range": {
+      "type": "object",
+      "properties": {
+        "from": { "type": "string", "format": "date" },
+        "to": { "type": "string", "format": "date" }
+      }
+    },
+    "user_profile": {
+      "type": "object",
+      "properties": {
+        "body_weight_kg": { "type": "number" },
+        "height_cm": { "type": "integer" },
+        "age": { "type": "integer" },
+        "training_goal": {
+          "type": "string",
+          "enum": ["hypertrophy", "strength", "endurance", "recomp", "general"]
+        }
+      }
+    },
+    "workouts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Workout" }
+    }
+  },
+  "$defs": {
+    "Workout": {
+      "type": "object",
+      "required": ["id", "template_id", "started_at", "exercises"],
+      "properties": {
+        "id": { "type": "string" },
+        "template_id": { "type": "string" },
+        "template_name": { "type": "string" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "duration_minutes": { "type": "number" },
+        "workout_notes": { "type": "string" },
+        "perceived_effort": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "exercises": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ExerciseLog" }
+        }
+      }
+    },
+    "ExerciseLog": {
+      "type": "object",
+      "required": ["exercise_id", "exercise_name", "sets"],
+      "properties": {
+        "exercise_id": { "type": "string" },
+        "exercise_name": { "type": "string" },
+        "order": { "type": "integer" },
+        "sets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SetLog" }
+        },
+        "exercise_notes": { "type": "string" }
+      }
+    },
+    "SetLog": {
+      "type": "object",
+      "required": ["set_number"],
+      "properties": {
+        "set_number": { "type": "integer", "minimum": 1 },
+        "set_type": {
+          "type": "string",
+          "enum": ["warmup", "working", "drop", "myo_activation", "myo_mini", "rp_initial", "rp_continuation", "backoff"],
+          "default": "working"
+        },
+        "weight_kg": { "type": "number" },
+        "reps": { "type": "integer" },
+        "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
+        "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "rest_seconds_after": { "type": "integer" },
+        "is_pr": { "type": "boolean" },
+        "failed": { "type": "boolean", "default": false },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
