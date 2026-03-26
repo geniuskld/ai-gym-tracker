@@ -10,11 +10,39 @@ struct PlansListView: View {
         NavigationStack {
             Group {
                 if plans.isEmpty {
-                    ContentUnavailableView(
-                        "No Plans",
-                        systemImage: "list.bullet.clipboard",
-                        description: Text("Import a workout plan to get started")
-                    )
+                    VStack(spacing: 20) {
+                        Spacer()
+                        Button {
+                            vm.showImportSheet = true
+                        } label: {
+                            VStack(spacing: 12) {
+                                Image(systemName: "dumbbell.fill")
+                                    .font(.system(size: 48))
+                                Text("Import Your Program")
+                                    .font(.title3.weight(.semibold))
+                                Text("Paste or pick a JSON training plan")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 32)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.primary)
+
+                        #if DEBUG
+                        Button {
+                            loadSamplePlan()
+                        } label: {
+                            Label("Load Sample Plan", systemImage: "doc.text")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.orange)
+                        #endif
+
+                        Spacer()
+                    }
+                    .padding()
                 } else {
                     List {
                         ForEach(plans) { plan in
@@ -50,6 +78,16 @@ struct PlansListView: View {
             vm.deletePlan(plans[index], context: context)
         }
     }
+
+    #if DEBUG
+    private func loadSamplePlan() {
+        guard let url = Bundle.main.url(
+            forResource: "sample-plan",
+            withExtension: "json"
+        ) else { return }
+        vm.parseFromFile(url)
+    }
+    #endif
 }
 
 // MARK: - Plan Row
