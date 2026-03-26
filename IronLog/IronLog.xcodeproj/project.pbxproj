@@ -9,23 +9,30 @@
 /* Begin PBXBuildFile section */
 		0285EA79D9ADBD2CFBB05888 /* SDPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC640AA2E9127779FBFE493E /* SDPlan.swift */; };
 		0DDEDD1AC6A7790243E2286A /* SDExerciseGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEEDB494F8D04A2017962EC /* SDExerciseGroup.swift */; };
+		1363FA115D352C1F960BE2A6 /* TemplatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60001772EF66088099E53247 /* TemplatePicker.swift */; };
 		22C7AE60E4D1A830C470C5A8 /* SDPrescribedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F1BA55C15D47CFEF1663B3 /* SDPrescribedSet.swift */; };
 		28694F293F40D39BC15C4116 /* PlanImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3719F8C6CF3CCEDBD02AAA26 /* PlanImportService.swift */; };
 		3F0D8467E5648C78B283DC49 /* PlanImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 609B7AE872CA9A60861D1971 /* PlanImportTests.swift */; };
 		4F8DA92F17B1FC20269004DE /* SDSetLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 708D0F4C23D8715AF9DB4672 /* SDSetLog.swift */; };
 		5259E04EE8D7387545301C37 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3546CCF1405ECC208820E429 /* Assets.xcassets */; };
+		5583CCA0C1E27B0C78C7A170 /* ActiveWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8DF11A238D1DCE99CFE2AF /* ActiveWorkoutView.swift */; };
+		5AF7E9804A9470BDF9CE2316 /* ActiveWorkoutViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A32AE65799596C49F76123 /* ActiveWorkoutViewModel.swift */; };
 		6FD87EC938E401E6E2B01662 /* SDExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6F32CFD231D79A3F75DB70 /* SDExerciseLog.swift */; };
+		80370AA88E81DE119673BB78 /* RestTimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DCB8E5A58C7B465F4416A89 /* RestTimerService.swift */; };
 		84890F720260087A8B285504 /* SDWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46FFF94744538A5FBC26E553 /* SDWorkout.swift */; };
 		8B22B015C0D78B7CD1036CB0 /* sample-plan.json in Resources */ = {isa = PBXBuildFile; fileRef = EE47161A61ADA95A2ECA149E /* sample-plan.json */; };
+		9C69B65F041CA48E63578852 /* SetRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0F93F1D2041EE802BCA1D0 /* SetRowView.swift */; };
 		A4A07366D7ABDB6568EBB205 /* PlansListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37295F5F2868B4F81836919 /* PlansListView.swift */; };
 		AA09D5E9DA193BDF2547268E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFB2BDF5ACD13AA4AA122DE /* ContentView.swift */; };
 		AECBB84B4BFC57B1AAA028A9 /* IronLogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F525BCBC44EAA20594F626 /* IronLogApp.swift */; };
 		B55DB9AFDBECA4A2C7664821 /* SamplePlanFileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0437EB95D23E76AEEC6FAE9 /* SamplePlanFileTests.swift */; };
+		BC386FCAC4B1EA6DA5554126 /* ExerciseCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C6E5057C70CE16D7F23C80 /* ExerciseCard.swift */; };
 		CB926849D966873D47718DF6 /* SDExercise.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F56D1F05F80F876F5B1368B /* SDExercise.swift */; };
 		CDFAD074E0B08300C779D833 /* WorkoutPlanJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6FE7055A7F46A37D977A796 /* WorkoutPlanJSON.swift */; };
 		E0541E61C5DFE4EAA917D5D3 /* WorkoutLogJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4DE5309133F8528CA19610 /* WorkoutLogJSON.swift */; };
 		E0D92A79DE5EBF20C7449E76 /* ImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680AF2C78A2A7ED5155CD0BA /* ImportView.swift */; };
 		E43F626CC232F119D785028C /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3035AF16DE4D010D9C31C4E /* PlanPreviewView.swift */; };
+		F4E4441860958E25887DA728 /* RestTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A7199880782EE9C4F03FAB /* RestTimerView.swift */; };
 		F874A0DD3A6755932CAE02CE /* SDTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A891923982896DEF5DFCF9 /* SDTemplate.swift */; };
 		FACC5C8F83522249ED990311 /* PlansViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC09FECB8DF01D44D341CA69 /* PlansViewModel.swift */; };
 /* End PBXBuildFile section */
@@ -49,10 +56,17 @@
 		3F56D1F05F80F876F5B1368B /* SDExercise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDExercise.swift; sourceTree = "<group>"; };
 		46FFF94744538A5FBC26E553 /* SDWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDWorkout.swift; sourceTree = "<group>"; };
 		4DFB2BDF5ACD13AA4AA122DE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5B8DF11A238D1DCE99CFE2AF /* ActiveWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutView.swift; sourceTree = "<group>"; };
+		5DCB8E5A58C7B465F4416A89 /* RestTimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerService.swift; sourceTree = "<group>"; };
+		60001772EF66088099E53247 /* TemplatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePicker.swift; sourceTree = "<group>"; };
 		609B7AE872CA9A60861D1971 /* PlanImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanImportTests.swift; sourceTree = "<group>"; };
+		64A32AE65799596C49F76123 /* ActiveWorkoutViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutViewModel.swift; sourceTree = "<group>"; };
 		680AF2C78A2A7ED5155CD0BA /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
 		708D0F4C23D8715AF9DB4672 /* SDSetLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDSetLog.swift; sourceTree = "<group>"; };
+		74A7199880782EE9C4F03FAB /* RestTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerView.swift; sourceTree = "<group>"; };
 		91F1BA55C15D47CFEF1663B3 /* SDPrescribedSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDPrescribedSet.swift; sourceTree = "<group>"; };
+		94C6E5057C70CE16D7F23C80 /* ExerciseCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseCard.swift; sourceTree = "<group>"; };
+		9C0F93F1D2041EE802BCA1D0 /* SetRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetRowView.swift; sourceTree = "<group>"; };
 		A6FE7055A7F46A37D977A796 /* WorkoutPlanJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlanJSON.swift; sourceTree = "<group>"; };
 		AD6F32CFD231D79A3F75DB70 /* SDExerciseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDExerciseLog.swift; sourceTree = "<group>"; };
 		B3035AF16DE4D010D9C31C4E /* PlanPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPreviewView.swift; sourceTree = "<group>"; };
@@ -132,8 +146,21 @@
 			isa = PBXGroup;
 			children = (
 				3719F8C6CF3CCEDBD02AAA26 /* PlanImportService.swift */,
+				5DCB8E5A58C7B465F4416A89 /* RestTimerService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		883D358CE11A8EC3D2F82840 /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				5B8DF11A238D1DCE99CFE2AF /* ActiveWorkoutView.swift */,
+				94C6E5057C70CE16D7F23C80 /* ExerciseCard.swift */,
+				74A7199880782EE9C4F03FAB /* RestTimerView.swift */,
+				9C0F93F1D2041EE802BCA1D0 /* SetRowView.swift */,
+				60001772EF66088099E53247 /* TemplatePicker.swift */,
+			);
+			path = Workout;
 			sourceTree = "<group>";
 		};
 		915A40F25C13986B6CCF91AD /* Models */ = {
@@ -149,6 +176,7 @@
 			isa = PBXGroup;
 			children = (
 				8165F818D4A900E3F2023A01 /* Plans */,
+				883D358CE11A8EC3D2F82840 /* Workout */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -165,6 +193,7 @@
 		DB4B3DC3D997A42D291535C7 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				64A32AE65799596C49F76123 /* ActiveWorkoutViewModel.swift */,
 				EC09FECB8DF01D44D341CA69 /* PlansViewModel.swift */,
 			);
 			path = ViewModels;
@@ -286,13 +315,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5583CCA0C1E27B0C78C7A170 /* ActiveWorkoutView.swift in Sources */,
+				5AF7E9804A9470BDF9CE2316 /* ActiveWorkoutViewModel.swift in Sources */,
 				AA09D5E9DA193BDF2547268E /* ContentView.swift in Sources */,
+				BC386FCAC4B1EA6DA5554126 /* ExerciseCard.swift in Sources */,
 				E0D92A79DE5EBF20C7449E76 /* ImportView.swift in Sources */,
 				AECBB84B4BFC57B1AAA028A9 /* IronLogApp.swift in Sources */,
 				28694F293F40D39BC15C4116 /* PlanImportService.swift in Sources */,
 				E43F626CC232F119D785028C /* PlanPreviewView.swift in Sources */,
 				A4A07366D7ABDB6568EBB205 /* PlansListView.swift in Sources */,
 				FACC5C8F83522249ED990311 /* PlansViewModel.swift in Sources */,
+				80370AA88E81DE119673BB78 /* RestTimerService.swift in Sources */,
+				F4E4441860958E25887DA728 /* RestTimerView.swift in Sources */,
 				CB926849D966873D47718DF6 /* SDExercise.swift in Sources */,
 				0DDEDD1AC6A7790243E2286A /* SDExerciseGroup.swift in Sources */,
 				6FD87EC938E401E6E2B01662 /* SDExerciseLog.swift in Sources */,
@@ -301,6 +335,8 @@
 				4F8DA92F17B1FC20269004DE /* SDSetLog.swift in Sources */,
 				F874A0DD3A6755932CAE02CE /* SDTemplate.swift in Sources */,
 				84890F720260087A8B285504 /* SDWorkout.swift in Sources */,
+				9C69B65F041CA48E63578852 /* SetRowView.swift in Sources */,
+				1363FA115D352C1F960BE2A6 /* TemplatePicker.swift in Sources */,
 				E0541E61C5DFE4EAA917D5D3 /* WorkoutLogJSON.swift in Sources */,
 				CDFAD074E0B08300C779D833 /* WorkoutPlanJSON.swift in Sources */,
 			);

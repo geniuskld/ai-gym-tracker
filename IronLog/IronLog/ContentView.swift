@@ -8,7 +8,7 @@ struct ContentView: View {
                     Label("Plans", systemImage: "list.bullet.clipboard")
                 }
 
-            Text("Workout")
+            TemplatePicker()
                 .tabItem {
                     Label("Workout", systemImage: "figure.strengthtraining.traditional")
                 }
