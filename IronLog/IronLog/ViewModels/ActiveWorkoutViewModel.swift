@@ -13,11 +13,13 @@ struct SetState: Identifiable {
     var rir: Int?
     var isCompleted: Bool = false
     var failed: Bool = false
+    var setDurationSeconds: Int?
 
-    // Prescribed hints (read-only, from plan)
+    // Prescribed hints
     var prescribedRepsMin: Int?
     var prescribedRepsMax: Int?
     var prescribedRir: Int?
+    var prescribedWeightPercentDrop: Double?
 }
 
 struct ExerciseState: Identifiable {
@@ -35,6 +37,16 @@ struct ExerciseState: Identifiable {
     var sets: [SetState]
 }
 
+// MARK: - Phases within a set
+
+enum SetPhase: Equatable {
+    case ready
+    case performing
+    case enteringWeight
+    case enteringReps
+    case resting
+}
+
 // MARK: - ViewModel
 
 @MainActor
@@ -50,26 +62,77 @@ final class ActiveWorkoutViewModel {
         case saved
     }
 
+    // MARK: - Properties
+
     var state: State = .idle
     var exercises: [ExerciseState] = []
+    var currentExerciseIndex: Int = 0
+    var currentSetIndex: Int = 0
+    var setPhase: SetPhase = .ready
     var restTimer = RestTimerService()
+    var setStopwatch = StopwatchService()
     var finishNotes: String = ""
     var finishEffort: Int?
 
     private var workout: SDWorkout?
-    private var templateId: String = ""
-    private var templateName: String = ""
     private var modelContext: ModelContext?
 
-    // MARK: - Start
+    // MARK: - Computed
+
+    var currentExercise: ExerciseState? {
+        guard currentExerciseIndex < exercises.count else { return nil }
+        return exercises[currentExerciseIndex]
+    }
+
+    var currentSet: SetState? {
+        guard let ex = currentExercise,
+              currentSetIndex < ex.sets.count else { return nil }
+        return ex.sets[currentSetIndex]
+    }
+
+    var lastCompletedWeight: Double? {
+        guard currentExerciseIndex < exercises.count else { return nil }
+        let sets = exercises[currentExerciseIndex].sets
+        for i in stride(from: currentSetIndex - 1, through: 0, by: -1) {
+            if let w = sets[i].weightKg { return w }
+        }
+        return nil
+    }
+
+    var completedSetsCount: Int {
+        exercises.reduce(0) { $0 + $1.sets.filter(\.isCompleted).count }
+    }
+
+    var totalSetsCount: Int {
+        exercises.reduce(0) { $0 + $1.sets.count }
+    }
+
+    var completedExercisesCount: Int {
+        exercises.filter { ex in ex.sets.allSatisfy(\.isCompleted) }.count
+    }
+
+    var prescribedHint: String {
+        guard let s = currentSet else { return "" }
+        var parts: [String] = []
+        if s.type != "working" {
+            parts.append(s.type.replacingOccurrences(of: "_", with: " "))
+        }
+        if let min = s.prescribedRepsMin, let max = s.prescribedRepsMax {
+            parts.append(min == max ? "\(min) reps" : "\(min)-\(max) reps")
+        }
+        if let rir = s.prescribedRir {
+            parts.append("RIR \(rir)")
+        }
+        return parts.joined(separator: " / ")
+    }
+
+    // MARK: - Start Workout
 
     func startWorkout(
         template: SDTemplate,
         context: ModelContext
     ) {
         modelContext = context
-        templateId = template.templateId
-        templateName = template.name
 
         let sdWorkout = SDWorkout(
             templateId: template.templateId,
@@ -83,14 +146,16 @@ final class ActiveWorkoutViewModel {
             group.exercises
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map { exercise in
-                    let sortedSets = exercise.prescribedSets.sorted { $0.sortOrder < $1.sortOrder }
+                    let sortedSets = exercise.prescribedSets
+                        .sorted { $0.sortOrder < $1.sortOrder }
                     let setStates = sortedSets.enumerated().map { idx, ps in
                         SetState(
                             setNumber: idx + 1,
                             type: ps.type,
                             prescribedRepsMin: ps.repsMin,
                             prescribedRepsMax: ps.repsMax,
-                            prescribedRir: ps.rir
+                            prescribedRir: ps.rir,
+                            prescribedWeightPercentDrop: ps.weightPercentDrop
                         )
                     }
                     return ExerciseState(
@@ -109,86 +174,126 @@ final class ActiveWorkoutViewModel {
                 }
         }
 
+        currentExerciseIndex = 0
+        currentSetIndex = 0
+        setPhase = .ready
         state = .active
     }
 
-    // MARK: - Logging
+    // MARK: - Set Flow
 
-    func beginLoggingSet(
-        exerciseIndex: Int,
-        setIndex: Int
-    ) {
+    func startSet() {
+        setPhase = .performing
+        setStopwatch.start()
         state = .loggingSet(
-            exerciseIndex: exerciseIndex,
-            setIndex: setIndex
+            exerciseIndex: currentExerciseIndex,
+            setIndex: currentSetIndex
         )
     }
 
-    func completeSet(
-        exerciseIndex: Int,
-        setIndex: Int
-    ) {
-        guard exerciseIndex < exercises.count,
-              setIndex < exercises[exerciseIndex].sets.count else { return }
+    func openWeightEntry() {
+        setStopwatch.stop()
+        setPhase = .enteringWeight
+    }
 
-        exercises[exerciseIndex].sets[setIndex].isCompleted = true
+    func setWeight(_ kg: Double) {
+        guard currentExerciseIndex < exercises.count,
+              currentSetIndex < exercises[currentExerciseIndex].sets.count
+        else { return }
+        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = kg
+        setPhase = .enteringReps
+    }
 
-        let restSeconds = exercises[exerciseIndex].restSeconds
+    func completeSetDone() {
+        // Slide right = done, use last weight
+        setStopwatch.stop()
+        if let last = lastCompletedWeight {
+            exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = last
+        }
+        setPhase = .enteringReps
+    }
+
+    func setReps(_ count: Int) {
+        guard currentExerciseIndex < exercises.count,
+              currentSetIndex < exercises[currentExerciseIndex].sets.count
+        else { return }
+
+        exercises[currentExerciseIndex].sets[currentSetIndex].reps = count
+        exercises[currentExerciseIndex].sets[currentSetIndex].isCompleted = true
+        exercises[currentExerciseIndex].sets[currentSetIndex].setDurationSeconds =
+            setStopwatch.elapsedSeconds
+
+        // Start rest timer
+        let restSeconds = exercises[currentExerciseIndex].restSeconds
         if restSeconds > 0 {
+            setPhase = .resting
             state = .restTimer
             restTimer.start(seconds: restSeconds)
         } else {
-            state = .active
+            advanceToNextSet()
         }
     }
 
-    func toggleFailed(
-        exerciseIndex: Int,
-        setIndex: Int
-    ) {
-        guard exerciseIndex < exercises.count,
-              setIndex < exercises[exerciseIndex].sets.count else { return }
-        exercises[exerciseIndex].sets[setIndex].failed.toggle()
-    }
-
-    func addSet(exerciseIndex: Int) {
-        guard exerciseIndex < exercises.count else { return }
-        let currentCount = exercises[exerciseIndex].sets.count
-        let newSet = SetState(
-            setNumber: currentCount + 1,
-            type: "working"
-        )
-        exercises[exerciseIndex].sets.append(newSet)
-    }
-
-    func removeSet(
-        exerciseIndex: Int,
-        setIndex: Int
-    ) {
-        guard exerciseIndex < exercises.count,
-              setIndex < exercises[exerciseIndex].sets.count,
-              exercises[exerciseIndex].sets.count > 1 else { return }
-        exercises[exerciseIndex].sets.remove(at: setIndex)
-        // Renumber
-        for i in exercises[exerciseIndex].sets.indices {
-            exercises[exerciseIndex].sets[i].setNumber = i + 1
-        }
-    }
-
-    // MARK: - Timer
-
-    func skipTimer() {
+    func skipRest() {
         restTimer.skip()
+        advanceToNextSet()
+    }
+
+    func onRestFinished() {
+        advanceToNextSet()
+    }
+
+    private func advanceToNextSet() {
+        let ex = exercises[currentExerciseIndex]
+        let nextSetIdx = currentSetIndex + 1
+
+        if nextSetIdx < ex.sets.count {
+            // Next set in same exercise
+            currentSetIndex = nextSetIdx
+            setPhase = .ready
+            state = .active
+        } else {
+            // Exercise done - advance to next
+            advanceToNextExercise()
+        }
+    }
+
+    private func advanceToNextExercise() {
+        let nextIdx = currentExerciseIndex + 1
+        if nextIdx < exercises.count {
+            currentExerciseIndex = nextIdx
+            currentSetIndex = 0
+            setPhase = .ready
+            state = .active
+        } else {
+            // All exercises done
+            beginFinishing()
+        }
+    }
+
+    // MARK: - Navigation (skip/jump)
+
+    func jumpToExercise(_ index: Int) {
+        guard index < exercises.count else { return }
+        restTimer.stop()
+        setStopwatch.stop()
+        currentExerciseIndex = index
+        // Find first incomplete set
+        let sets = exercises[index].sets
+        currentSetIndex = sets.firstIndex(where: { !$0.isCompleted }) ?? 0
+        setPhase = .ready
         state = .active
     }
 
-    func onTimerFinished() {
-        state = .active
+    func skipExercise() {
+        advanceToNextExercise()
     }
 
     // MARK: - Finish
 
     func beginFinishing() {
+        restTimer.stop()
+        setStopwatch.stop()
         state = .finishing
     }
 
@@ -200,9 +305,7 @@ final class ActiveWorkoutViewModel {
         guard let workout, let context = modelContext else { return }
 
         workout.finishedAt = .now
-        if let started = Optional(workout.startedAt) {
-            workout.durationMinutes = Date.now.timeIntervalSince(started) / 60
-        }
+        workout.durationMinutes = Date.now.timeIntervalSince(workout.startedAt) / 60
         workout.workoutNotes = finishNotes.isEmpty ? nil : finishNotes
         workout.perceivedEffort = finishEffort
 
@@ -238,29 +341,12 @@ final class ActiveWorkoutViewModel {
         exercises = []
         workout = nil
         modelContext = nil
+        currentExerciseIndex = 0
+        currentSetIndex = 0
+        setPhase = .ready
         finishNotes = ""
         finishEffort = nil
         restTimer.stop()
-    }
-
-    // MARK: - Computed
-
-    var isActive: Bool {
-        switch state {
-        case .active, .loggingSet, .restTimer:
-            return true
-        default:
-            return false
-        }
-    }
-
-    var completedSetsCount: Int {
-        exercises.reduce(0) { total, ex in
-            total + ex.sets.filter(\.isCompleted).count
-        }
-    }
-
-    var totalSetsCount: Int {
-        exercises.reduce(0) { $0 + $1.sets.count }
+        setStopwatch.stop()
     }
 }

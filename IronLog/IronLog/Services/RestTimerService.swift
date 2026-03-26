@@ -57,3 +57,41 @@ final class RestTimerService {
         generator.notificationOccurred(.success)
     }
 }
+
+// MARK: - Stopwatch (counts up, for set duration)
+
+@MainActor
+@Observable
+final class StopwatchService {
+    var elapsedSeconds: Int = 0
+    var isRunning: Bool = false
+
+    private var timerCancellable: AnyCancellable?
+    private var startDate: Date?
+
+    func start() {
+        stop()
+        elapsedSeconds = 0
+        isRunning = true
+        startDate = .now
+
+        timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, let start = self.startDate else { return }
+                self.elapsedSeconds = Int(Date.now.timeIntervalSince(start))
+            }
+    }
+
+    func stop() {
+        timerCancellable?.cancel()
+        timerCancellable = nil
+        isRunning = false
+    }
+
+    var formattedTime: String {
+        let m = elapsedSeconds / 60
+        let s = elapsedSeconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+}
