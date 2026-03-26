@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct SlideButton: View {
+    let leftLabel: String
+    let leftIcon: String
+    let rightLabel: String
+    let rightIcon: String
     let onSlideRight: () -> Void
     let onSlideLeft: () -> Void
 
     @State private var offset: CGFloat = 0
-    @State private var isDragging = false
 
     private let thumbSize: CGFloat = 64
     private let trackHeight: CGFloat = 72
@@ -13,17 +16,14 @@ struct SlideButton: View {
 
     var body: some View {
         GeometryReader { geo in
-            let maxOffset = geo.size.width - thumbSize - 16
-            let minOffset = -(geo.size.width - thumbSize - 16)
+            let maxOff = geo.size.width - thumbSize - 16
 
             ZStack {
-                // Track background
                 Capsule()
                     .fill(.ultraThinMaterial)
                     .overlay {
                         HStack {
-                            // Left hint
-                            Label("Weight", systemImage: "scalemass")
+                            Label(leftLabel, systemImage: leftIcon)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.orange)
                                 .opacity(offset < -30 ? 1 : 0.3)
@@ -31,8 +31,7 @@ struct SlideButton: View {
 
                             Spacer()
 
-                            // Right hint
-                            Label("Done", systemImage: "checkmark")
+                            Label(rightLabel, systemImage: rightIcon)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.green)
                                 .opacity(offset > 30 ? 1 : 0.3)
@@ -40,13 +39,12 @@ struct SlideButton: View {
                         }
                     }
 
-                // Thumb
                 Circle()
                     .fill(thumbColor)
                     .frame(width: thumbSize, height: thumbSize)
                     .shadow(radius: 4)
                     .overlay {
-                        Image(systemName: thumbIcon)
+                        Image(systemName: thumbIconName)
                             .font(.title2.weight(.bold))
                             .foregroundStyle(.white)
                     }
@@ -54,31 +52,17 @@ struct SlideButton: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                isDragging = true
-                                let clamped = min(
-                                    max(value.translation.width, minOffset),
-                                    maxOffset
-                                )
-                                offset = clamped
+                                offset = min(max(value.translation.width, -maxOff), maxOff)
                             }
                             .onEnded { _ in
-                                isDragging = false
                                 if offset > triggerThreshold {
-                                    // Slide right = done
-                                    withAnimation(.spring(duration: 0.3)) {
-                                        offset = 0
-                                    }
+                                    withAnimation(.spring(duration: 0.3)) { offset = 0 }
                                     onSlideRight()
                                 } else if offset < -triggerThreshold {
-                                    // Slide left = weight entry
-                                    withAnimation(.spring(duration: 0.3)) {
-                                        offset = 0
-                                    }
+                                    withAnimation(.spring(duration: 0.3)) { offset = 0 }
                                     onSlideLeft()
                                 } else {
-                                    withAnimation(.spring(duration: 0.3)) {
-                                        offset = 0
-                                    }
+                                    withAnimation(.spring(duration: 0.3)) { offset = 0 }
                                 }
                             }
                     )
@@ -88,20 +72,14 @@ struct SlideButton: View {
     }
 
     private var thumbColor: Color {
-        if offset > triggerThreshold {
-            return .green
-        } else if offset < -triggerThreshold {
-            return .orange
-        }
+        if offset > triggerThreshold { return .green }
+        if offset < -triggerThreshold { return .orange }
         return .blue
     }
 
-    private var thumbIcon: String {
-        if offset > triggerThreshold {
-            return "checkmark"
-        } else if offset < -triggerThreshold {
-            return "scalemass"
-        }
-        return "stop.fill"
+    private var thumbIconName: String {
+        if offset > triggerThreshold { return rightIcon }
+        if offset < -triggerThreshold { return leftIcon }
+        return "circle.fill"
     }
 }

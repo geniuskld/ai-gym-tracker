@@ -40,12 +40,11 @@ struct ExerciseState: Identifiable {
 // MARK: - Phases within a set
 
 enum SetPhase: Equatable {
-    case ready          // first set of exercise only
-    case performing     // stopwatch running, slide button visible
-    case logEntry(      // weight + reps on one screen
-        weightPrefilled: Bool  // true = slide-right (weight carried over)
-    )
-    case resting        // countdown, auto-transitions to performing
+    case ready          // before set: slider right=start, left=set weight
+    case performing     // during set: slider right=done, left=enter reps
+    case enterReps      // quick reps entry after slide-left during performing
+    case setWeight      // weight entry from ready phase slide-left
+    case resting        // countdown, auto-transitions to performing next set
 }
 
 // MARK: - ViewModel
@@ -183,7 +182,26 @@ final class ActiveWorkoutViewModel {
 
     // MARK: - Set Flow
 
-    func startSet() {
+    // Ready phase: slide right = start set with current weight
+    func readySlideRight() {
+        if let last = lastCompletedWeight {
+            exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = last
+        }
+        beginPerforming()
+    }
+
+    // Ready phase: slide left = set weight before starting
+    func readySlideLeft() {
+        setPhase = .setWeight
+    }
+
+    // Confirm weight and start performing
+    func confirmWeightAndStart(_ kg: Double) {
+        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = kg
+        beginPerforming()
+    }
+
+    private func beginPerforming() {
         setPhase = .performing
         setStopwatch.start()
         state = .loggingSet(
@@ -192,30 +210,29 @@ final class ActiveWorkoutViewModel {
         )
     }
 
-    func slideRight() {
-        // Done = carry over last weight, go to log entry
+    // Performing phase: slide right = done (auto reps from prescribed)
+    func performingSlideRight() {
         setStopwatch.stop()
-        if let last = lastCompletedWeight {
-            exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = last
-        }
-        setPhase = .logEntry(weightPrefilled: true)
+        let reps = exercises[currentExerciseIndex].sets[currentSetIndex]
+            .prescribedRepsMin ?? 10
+        completeCurrentSet(reps: reps)
     }
 
-    func slideLeft() {
-        // Open full log entry (weight + reps)
+    // Performing phase: slide left = enter reps manually
+    func performingSlideLeft() {
         setStopwatch.stop()
-        setPhase = .logEntry(weightPrefilled: false)
+        setPhase = .enterReps
     }
 
-    func logSet(
-        weightKg: Double,
-        reps: Int
-    ) {
+    func confirmReps(_ count: Int) {
+        completeCurrentSet(reps: count)
+    }
+
+    private func completeCurrentSet(reps: Int) {
         guard currentExerciseIndex < exercises.count,
               currentSetIndex < exercises[currentExerciseIndex].sets.count
         else { return }
 
-        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = weightKg
         exercises[currentExerciseIndex].sets[currentSetIndex].reps = reps
         exercises[currentExerciseIndex].sets[currentSetIndex].isCompleted = true
         exercises[currentExerciseIndex].sets[currentSetIndex].setDurationSeconds =
