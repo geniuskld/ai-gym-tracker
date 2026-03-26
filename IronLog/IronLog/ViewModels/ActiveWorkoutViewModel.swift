@@ -180,6 +180,83 @@ final class ActiveWorkoutViewModel {
         state = .active
     }
 
+    // MARK: - Resume Workout
+
+    func resumeWorkout(
+        sdWorkout: SDWorkout,
+        template: SDTemplate,
+        context: ModelContext
+    ) {
+        modelContext = context
+        workout = sdWorkout
+
+        // Rebuild exercise states from template
+        let sortedGroups = template.groups.sorted { $0.sortOrder < $1.sortOrder }
+        let loggedSets = Dictionary(
+            grouping: sdWorkout.exercises.flatMap { exLog in
+                exLog.sets.map { (exLog.exerciseId, $0) }
+            },
+            by: \.0
+        ).mapValues { $0.map(\.1) }
+
+        exercises = sortedGroups.flatMap { group in
+            group.exercises
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .map { exercise in
+                    let sortedSets = exercise.prescribedSets
+                        .sorted { $0.sortOrder < $1.sortOrder }
+                    let logged = loggedSets[exercise.exerciseId] ?? []
+
+                    let setStates = sortedSets.enumerated().map { idx, ps in
+                        let matchingLog = logged.first { $0.setNumber == idx + 1 }
+                        var ss = SetState(
+                            setNumber: idx + 1,
+                            type: ps.type,
+                            weightKg: matchingLog?.weightKg,
+                            reps: matchingLog?.reps,
+                            isCompleted: matchingLog != nil,
+                            failed: matchingLog?.failed ?? false,
+                            prescribedRepsMin: ps.repsMin,
+                            prescribedRepsMax: ps.repsMax,
+                            prescribedRir: ps.rir,
+                            prescribedWeightPercentDrop: ps.weightPercentDrop
+                        )
+                        return ss
+                    }
+                    return ExerciseState(
+                        exerciseId: exercise.exerciseId,
+                        name: exercise.name,
+                        bodyPart: exercise.bodyPart,
+                        equipment: exercise.equipment,
+                        technique: exercise.technique,
+                        supersetWith: exercise.supersetWith,
+                        restSeconds: exercise.restSeconds,
+                        tempo: exercise.tempo,
+                        notes: exercise.notes,
+                        stretchFocus: exercise.stretchFocus,
+                        sets: setStates
+                    )
+                }
+        }
+
+        // Find first incomplete exercise/set
+        for (eIdx, ex) in exercises.enumerated() {
+            if let sIdx = ex.sets.firstIndex(where: { !$0.isCompleted }) {
+                currentExerciseIndex = eIdx
+                currentSetIndex = sIdx
+                setPhase = .ready
+                state = .active
+                return
+            }
+        }
+
+        // All sets done, go to finishing
+        currentExerciseIndex = exercises.count - 1
+        currentSetIndex = 0
+        state = .active
+        beginFinishing()
+    }
+
     // MARK: - Set Flow
 
     // Ready phase: slide right = start set with current weight

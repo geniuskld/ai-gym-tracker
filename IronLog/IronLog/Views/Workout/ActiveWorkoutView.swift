@@ -403,17 +403,28 @@ private struct WeightStepper: View {
 
 private struct ExerciseListMenu: View {
     let vm: ActiveWorkoutViewModel
+
     var body: some View {
+        let indexed = Array(vm.exercises.enumerated())
+        let incomplete = indexed.filter { !$0.element.sets.allSatisfy(\.isCompleted) }
+        let completed = indexed.filter { $0.element.sets.allSatisfy(\.isCompleted) }
+
         Menu {
-            ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
+            ForEach(incomplete, id: \.element.id) { idx, ex in
                 Button {
                     vm.jumpToExercise(idx)
                 } label: {
-                    HStack {
-                        Text(ex.name)
-                        if ex.sets.allSatisfy(\.isCompleted) {
-                            Image(systemName: "checkmark")
-                        }
+                    Label(ex.name, systemImage: "circle")
+                }
+            }
+
+            if !completed.isEmpty {
+                Divider()
+                ForEach(completed, id: \.element.id) { idx, ex in
+                    Button {
+                        vm.jumpToExercise(idx)
+                    } label: {
+                        Label(ex.name, systemImage: "checkmark.circle.fill")
                     }
                 }
             }
