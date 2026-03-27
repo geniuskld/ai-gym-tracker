@@ -10,6 +10,7 @@ final class SDSetLog {
     var rpe: Double?
     var rir: Int?
     var restSecondsAfter: Int?
+    var setDurationSeconds: Int?
     var isPr: Bool
     var failed: Bool
     var notes: String?
@@ -24,6 +25,7 @@ final class SDSetLog {
         rpe: Double? = nil,
         rir: Int? = nil,
         restSecondsAfter: Int? = nil,
+        setDurationSeconds: Int? = nil,
         isPr: Bool = false,
         failed: Bool = false,
         notes: String? = nil
@@ -35,6 +37,7 @@ final class SDSetLog {
         self.rpe = rpe
         self.rir = rir
         self.restSecondsAfter = restSecondsAfter
+        self.setDurationSeconds = setDurationSeconds
         self.isPr = isPr
         self.failed = failed
         self.notes = notes

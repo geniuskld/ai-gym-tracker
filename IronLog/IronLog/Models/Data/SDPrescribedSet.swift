@@ -4,8 +4,7 @@ import SwiftData
 @Model
 final class SDPrescribedSet {
     var type: String
-    var repsMin: Int?
-    var repsMax: Int?
+    var reps: Int?
     var rir: Int?
     var weightPercentDrop: Double?
     var sortOrder: Int
@@ -14,15 +13,13 @@ final class SDPrescribedSet {
 
     init(
         type: String = "working",
-        repsMin: Int? = nil,
-        repsMax: Int? = nil,
+        reps: Int? = nil,
         rir: Int? = nil,
         weightPercentDrop: Double? = nil,
         sortOrder: Int = 0
     ) {
         self.type = type
-        self.repsMin = repsMin
-        self.repsMax = repsMax
+        self.reps = reps
         self.rir = rir
         self.weightPercentDrop = weightPercentDrop
         self.sortOrder = sortOrder

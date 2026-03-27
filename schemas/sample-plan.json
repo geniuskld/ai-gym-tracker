@@ -15,9 +15,9 @@
             {
               "id": "a1", "name": "Жим ногами", "body_part": "legs", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 150, "technique": "straight", "tempo": "2-2-1-0",
               "notes": "Пауза 2с в нижней точке. Глубокая амплитуда — колени к груди.",
@@ -26,10 +26,10 @@
             {
               "id": "a2", "name": "Разгибание ног сидя", "body_part": "legs", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 }
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 },
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 }
               ],
               "rest_seconds": 120, "technique": "drop_set",
               "notes": "Подход до отказа → сбрось вес на 30% → ещё 6-8 повторов."
@@ -37,7 +37,7 @@
             {
               "id": "a3", "name": "Сгибание ног лёжа", "body_part": "legs", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 12, "reps_max": 15, "rir": 1 }
+                { "type": "working", "reps": 15, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "myo_reps",
               "notes": "Myo-reps: активация 12-15 до 1-2 RIR → 5с → 5 повторов → 5с → 5... Стоп когда < 3."
@@ -50,9 +50,9 @@
             {
               "id": "a4", "name": "Жим от груди Matrix", "body_part": "chest", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 150, "technique": "straight", "tempo": "2-2-1-0",
               "notes": "Пауза 1-2с в нижней точке.", "stretch_focus": true
@@ -60,8 +60,8 @@
             {
               "id": "a5", "name": "Fly на тренажёре", "body_part": "chest", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 12, "reps_max": 15, "rir": 1 },
-                { "type": "working", "reps_min": 12, "reps_max": 15, "rir": 1 }
+                { "type": "working", "reps": 15, "rir": 1 },
+                { "type": "working", "reps": 15, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "straight",
               "notes": "Максимальное разведение. Stretched-position.", "stretch_focus": true
@@ -74,9 +74,9 @@
             {
               "id": "a6", "name": "Тяга верхнего блока", "body_part": "back", "equipment": "cable",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 120, "technique": "straight",
               "notes": "Полное выпрямление вверху. Пауза 1с, негатив 2-3с.", "stretch_focus": true
@@ -89,9 +89,9 @@
             {
               "id": "a7", "name": "Бицепс наклонная скамья", "body_part": "arms", "equipment": "dumbbell",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "superset", "superset_with": "a8",
               "notes": "Наклонная скамья = бицепс растянут максимально.", "stretch_focus": true
@@ -99,9 +99,9 @@
             {
               "id": "a8", "name": "Трицепс над головой (блок)", "body_part": "arms", "equipment": "cable",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "superset", "superset_with": "a7",
               "notes": "Разгибание из-за головы = длинная головка в stretch.", "stretch_focus": true
@@ -120,8 +120,8 @@
             {
               "id": "b1", "name": "Жим ногами (узкая постановка)", "body_part": "legs", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 0 },
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 0 }
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "working", "reps": 12, "rir": 0 }
               ],
               "rest_seconds": 180, "technique": "rest_pause",
               "notes": "Rest-pause: до отказа → 15-20с → ещё до отказа → 15-20с → ещё. Узкая постановка — квадрицепс."
@@ -129,9 +129,9 @@
             {
               "id": "b2", "name": "Болгарские сплит-приседы", "body_part": "legs", "equipment": "dumbbell",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "straight",
               "notes": "Глубокий выпад. Гантели. Если дискомфорт в спине — заменяй на жим одной ногой.",
@@ -140,10 +140,10 @@
             {
               "id": "b3", "name": "Сгибание ног сидя", "body_part": "legs", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 }
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 },
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 }
               ],
               "rest_seconds": 90, "technique": "drop_set",
               "notes": "Сидя (не лёжа) = хамстринги в растянутом положении.", "stretch_focus": true
@@ -156,9 +156,9 @@
             {
               "id": "b4", "name": "Жим груди наклонный Olimp", "body_part": "chest", "equipment": "plate_loaded",
               "sets": [
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 8, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 150, "technique": "straight", "tempo": "2-2-1-0",
               "notes": "Пауза 2с внизу. Наклонный = верх грудных в stretch.", "stretch_focus": true
@@ -166,7 +166,7 @@
             {
               "id": "b5", "name": "Жим на плечи сидя", "body_part": "shoulders", "equipment": "machine",
               "sets": [
-                { "type": "working", "reps_min": 12, "reps_max": 15, "rir": 1 }
+                { "type": "working", "reps": 15, "rir": 1 }
               ],
               "rest_seconds": 120, "technique": "myo_reps",
               "notes": "Myo-reps: активация 12-15 до 1-2 RIR → 5с → мини-подходы по 3-5."
@@ -179,8 +179,8 @@
             {
               "id": "b6", "name": "Тяга верхнего блока обратным хватом", "body_part": "back", "equipment": "cable",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 }
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "working", "reps": 12, "rir": 0 }
               ],
               "rest_seconds": 150, "technique": "rest_pause",
               "notes": "Rest-pause: 10-12 до отказа → 15с → 3-5 → 15с → 2-3. Обратный хват."
@@ -188,9 +188,9 @@
             {
               "id": "b7", "name": "Рычажная тяга Olimp", "body_part": "back", "equipment": "plate_loaded",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 2 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 2 },
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 120, "technique": "straight",
               "notes": "Негатив 2-3с. Полное растяжение вперёд.", "stretch_focus": true
@@ -203,10 +203,10 @@
             {
               "id": "b8", "name": "Молотки с гантелями", "body_part": "arms", "equipment": "dumbbell",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 0 },
-                { "type": "drop", "reps_min": 6, "reps_max": 8, "rir": 0, "weight_percent_drop": 0.3 }
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 },
+                { "type": "working", "reps": 12, "rir": 0 },
+                { "type": "drop", "reps": 8, "rir": 0, "weight_percent_drop": 0.3 }
               ],
               "rest_seconds": 90, "technique": "superset", "superset_with": "b9",
               "notes": "Молотки: дроп-сет на каждом рабочем подходе."
@@ -214,8 +214,8 @@
             {
               "id": "b9", "name": "Французский жим лёжа", "body_part": "arms", "equipment": "barbell",
               "sets": [
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 },
-                { "type": "working", "reps_min": 10, "reps_max": 12, "rir": 1 }
+                { "type": "working", "reps": 12, "rir": 1 },
+                { "type": "working", "reps": 12, "rir": 1 }
               ],
               "rest_seconds": 90, "technique": "superset", "superset_with": "b8",
               "notes": "За голову — максимальный stretch длинной головки.", "stretch_focus": true

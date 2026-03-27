@@ -88,6 +88,7 @@ struct SetLogJSON: Codable {
     let rpe: Double?
     let rir: Int?
     let restSecondsAfter: Int?
+    let setDurationSeconds: Int?
     let isPr: Bool?
     let failed: Bool?
     let notes: String?
@@ -98,6 +99,7 @@ struct SetLogJSON: Codable {
         case weightKg = "weight_kg"
         case reps, rpe, rir
         case restSecondsAfter = "rest_seconds_after"
+        case setDurationSeconds = "set_duration_seconds"
         case isPr = "is_pr"
         case failed, notes
     }

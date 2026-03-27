@@ -59,16 +59,12 @@ struct ExerciseJSON: Codable {
 
 struct PrescribedSetJSON: Codable {
     let type: SetType?
-    let repsMin: Int?
-    let repsMax: Int?
+    let reps: Int?
     let rir: Int?
     let weightPercentDrop: Double?
 
     enum CodingKeys: String, CodingKey {
-        case type
-        case repsMin = "reps_min"
-        case repsMax = "reps_max"
-        case rir
+        case type, reps, rir
         case weightPercentDrop = "weight_percent_drop"
     }
 }

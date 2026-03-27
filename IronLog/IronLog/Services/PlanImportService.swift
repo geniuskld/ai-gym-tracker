@@ -117,8 +117,7 @@ final class PlanImportService {
                     for (sIdx, sJSON) in eJSON.sets.enumerated() {
                         let set = SDPrescribedSet(
                             type: sJSON.type?.rawValue ?? "working",
-                            repsMin: sJSON.repsMin,
-                            repsMax: sJSON.repsMax,
+                            reps: sJSON.reps,
                             rir: sJSON.rir,
                             weightPercentDrop: sJSON.weightPercentDrop,
                             sortOrder: sIdx

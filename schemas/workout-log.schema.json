@@ -80,6 +80,7 @@
         "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
         "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
         "rest_seconds_after": { "type": "integer" },
+        "set_duration_seconds": { "type": "integer", "description": "How long the set took in seconds" },
         "is_pr": { "type": "boolean" },
         "failed": { "type": "boolean", "default": false },
         "notes": { "type": "string" }

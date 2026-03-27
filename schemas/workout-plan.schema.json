@@ -80,8 +80,7 @@
           "enum": ["warmup", "working", "drop", "backoff"],
           "default": "working"
         },
-        "reps_min": { "type": "integer" },
-        "reps_max": { "type": "integer" },
+        "reps": { "type": "integer", "description": "Exact number of prescribed repetitions" },
         "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
         "weight_percent_drop": { "type": "number" }
       }

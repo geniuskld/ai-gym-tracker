@@ -95,10 +95,8 @@ private struct ExercisePreviewRow: View {
 
             HStack(spacing: 8) {
                 Text("\(exercise.sets.count) sets")
-                if let reps = exercise.sets.first {
-                    if let min = reps.repsMin, let max = reps.repsMax {
-                        Text("\(min)-\(max) reps")
-                    }
+                if let firstSet = exercise.sets.first, let r = firstSet.reps {
+                    Text("\(r) reps")
                 }
                 if let rest = exercise.restSeconds {
                     Text("\(rest)s rest")
