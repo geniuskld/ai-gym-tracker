@@ -16,8 +16,7 @@ struct SetState: Identifiable {
     var setDurationSeconds: Int?
 
     // Prescribed hints
-    var prescribedRepsMin: Int?
-    var prescribedRepsMax: Int?
+    var prescribedReps: Int?
     var prescribedRir: Int?
     var prescribedWeightPercentDrop: Double?
 }
@@ -74,8 +73,9 @@ final class ActiveWorkoutViewModel {
     var finishNotes: String = ""
     var finishEffort: Int?
 
-    private var workout: SDWorkout?
+    private(set) var workout: SDWorkout?
     private var modelContext: ModelContext?
+    private var lastSetCompletedAt: Date?
 
     // MARK: - Computed
 
@@ -117,8 +117,8 @@ final class ActiveWorkoutViewModel {
         if s.type != "working" {
             parts.append(s.type.replacingOccurrences(of: "_", with: " "))
         }
-        if let min = s.prescribedRepsMin, let max = s.prescribedRepsMax {
-            parts.append(min == max ? "\(min) reps" : "\(min)-\(max) reps")
+        if let reps = s.prescribedReps {
+            parts.append("\(reps) reps")
         }
         if let rir = s.prescribedRir {
             parts.append("RIR \(rir)")
@@ -139,6 +139,7 @@ final class ActiveWorkoutViewModel {
             templateName: template.name
         )
         context.insert(sdWorkout)
+        try? context.save()
         workout = sdWorkout
 
         let sortedGroups = template.groups.sorted { $0.sortOrder < $1.sortOrder }
@@ -152,8 +153,7 @@ final class ActiveWorkoutViewModel {
                         SetState(
                             setNumber: idx + 1,
                             type: ps.type,
-                            prescribedRepsMin: ps.repsMin,
-                            prescribedRepsMax: ps.repsMax,
+                            prescribedReps: ps.reps,
                             prescribedRir: ps.rir,
                             prescribedWeightPercentDrop: ps.weightPercentDrop
                         )
@@ -216,8 +216,7 @@ final class ActiveWorkoutViewModel {
                             reps: matchingLog?.reps,
                             isCompleted: matchingLog != nil,
                             failed: matchingLog?.failed ?? false,
-                            prescribedRepsMin: ps.repsMin,
-                            prescribedRepsMax: ps.repsMax,
+                            prescribedReps: ps.reps,
                             prescribedRir: ps.rir,
                             prescribedWeightPercentDrop: ps.weightPercentDrop
                         )
@@ -279,6 +278,12 @@ final class ActiveWorkoutViewModel {
     }
 
     private func beginPerforming() {
+        // Record actual rest duration on previous set
+        if let completedAt = lastSetCompletedAt {
+            let actualRest = Int(Date().timeIntervalSince(completedAt))
+            persistRestDuration(actualRest)
+        }
+
         setPhase = .performing
         setStopwatch.start()
         state = .loggingSet(
@@ -290,8 +295,8 @@ final class ActiveWorkoutViewModel {
     // Performing phase: slide right = done (auto reps from prescribed)
     func performingSlideRight() {
         setStopwatch.stop()
-        let reps = exercises[currentExerciseIndex].sets[currentSetIndex]
-            .prescribedRepsMin ?? 10
+        let set = exercises[currentExerciseIndex].sets[currentSetIndex]
+        let reps = set.prescribedReps ?? 10
         completeCurrentSet(reps: reps)
     }
 
@@ -315,6 +320,9 @@ final class ActiveWorkoutViewModel {
         exercises[currentExerciseIndex].sets[currentSetIndex].setDurationSeconds =
             setStopwatch.elapsedSeconds
 
+        lastSetCompletedAt = Date()
+        persistCompletedSet()
+
         let restSeconds = exercises[currentExerciseIndex].restSeconds
         if restSeconds > 0 {
             setPhase = .resting
@@ -326,12 +334,19 @@ final class ActiveWorkoutViewModel {
     }
 
     func skipRest() {
-        restTimer.skip()
+        restTimer.stop()
         advanceToNextSet()
     }
 
     func onRestFinished() {
+        restTimer.stop()
         advanceToNextSet()
+    }
+
+    func finishExercise() {
+        restTimer.stop()
+        setStopwatch.stop()
+        advanceToNextExercise()
     }
 
     private func advanceToNextSet() {
@@ -339,14 +354,13 @@ final class ActiveWorkoutViewModel {
         let nextSetIdx = currentSetIndex + 1
 
         if nextSetIdx < ex.sets.count {
-            // Next set - go straight to performing (stopwatch starts)
+            // Next set - ready phase so user can adjust weight via slider
             currentSetIndex = nextSetIdx
-            setPhase = .performing
-            setStopwatch.start()
-            state = .loggingSet(
-                exerciseIndex: currentExerciseIndex,
-                setIndex: nextSetIdx
-            )
+            if let last = lastCompletedWeight {
+                exercises[currentExerciseIndex].sets[nextSetIdx].weightKg = last
+            }
+            setPhase = .ready
+            state = .active
         } else {
             // Exercise done - advance to next
             advanceToNextExercise()
@@ -396,6 +410,89 @@ final class ActiveWorkoutViewModel {
         state = .active
     }
 
+    // MARK: - Incremental Persistence
+
+    /// Saves the current completed set to SwiftData immediately.
+    /// Finds or creates the SDExerciseLog, then upserts the SDSetLog.
+    private func persistCompletedSet() {
+        guard let workout, let context = modelContext else { return }
+
+        let exState = exercises[currentExerciseIndex]
+        let setState = exState.sets[currentSetIndex]
+
+        // Find or create exercise log
+        let exerciseLog: SDExerciseLog
+        if let existing = workout.exercises.first(where: {
+            $0.exerciseId == exState.exerciseId
+        }) {
+            exerciseLog = existing
+        } else {
+            let newLog = SDExerciseLog(
+                exerciseId: exState.exerciseId,
+                exerciseName: exState.name,
+                order: currentExerciseIndex
+            )
+            newLog.workout = workout
+            exerciseLog = newLog
+        }
+
+        // Remove old set log if re-doing a set
+        if let oldSet = exerciseLog.sets.first(where: {
+            $0.setNumber == setState.setNumber
+        }) {
+            context.delete(oldSet)
+        }
+
+        // Create new set log
+        let setLog = SDSetLog(
+            setNumber: setState.setNumber,
+            setType: setState.type,
+            weightKg: setState.weightKg,
+            reps: setState.reps,
+            rpe: setState.rpe,
+            rir: setState.rir,
+            isPr: false,
+            failed: setState.failed,
+            setDurationSeconds: setState.setDurationSeconds
+        )
+        setLog.exerciseLog = exerciseLog
+
+        try? context.save()
+    }
+
+    /// Updates restSecondsAfter on the previously completed set log.
+    private func persistRestDuration(_ seconds: Int) {
+        guard let workout, let context = modelContext else { return }
+
+        let exState = exercises[max(0, currentExerciseIndex)]
+        let prevSetIdx = currentSetIndex - 1
+
+        if prevSetIdx >= 0 {
+            // Previous set in same exercise
+            if let exLog = workout.exercises.first(where: {
+                $0.exerciseId == exState.exerciseId
+            }),
+               let setLog = exLog.sets.first(where: {
+                   $0.setNumber == prevSetIdx + 1
+               }) {
+                setLog.restSecondsAfter = seconds
+                try? context.save()
+            }
+        } else if currentExerciseIndex > 0 {
+            // Last set of previous exercise
+            let prevEx = exercises[currentExerciseIndex - 1]
+            if let exLog = workout.exercises.first(where: {
+                $0.exerciseId == prevEx.exerciseId
+            }),
+               let lastSet = exLog.sets.sorted(by: {
+                   $0.setNumber < $1.setNumber
+               }).last {
+                lastSet.restSecondsAfter = seconds
+                try? context.save()
+            }
+        }
+    }
+
     func saveWorkout() {
         guard let workout, let context = modelContext else { return }
 
@@ -403,29 +500,6 @@ final class ActiveWorkoutViewModel {
         workout.durationMinutes = Date.now.timeIntervalSince(workout.startedAt) / 60
         workout.workoutNotes = finishNotes.isEmpty ? nil : finishNotes
         workout.perceivedEffort = finishEffort
-
-        for (eIdx, exerciseState) in exercises.enumerated() {
-            let exerciseLog = SDExerciseLog(
-                exerciseId: exerciseState.exerciseId,
-                exerciseName: exerciseState.name,
-                order: eIdx
-            )
-            exerciseLog.workout = workout
-
-            for setState in exerciseState.sets where setState.isCompleted {
-                let setLog = SDSetLog(
-                    setNumber: setState.setNumber,
-                    setType: setState.type,
-                    weightKg: setState.weightKg,
-                    reps: setState.reps,
-                    rpe: setState.rpe,
-                    rir: setState.rir,
-                    isPr: false,
-                    failed: setState.failed
-                )
-                setLog.exerciseLog = exerciseLog
-            }
-        }
 
         try? context.save()
         state = .saved

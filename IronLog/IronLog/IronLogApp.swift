@@ -25,6 +25,10 @@ struct IronLogApp: App {
         }
     }()
 
+    init() {
+        RestTimerService.requestPermission()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

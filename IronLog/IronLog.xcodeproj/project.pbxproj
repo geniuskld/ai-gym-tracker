@@ -33,6 +33,7 @@
 		E43F626CC232F119D785028C /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3035AF16DE4D010D9C31C4E /* PlanPreviewView.swift */; };
 		F874A0DD3A6755932CAE02CE /* SDTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A891923982896DEF5DFCF9 /* SDTemplate.swift */; };
 		FACC5C8F83522249ED990311 /* PlansViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC09FECB8DF01D44D341CA69 /* PlansViewModel.swift */; };
+		FFDDD9EC2F75EB7500420004 /* DebugLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDDD9EB2F75EB7500420004 /* DebugLogView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,7 @@
 		EC09FECB8DF01D44D341CA69 /* PlansViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlansViewModel.swift; sourceTree = "<group>"; };
 		EE47161A61ADA95A2ECA149E /* sample-plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "sample-plan.json"; sourceTree = "<group>"; };
 		FC640AA2E9127779FBFE493E /* SDPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDPlan.swift; sourceTree = "<group>"; };
+		FFDDD9EB2F75EB7500420004 /* DebugLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -150,6 +152,7 @@
 		883D358CE11A8EC3D2F82840 /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				FFDDD9EB2F75EB7500420004 /* DebugLogView.swift */,
 				5B8DF11A238D1DCE99CFE2AF /* ActiveWorkoutView.swift */,
 				60001772EF66088099E53247 /* TemplatePicker.swift */,
 			);
@@ -326,6 +329,7 @@
 				E43F626CC232F119D785028C /* PlanPreviewView.swift in Sources */,
 				A4A07366D7ABDB6568EBB205 /* PlansListView.swift in Sources */,
 				FACC5C8F83522249ED990311 /* PlansViewModel.swift in Sources */,
+				FFDDD9EC2F75EB7500420004 /* DebugLogView.swift in Sources */,
 				80370AA88E81DE119673BB78 /* RestTimerService.swift in Sources */,
 				CB926849D966873D47718DF6 /* SDExercise.swift in Sources */,
 				0DDEDD1AC6A7790243E2286A /* SDExerciseGroup.swift in Sources */,

@@ -3,6 +3,9 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Bindable var vm: ActiveWorkoutViewModel
     @Environment(\.dismiss) private var dismiss
+    #if DEBUG
+    @State private var showDebugLog = false
+    #endif
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,6 +42,23 @@ struct ActiveWorkoutView: View {
                 ExerciseListMenu(vm: vm)
             }
         }
+        #if DEBUG
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                showDebugLog = true
+            } label: {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.caption)
+                    .padding(10)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .padding(.trailing, 12)
+            .padding(.bottom, 12)
+        }
+        .sheet(isPresented: $showDebugLog) {
+            DebugLogView(vm: vm)
+        }
+        #endif
         .sheet(isPresented: isFinishing) {
             FinishWorkoutSheet(vm: vm)
         }
@@ -74,16 +94,10 @@ private struct ReadyPhaseView: View {
             SetBadge(vm: vm)
             CompletedSetsSummary(vm: vm)
 
-            if let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight {
-                Text("\(formatted(w)) kg")
-                    .font(.title.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-
             Spacer()
 
             SlideButton(
-                leftLabel: "Weight",
+                leftLabel: weightLabel,
                 leftIcon: "scalemass",
                 rightLabel: "Start",
                 rightIcon: "play.fill",
@@ -98,6 +112,11 @@ private struct ReadyPhaseView: View {
                 .padding(.bottom, 16)
         }
         .padding()
+    }
+
+    private var weightLabel: String {
+        let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight ?? 0
+        return "\(formatted(w)) kg"
     }
 }
 
@@ -157,19 +176,13 @@ private struct PerformingPhaseView: View {
             ExerciseHeader(vm: vm)
             SetBadge(vm: vm)
 
-            if let w = vm.currentSet?.weightKg {
-                Text("\(formatted(w)) kg")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-
             Text(vm.setStopwatch.formattedTime)
                 .font(.system(size: 64, weight: .thin, design: .monospaced))
 
             Spacer()
 
             SlideButton(
-                leftLabel: "Reps",
+                leftLabel: repsLabel,
                 leftIcon: "number",
                 rightLabel: "Done",
                 rightIcon: "checkmark",
@@ -180,6 +193,11 @@ private struct PerformingPhaseView: View {
             .padding(.bottom, 32)
         }
         .padding()
+    }
+
+    private var repsLabel: String {
+        let reps = vm.currentSet?.prescribedReps ?? 0
+        return "\(reps) reps"
     }
 }
 
@@ -232,7 +250,7 @@ private struct EnterRepsView: View {
             Button {
                 vm.confirmReps(reps)
             } label: {
-                Text("Log Set")
+                Text("Finish Set")
                     .font(.title3.weight(.bold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -244,7 +262,7 @@ private struct EnterRepsView: View {
         }
         .padding()
         .onAppear {
-            reps = vm.currentSet?.prescribedRepsMin ?? 10
+            reps = vm.currentSet?.prescribedReps ?? 10
         }
     }
 }
@@ -255,50 +273,50 @@ private struct RestingPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
+        VStack(spacing: 20) {
             ExerciseHeader(vm: vm)
-
-            Text("Rest")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
-
-            Text(vm.restTimer.formattedTime)
-                .font(.system(size: 72, weight: .thin, design: .monospaced))
-
-            ProgressView(value: vm.restTimer.progress)
-                .tint(.blue)
-                .padding(.horizontal, 48)
 
             CompletedSetsSummary(vm: vm)
 
             Spacer()
 
+            // Circle timer button
             Button {
-                vm.skipRest()
+                vm.onRestFinished()
             } label: {
-                VStack(spacing: 4) {
-                    Text(nextLabel)
-                        .font(.title3.weight(.bold))
+                let overtime = vm.restTimer.isOvertime
+                VStack(spacing: 8) {
                     Text(vm.restTimer.formattedTime)
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(.system(size: 44, weight: .light, design: .monospaced))
+                    Text(nextLabel)
+                        .font(.callout.weight(.semibold))
+                        .textCase(.uppercase)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .foregroundStyle(.white)
+                .frame(width: 220, height: 220)
+                .background(
+                    Circle().fill(overtime ? .yellow.opacity(0.3) : .blue.opacity(0.25))
+                )
+                .overlay {
+                    Circle()
+                        .stroke(overtime ? .yellow.opacity(0.2) : .blue.opacity(0.2), lineWidth: 5)
+                    Circle()
+                        .trim(from: 0, to: 1.0 - vm.restTimer.progress)
+                        .stroke(
+                            overtime ? .yellow : .blue,
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.5), value: vm.restTimer.progress)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue.opacity(0.8))
-            .padding(.horizontal, 32)
-            .padding(.bottom, 32)
+            .buttonStyle(.plain)
+            .shadow(color: vm.restTimer.isOvertime ? .yellow.opacity(0.4) : .blue.opacity(0.4), radius: 12)
+
+            Spacer()
+            Spacer()
         }
         .padding()
-        .onChange(of: vm.restTimer.isRunning) { _, running in
-            if !running && vm.setPhase == .resting {
-                vm.onRestFinished()
-            }
-        }
     }
 
     private var nextLabel: String {
@@ -373,7 +391,7 @@ private struct WeightStepper: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Button { weight = max(0, weight - 2.5) } label: {
+            Button { weight = max(0, weight - 1) } label: {
                 Image(systemName: "minus.circle.fill").font(.title)
             }
             .tint(.secondary)
@@ -381,10 +399,10 @@ private struct WeightStepper: View {
             TextField(
                 "0",
                 value: $weight,
-                format: .number.precision(.fractionLength(1))
+                format: .number.precision(.fractionLength(0))
             )
             .font(.system(size: 40, weight: .bold, design: .monospaced))
-            .keyboardType(.decimalPad)
+            .keyboardType(.numberPad)
             .multilineTextAlignment(.center)
             .frame(width: 140)
             .focused($isFocused)
@@ -393,7 +411,7 @@ private struct WeightStepper: View {
                 .font(.title3)
                 .foregroundStyle(.secondary)
 
-            Button { weight += 2.5 } label: {
+            Button { weight += 1 } label: {
                 Image(systemName: "plus.circle.fill").font(.title)
             }
             .tint(.secondary)
@@ -435,9 +453,7 @@ private struct ExerciseListMenu: View {
 }
 
 private func formatted(_ value: Double) -> String {
-    value.truncatingRemainder(dividingBy: 1) == 0
-        ? String(format: "%.0f", value)
-        : String(format: "%.1f", value)
+    String(format: "%.0f", value)
 }
 
 // MARK: - Finish Sheet

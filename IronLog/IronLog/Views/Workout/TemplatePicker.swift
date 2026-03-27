@@ -11,6 +11,8 @@ struct TemplatePicker: View {
     ) private var activeWorkouts: [SDWorkout]
     @State private var vm = ActiveWorkoutViewModel()
     @State private var showWorkout = false
+    @State private var didAutoResume = false
+    var autoResumeWorkout: Bool = false
 
     private var activeWorkout: SDWorkout? { activeWorkouts.first }
 
@@ -60,6 +62,13 @@ struct TemplatePicker: View {
             .navigationTitle("Start Workout")
             .navigationDestination(isPresented: $showWorkout) {
                 ActiveWorkoutView(vm: vm)
+            }
+            .onAppear {
+                if autoResumeWorkout && !didAutoResume,
+                   let active = activeWorkout {
+                    didAutoResume = true
+                    resumeWorkout(active)
+                }
             }
         }
     }
