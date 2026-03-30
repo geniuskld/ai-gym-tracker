@@ -110,7 +110,8 @@ final class PlanImportService {
                         tempo: eJSON.tempo,
                         notes: eJSON.notes,
                         stretchFocus: eJSON.stretchFocus ?? false,
-                        sortOrder: eIdx
+                        sortOrder: eIdx,
+                        maxMiniSets: eJSON.maxMiniSets
                     )
                     exercise.group = group
 
@@ -118,6 +119,7 @@ final class PlanImportService {
                         let set = SDPrescribedSet(
                             type: sJSON.type?.rawValue ?? "working",
                             reps: sJSON.reps,
+                            weightKg: sJSON.weightKg,
                             rir: sJSON.rir,
                             weightPercentDrop: sJSON.weightPercentDrop,
                             sortOrder: sIdx

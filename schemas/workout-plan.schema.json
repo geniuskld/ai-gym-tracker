@@ -2,18 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "workout-plan.schema.json",
   "title": "WorkoutPlan",
-  "description": "Набор шаблонов тренировок для импорта в приложение",
+  "description": "Training plan for the IronLog gym app. The plan contains templates (workout days), each template has exercise groups (muscle groups), each group has exercises with prescribed sets. The app guides the user through each exercise step by step, tracking weight, reps, and rest timers. IMPORTANT: Use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
   "type": "object",
   "required": ["version", "plan_name", "created_at", "templates"],
   "properties": {
-    "version": { "type": "string", "const": "1.0" },
-    "plan_name": { "type": "string" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "author": { "type": "string" },
-    "notes": { "type": "string" },
+    "version": { "type": "string", "const": "1.0", "description": "Always \"1.0\"" },
+    "plan_name": { "type": "string", "description": "Human-readable plan name, e.g. \"Push/Pull/Legs 3x week\"" },
+    "created_at": { "type": "string", "format": "date-time", "description": "ISO 8601 timestamp, e.g. \"2026-01-15T10:00:00Z\"" },
+    "author": { "type": "string", "description": "Who created the plan (optional)" },
+    "notes": { "type": "string", "description": "General notes about the plan: goals, periodization, contraindications, cardio recommendations, etc." },
     "templates": {
       "type": "array",
       "minItems": 1,
+      "description": "Workout templates (days). Example: Day A and Day B for an upper/lower split. Each template is one complete workout session.",
       "items": { "$ref": "#/$defs/Template" }
     }
   },
@@ -21,12 +22,14 @@
     "Template": {
       "type": "object",
       "required": ["id", "name", "groups"],
+      "description": "One workout session template (e.g. \"Day A - Upper Body\").",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
+        "id": { "type": "string", "description": "Unique template ID within the plan, e.g. \"day-a\", \"push-1\"" },
+        "name": { "type": "string", "description": "Display name shown to user, e.g. \"Day A\"" },
         "notes": { "type": "string" },
         "groups": {
           "type": "array",
+          "description": "Exercise groups, typically organized by muscle group (e.g. \"Legs\", \"Chest\", \"Back\"). Exercises within a group are performed in order.",
           "items": { "$ref": "#/$defs/ExerciseGroup" }
         }
       }
@@ -34,8 +37,9 @@
     "ExerciseGroup": {
       "type": "object",
       "required": ["name", "exercises"],
+      "description": "A group of exercises, usually targeting the same muscle group.",
       "properties": {
-        "name": { "type": "string" },
+        "name": { "type": "string", "description": "Group name, e.g. \"Legs\", \"Chest + Shoulders\"" },
         "exercises": {
           "type": "array",
           "items": { "$ref": "#/$defs/Exercise" }
@@ -45,44 +49,95 @@
     "Exercise": {
       "type": "object",
       "required": ["id", "name", "body_part", "sets"],
+      "description": "A single exercise with its prescribed sets and execution parameters.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
+        "id": {
+          "type": "string",
+          "description": "Unique exercise ID within the plan, e.g. \"a1\", \"b3\". Used to link supersets via superset_with."
+        },
+        "name": {
+          "type": "string",
+          "description": "Exercise name shown to user, e.g. \"Bench Press\", \"Lat Pulldown\". Use the user's language."
+        },
         "body_part": {
           "type": "string",
-          "enum": ["chest", "back", "shoulders", "legs", "arms", "core", "full_body"]
+          "enum": ["chest", "back", "shoulders", "legs", "arms", "core", "full_body"],
+          "description": "Primary muscle group targeted."
         },
         "equipment": {
           "type": "string",
-          "enum": ["machine", "barbell", "dumbbell", "cable", "bodyweight", "plate_loaded", "smith_machine", "other"]
+          "enum": ["machine", "barbell", "dumbbell", "cable", "bodyweight", "plate_loaded", "smith_machine", "other"],
+          "description": "Equipment type. plate_loaded = plate-loaded machines (not free barbells)."
         },
         "sets": {
           "type": "array",
+          "description": "Ordered list of prescribed sets. The app executes them in order. For drop_set technique: alternate working + drop sets. For myo_reps: provide only one activation set -- mini-sets are generated dynamically by the app.",
           "items": { "$ref": "#/$defs/PrescribedSet" }
         },
-        "rest_seconds": { "type": "integer", "minimum": 0 },
+        "rest_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Rest time in seconds between sets. Typical: 60-90 for isolation, 120-180 for compound. For myo_reps the app uses 5s between mini-sets automatically. Default: 90."
+        },
         "technique": {
           "type": "string",
           "enum": ["straight", "drop_set", "rest_pause", "myo_reps", "superset"],
-          "default": "straight"
+          "default": "straight",
+          "description": "Execution technique. straight = normal sequential sets. drop_set = working set then immediately reduce weight (no rest) for a drop set, then rest. rest_pause = set to failure, short 15-20s pause, continue to failure again. myo_reps = activation set (12-15 reps RIR 1-2), then 5s rest, then mini-sets of 3-5 reps until failure. superset = paired with another exercise via superset_with, alternating sets with no rest between exercises, rest only after both are done."
         },
-        "superset_with": { "type": "string" },
-        "tempo": { "type": "string", "pattern": "^[0-9X]{1,2}-[0-9X]{1,2}-[0-9X]{1,2}-[0-9X]{1,2}$" },
-        "notes": { "type": "string" },
-        "stretch_focus": { "type": "boolean", "default": false }
+        "superset_with": {
+          "type": "string",
+          "description": "ID of the partner exercise for superset technique. BOTH exercises must have technique=\"superset\" and reference each other. Example: exercise \"a7\" has superset_with=\"a8\", and exercise \"a8\" has superset_with=\"a7\". Both must have the same number of working sets."
+        },
+        "tempo": {
+          "type": "string",
+          "pattern": "^[0-9X]{1,2}-[0-9X]{1,2}-[0-9X]{1,2}-[0-9X]{1,2}$",
+          "description": "Tempo notation: eccentric-pause_bottom-concentric-pause_top in seconds. Example: \"2-2-1-0\" = 2s down, 2s pause at bottom, 1s up, 0s pause at top. X = explosive. Optional."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Coaching cues and execution notes shown to the user during the exercise. Keep concise -- the user reads this on a phone screen while resting. Use the user's language."
+        },
+        "stretch_focus": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, emphasize the stretched position for hypertrophy (longer eccentric, pause at full stretch)."
+        },
+        "max_mini_sets": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of dynamic mini-sets for myo_reps technique (not counting the activation set). The app stops generating mini-sets after this limit. Default: 5. Only relevant for myo_reps."
+        }
       }
     },
     "PrescribedSet": {
       "type": "object",
+      "description": "One prescribed set within an exercise. For drop_set exercises: use alternating working + drop sets (e.g. working, drop, working, drop). For myo_reps: provide ONLY the activation set (type=working) -- the app generates mini-sets dynamically. For straight/rest_pause: just list working sets.",
       "properties": {
         "type": {
           "type": "string",
           "enum": ["warmup", "working", "drop", "backoff"],
-          "default": "working"
+          "default": "working",
+          "description": "Set type. warmup = light warm-up set (lower weight, not tracked for progression). working = main working set. drop = drop set (used after a working set in drop_set technique; weight is auto-calculated from the previous working set using weight_percent_drop). backoff = lighter back-off set after working sets."
         },
-        "reps": { "type": "integer", "description": "Exact number of prescribed repetitions" },
-        "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
-        "weight_percent_drop": { "type": "number" }
+        "reps": {
+          "type": "integer",
+          "description": "Exact number of prescribed repetitions. The app shows this as a target. Examples: 12 for hypertrophy, 5 for strength, 15 for warm-up."
+        },
+        "weight_kg": {
+          "type": "integer",
+          "description": "Starting weight in kg. Optional but highly recommended -- without it the user starts at 0 kg and has to manually set the weight. For warmup sets, use ~40-60% of working weight. For drop sets, omit this -- the app auto-calculates from weight_percent_drop."
+        },
+        "rir": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Reps In Reserve -- how many reps the user should leave before failure. 0 = to failure, 1 = stop with 1 rep left, 2 = stop with 2 reps left. Typical for hypertrophy: 1-2 on working sets, 0 on last set or intensity techniques."
+        },
+        "weight_percent_drop": {
+          "type": "number",
+          "description": "Only for drop sets (type=\"drop\"). Fraction of weight to drop from the previous working set. Example: 0.3 = drop 30% (if working was 100 kg, drop set will be 70 kg). The app calculates the actual weight automatically."
+        }
       }
     }
   }

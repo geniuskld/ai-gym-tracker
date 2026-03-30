@@ -44,7 +44,7 @@
         "finished_at": { "type": "string", "format": "date-time" },
         "duration_minutes": { "type": "number" },
         "workout_notes": { "type": "string" },
-        "perceived_effort": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "perceived_effort": { "type": "integer", "minimum": 1, "maximum": 3, "description": "1=easy, 2=moderate, 3=hard" },
         "exercises": {
           "type": "array",
           "items": { "$ref": "#/$defs/ExerciseLog" }
@@ -62,7 +62,8 @@
           "type": "array",
           "items": { "$ref": "#/$defs/SetLog" }
         },
-        "exercise_notes": { "type": "string" }
+        "exercise_notes": { "type": "string" },
+        "exercise_rating": { "type": "integer", "minimum": 1, "maximum": 3, "description": "Optional per-exercise feeling: 1=easy, 2=ok, 3=heavy" }
       }
     },
     "SetLog": {

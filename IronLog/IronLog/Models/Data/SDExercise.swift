@@ -14,6 +14,7 @@ final class SDExercise {
     var notes: String?
     var stretchFocus: Bool
     var sortOrder: Int
+    var maxMiniSets: Int?
 
     var group: SDExerciseGroup?
 
@@ -31,7 +32,8 @@ final class SDExercise {
         tempo: String? = nil,
         notes: String? = nil,
         stretchFocus: Bool = false,
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        maxMiniSets: Int? = nil
     ) {
         self.exerciseId = exerciseId
         self.name = name
@@ -44,6 +46,7 @@ final class SDExercise {
         self.notes = notes
         self.stretchFocus = stretchFocus
         self.sortOrder = sortOrder
+        self.maxMiniSets = maxMiniSets
         self.prescribedSets = []
     }
 }

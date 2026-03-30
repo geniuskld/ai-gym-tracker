@@ -44,6 +44,7 @@ struct ExerciseJSON: Codable {
     let tempo: String?
     let notes: String?
     let stretchFocus: Bool?
+    let maxMiniSets: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -54,17 +55,20 @@ struct ExerciseJSON: Codable {
         case supersetWith = "superset_with"
         case tempo, notes
         case stretchFocus = "stretch_focus"
+        case maxMiniSets = "max_mini_sets"
     }
 }
 
 struct PrescribedSetJSON: Codable {
     let type: SetType?
     let reps: Int?
+    let weightKg: Int?
     let rir: Int?
     let weightPercentDrop: Double?
 
     enum CodingKeys: String, CodingKey {
         case type, reps, rir
+        case weightKg = "weight_kg"
         case weightPercentDrop = "weight_percent_drop"
     }
 }

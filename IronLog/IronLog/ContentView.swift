@@ -27,7 +27,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.workout)
 
-            Text("History")
+            WorkoutHistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }

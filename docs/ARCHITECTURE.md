@@ -90,6 +90,12 @@ SDWorkout logs → WorkoutExportService → JSON (clipboard/share)
 - **Layer 1: JSON Codable structs** — pure value types, 1:1 mirror of JSON schemas, no SwiftData deps
 - **Layer 2: SwiftData @Model classes** — prefixed with `SD`, relationships via SwiftData, source of truth
 
+### Weight prefill strategy
+- Each PrescribedSet may have optional `weight_kg` (integer, from plan)
+- First workout: weight pre-filled from plan's `weight_kg`
+- Subsequent workouts: weight copied from previous workout's same exercise/set
+- Fallback chain: previous workout -> plan -> empty (user enters manually)
+
 ### Key relationships
 ```
 SDPlan (1) ──→ (N) SDTemplate

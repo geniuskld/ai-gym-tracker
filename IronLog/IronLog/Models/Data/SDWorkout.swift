@@ -6,6 +6,7 @@ final class SDWorkout {
     var workoutId: String
     var templateId: String
     var templateName: String
+    var planName: String?
     var startedAt: Date
     var finishedAt: Date?
     var durationMinutes: Double?
@@ -19,11 +20,13 @@ final class SDWorkout {
         workoutId: String = UUID().uuidString,
         templateId: String,
         templateName: String,
+        planName: String? = nil,
         startedAt: Date = .now
     ) {
         self.workoutId = workoutId
         self.templateId = templateId
         self.templateName = templateName
+        self.planName = planName
         self.startedAt = startedAt
         self.exercises = []
     }

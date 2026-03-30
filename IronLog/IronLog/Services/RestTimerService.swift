@@ -17,6 +17,10 @@ final class RestTimerService {
     private var startDate: Date?
     private static let notificationID = "rest-timer-done"
 
+    /// Context for the Live Activity display
+    var liveActivityExerciseName: String = ""
+    var liveActivityNextLabel: String = ""
+
     func start(seconds: Int) {
         stop()
         totalSeconds = seconds
@@ -28,6 +32,11 @@ final class RestTimerService {
         startDate = .now
 
         scheduleNotification(seconds: seconds)
+        RestTimerActivityManager.shared.startResting(
+            exerciseName: liveActivityExerciseName,
+            nextSetLabel: liveActivityNextLabel,
+            totalSeconds: seconds
+        )
 
         timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
@@ -59,6 +68,7 @@ final class RestTimerService {
         timerCancellable = nil
         isRunning = false
         cancelNotification()
+        RestTimerActivityManager.shared.endIfNeeded()
     }
 
     func skip() {
@@ -94,6 +104,7 @@ final class RestTimerService {
             didVibrate = true
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
+            RestTimerActivityManager.shared.markOvertime()
         }
     }
 

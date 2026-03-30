@@ -45,6 +45,7 @@ struct WorkoutJSON: Codable {
     let id: String
     let templateId: String
     let templateName: String?
+    let planName: String?
     let startedAt: Date
     let finishedAt: Date?
     let durationMinutes: Double?
@@ -56,6 +57,7 @@ struct WorkoutJSON: Codable {
         case id
         case templateId = "template_id"
         case templateName = "template_name"
+        case planName = "plan_name"
         case startedAt = "started_at"
         case finishedAt = "finished_at"
         case durationMinutes = "duration_minutes"
@@ -71,12 +73,14 @@ struct ExerciseLogJSON: Codable {
     let order: Int?
     let sets: [SetLogJSON]
     let exerciseNotes: String?
+    let exerciseRating: Int?
 
     enum CodingKeys: String, CodingKey {
         case exerciseId = "exercise_id"
         case exerciseName = "exercise_name"
         case order, sets
         case exerciseNotes = "exercise_notes"
+        case exerciseRating = "exercise_rating"
     }
 }
 

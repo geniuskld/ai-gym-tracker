@@ -7,6 +7,7 @@ final class SDExerciseLog {
     var exerciseName: String
     var order: Int
     var exerciseNotes: String?
+    var exerciseRating: Int?
 
     var workout: SDWorkout?
 

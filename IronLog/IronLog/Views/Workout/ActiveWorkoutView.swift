@@ -26,6 +26,8 @@ struct ActiveWorkoutView: View {
                 EnterRepsView(vm: vm)
             case .resting:
                 RestingPhaseView(vm: vm)
+            case .ratingExercise:
+                ExerciseRatingView(vm: vm)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -39,7 +41,7 @@ struct ActiveWorkoutView: View {
                     .font(.subheadline)
             }
             ToolbarItem(placement: .cancellationAction) {
-                ExerciseListMenu(vm: vm)
+                ExerciseListButton(vm: vm)
             }
         }
         #if DEBUG
@@ -91,8 +93,17 @@ private struct ReadyPhaseView: View {
             Spacer()
 
             ExerciseHeader(vm: vm)
-            SetBadge(vm: vm)
-            CompletedSetsSummary(vm: vm)
+
+            if !vm.flowInstruction.isEmpty {
+                let isDrop = vm.currentSet?.type == "drop"
+                Text(vm.flowInstruction)
+                    .font(isDrop ? .title2.weight(.bold) : .subheadline.weight(.medium))
+                    .foregroundStyle(isDrop ? .orange : .secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            SetRoadmap(vm: vm)
 
             Spacer()
 
@@ -116,6 +127,7 @@ private struct ReadyPhaseView: View {
 
     private var weightLabel: String {
         let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight ?? 0
+        if w == 0 { return "Set weight" }
         return "\(formatted(w)) kg"
     }
 }
@@ -125,7 +137,6 @@ private struct ReadyPhaseView: View {
 private struct SetWeightView: View {
     @Bindable var vm: ActiveWorkoutViewModel
     @State private var weight: Double = 0
-    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(spacing: 24) {
@@ -139,7 +150,6 @@ private struct SetWeightView: View {
                 .foregroundStyle(.secondary)
 
             WeightStepper(weight: $weight)
-                .focused($focused)
 
             Spacer()
 
@@ -159,7 +169,6 @@ private struct SetWeightView: View {
         .padding()
         .onAppear {
             weight = vm.lastCompletedWeight ?? 0
-            focused = true
         }
     }
 }
@@ -174,7 +183,7 @@ private struct PerformingPhaseView: View {
             Spacer()
 
             ExerciseHeader(vm: vm)
-            SetBadge(vm: vm)
+            SetRoadmap(vm: vm)
 
             Text(vm.setStopwatch.formattedTime)
                 .font(.system(size: 64, weight: .thin, design: .monospaced))
@@ -275,8 +284,7 @@ private struct RestingPhaseView: View {
     var body: some View {
         VStack(spacing: 20) {
             ExerciseHeader(vm: vm)
-
-            CompletedSetsSummary(vm: vm)
+            SetRoadmap(vm: vm, condensed: true)
 
             Spacer()
 
@@ -291,6 +299,9 @@ private struct RestingPhaseView: View {
                     Text(nextLabel)
                         .font(.callout.weight(.semibold))
                         .textCase(.uppercase)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 180)
                 }
                 .foregroundStyle(.white)
                 .frame(width: 220, height: 220)
@@ -314,13 +325,24 @@ private struct RestingPhaseView: View {
             .shadow(color: vm.restTimer.isOvertime ? .yellow.opacity(0.4) : .blue.opacity(0.4), radius: 12)
 
             Spacer()
-            Spacer()
+
+            if vm.isDynamicFlow {
+                Button("Finish exercise") { vm.finishExercise() }
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.bottom, 16)
+            } else {
+                Spacer()
+            }
         }
         .padding()
     }
 
     private var nextLabel: String {
-        let nextSetNum = vm.currentSetIndex + 2
+        if !vm.flowInstruction.isEmpty {
+            return "NEXT: \(vm.flowInstruction)"
+        }
+        let nextSetNum = vm.currentSetIndex + 1
         let totalSets = vm.currentExercise?.sets.count ?? 0
         return nextSetNum <= totalSets ? "SET \(nextSetNum)" : "NEXT"
     }
@@ -333,12 +355,38 @@ private struct ExerciseHeader: View {
     var body: some View {
         if let ex = vm.currentExercise {
             VStack(spacing: 6) {
-                Text(ex.name)
-                    .font(.title2.weight(.bold))
-                    .multilineTextAlignment(.center)
+                // Superset: prominent label + both exercises
+                if let partnerIdx = ex.supersetPartnerIndex {
+                    Label("Superset", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.purple)
+
+                    Text(ex.name)
+                        .font(.title2.weight(.bold))
+                        .multilineTextAlignment(.center)
+
+                    Text(vm.exercises[partnerIdx].name)
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    Text(ex.name)
+                        .font(.title2.weight(.bold))
+                        .multilineTextAlignment(.center)
+
+                    // Technique badge (non-superset)
+                    if let name = vm.currentFlow?.displayName {
+                        Text(name)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(techniqueBadgeColor(ex.technique))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(techniqueBadgeColor(ex.technique).opacity(0.12), in: Capsule())
+                    }
+                }
+
                 if let notes = ex.notes, !notes.isEmpty {
                     Text(notes)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.orange)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
@@ -346,108 +394,393 @@ private struct ExerciseHeader: View {
             }
         }
     }
-}
 
-private struct SetBadge: View {
-    let vm: ActiveWorkoutViewModel
-    var body: some View {
-        VStack(spacing: 4) {
-            Text("SET \(vm.currentSetIndex + 1) of \(vm.currentExercise?.sets.count ?? 0)")
-                .font(.title3.weight(.bold))
-            if !vm.prescribedHint.isEmpty {
-                Text(vm.prescribedHint)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
+    private func techniqueBadgeColor(_ technique: String) -> Color {
+        switch technique {
+        case "drop_set":   return .orange
+        case "rest_pause": return .blue
+        case "myo_reps":   return .purple
+        default:           return .secondary
         }
     }
 }
 
-private struct CompletedSetsSummary: View {
+private struct SetRoadmap: View {
     let vm: ActiveWorkoutViewModel
+    var condensed: Bool = false
+
     var body: some View {
-        let done = vm.currentExercise?.sets.filter(\.isCompleted) ?? []
-        if !done.isEmpty {
-            VStack(spacing: 4) {
-                ForEach(done) { s in
-                    HStack(spacing: 8) {
-                        Text("Set \(s.setNumber)")
-                            .font(.caption.weight(.medium))
-                        if let w = s.weightKg { Text("\(formatted(w)) kg") }
-                        if let r = s.reps { Text("\(r) reps") }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        guard let ex = vm.currentExercise else { return AnyView(EmptyView()) }
+        let sets = ex.sets
+        let activeIdx = vm.currentSetIndex
+
+        // For myo-reps with many sets, show condensed summary
+        if condensed && sets.count > 6 {
+            return AnyView(condensedView(sets: sets))
+        }
+
+        return AnyView(
+            VStack(spacing: 2) {
+                ForEach(Array(sets.enumerated()), id: \.element.id) { idx, s in
+                    setRow(s, index: idx, isActive: idx == activeIdx)
                 }
             }
             .padding(.vertical, 8)
+        )
+    }
+
+    private func setRow(_ s: SetState, index: Int, isActive: Bool) -> some View {
+        HStack(spacing: 8) {
+            // Set number / checkmark
+            if s.isCompleted {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.bold))
+                    .frame(width: 20)
+            } else {
+                Text("\(index + 1).")
+                    .font(.caption.weight(isActive ? .bold : .regular))
+                    .frame(width: 20)
+            }
+
+            // Type label
+            let typeLabel = setTypeLabel(s.type)
+            if !typeLabel.isEmpty {
+                Text(typeLabel)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(setTypeColor(s.type))
+            }
+
+            // Reps
+            if let r = s.isCompleted ? s.reps : s.prescribedReps {
+                Text("\(r) reps")
+                    .font(.caption)
+            }
+
+            // Weight
+            if let w = s.isCompleted ? s.weightKg : (s.weightKg ?? s.prescribedWeightKg.map { Double($0) }) {
+                Text("\(formatted(w)) kg")
+                    .font(.caption)
+            }
+
+            // RIR
+            if !s.isCompleted, let rir = s.prescribedRir {
+                Text("RIR \(rir)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
         }
+        .foregroundStyle(rowStyle(isCompleted: s.isCompleted, isActive: isActive))
+        .fontWeight(isActive ? .bold : .regular)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 4)
+    }
+
+    private func rowStyle(isCompleted: Bool, isActive: Bool) -> some ShapeStyle {
+        if isActive { return AnyShapeStyle(.primary) }
+        if isCompleted { return AnyShapeStyle(.tertiary) }
+        return AnyShapeStyle(.secondary)
+    }
+
+    private func setTypeLabel(_ type: String) -> String {
+        switch type {
+        case "warmup": return "Warmup"
+        case "drop": return "Drop"
+        case "myo_mini": return "Mini"
+        default: return ""
+        }
+    }
+
+    private func setTypeColor(_ type: String) -> Color {
+        switch type {
+        case "warmup": return .blue
+        case "drop": return .orange
+        case "myo_mini": return .purple
+        default: return .secondary
+        }
+    }
+
+    private func condensedView(sets: [SetState]) -> some View {
+        let done = sets.filter(\.isCompleted)
+        let totalReps = done.compactMap(\.reps).reduce(0, +)
+        return Text("\(done.count) sets done / \(totalReps) total reps")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 8)
     }
 }
 
 private struct WeightStepper: View {
     @Binding var weight: Double
-    @FocusState private var isFocused: Bool
 
     var body: some View {
-        HStack(spacing: 16) {
-            Button { weight = max(0, weight - 1) } label: {
-                Image(systemName: "minus.circle.fill").font(.title)
+        VStack(spacing: 12) {
+            // Weight display
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(Int(weight))")
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                Text("kg")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
             }
-            .tint(.secondary)
 
-            TextField(
-                "0",
-                value: $weight,
-                format: .number.precision(.fractionLength(0))
-            )
-            .font(.system(size: 40, weight: .bold, design: .monospaced))
-            .keyboardType(.numberPad)
-            .multilineTextAlignment(.center)
-            .frame(width: 140)
-            .focused($isFocused)
-
-            Text("kg")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-
-            Button { weight += 1 } label: {
-                Image(systemName: "plus.circle.fill").font(.title)
+            // Step buttons
+            HStack(spacing: 12) {
+                stepButton(label: "-5", delta: -5)
+                stepButton(label: "-1", delta: -1)
+                stepButton(label: "+1", delta: 1)
+                stepButton(label: "+5", delta: 5)
             }
-            .tint(.secondary)
+        }
+    }
+
+    private func stepButton(label: String, delta: Double) -> some View {
+        Button {
+            weight = max(0, weight + delta)
+        } label: {
+            Text(label)
+                .font(.title3.weight(.semibold))
+                .frame(width: 64, height: 48)
+                .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .tint(.primary)
+    }
+}
+
+private struct ExerciseListButton: View {
+    let vm: ActiveWorkoutViewModel
+    @State private var showSheet = false
+
+    var body: some View {
+        Button {
+            showSheet = true
+        } label: {
+            Image(systemName: "list.bullet")
+        }
+        .sheet(isPresented: $showSheet) {
+            ExerciseListSheet(vm: vm, isPresented: $showSheet)
         }
     }
 }
 
-private struct ExerciseListMenu: View {
+private struct ExerciseListSheet: View {
     let vm: ActiveWorkoutViewModel
+    @Binding var isPresented: Bool
 
     var body: some View {
-        let indexed = Array(vm.exercises.enumerated())
-        let incomplete = indexed.filter { !$0.element.sets.allSatisfy(\.isCompleted) }
-        let completed = indexed.filter { $0.element.sets.allSatisfy(\.isCompleted) }
+        NavigationStack {
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
+                        let isCurrent = idx == vm.currentExerciseIndex
+                        let doneSets = ex.sets.filter(\.isCompleted).count
+                        let totalSets = ex.sets.count
+                        let allDone = doneSets == totalSets
 
-        Menu {
-            ForEach(incomplete, id: \.element.id) { idx, ex in
-                Button {
-                    vm.jumpToExercise(idx)
-                } label: {
-                    Label(ex.name, systemImage: "circle")
-                }
-            }
+                        Button {
+                            vm.jumpToExercise(idx)
+                            isPresented = false
+                        } label: {
+                            HStack(spacing: 12) {
+                                // Status icon
+                                ZStack {
+                                    Circle()
+                                        .fill(statusColor(
+                                            isCurrent: isCurrent,
+                                            allDone: allDone
+                                        ).opacity(0.15))
+                                        .frame(width: 36, height: 36)
 
-            if !completed.isEmpty {
-                Divider()
-                ForEach(completed, id: \.element.id) { idx, ex in
-                    Button {
-                        vm.jumpToExercise(idx)
-                    } label: {
-                        Label(ex.name, systemImage: "checkmark.circle.fill")
+                                    if allDone {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(.green)
+                                    } else if isCurrent {
+                                        Image(systemName: "play.fill")
+                                            .font(.caption)
+                                            .foregroundStyle(.blue)
+                                    } else {
+                                        Text("\(idx + 1)")
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+
+                                // Exercise info
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(ex.name)
+                                        .font(.subheadline.weight(
+                                            isCurrent ? .bold : .regular
+                                        ))
+                                        .foregroundStyle(
+                                            allDone ? .secondary : .primary
+                                        )
+                                        .lineLimit(2)
+
+                                    HStack(spacing: 6) {
+                                        // Body part
+                                        Text(bodyPartLabel(ex.bodyPart))
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+
+                                        // Technique badge
+                                        if ex.technique != "straight" {
+                                            Text(techniqueName(ex.technique))
+                                                .font(.caption2.weight(.medium))
+                                                .foregroundStyle(
+                                                    techniqueColor(ex.technique)
+                                                )
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 1)
+                                                .background(
+                                                    techniqueColor(ex.technique)
+                                                        .opacity(0.12),
+                                                    in: Capsule()
+                                                )
+                                        }
+                                    }
+                                }
+
+                                Spacer()
+
+                                // Progress
+                                if allDone {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                        .font(.body)
+                                } else {
+                                    Text("\(doneSets)/\(totalSets)")
+                                        .font(.caption.weight(.medium).monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .listRowBackground(
+                            isCurrent
+                                ? Color.blue.opacity(0.08)
+                                : Color.clear
+                        )
+                        .id(idx)
                     }
                 }
+                .listStyle(.plain)
+                .navigationTitle("Exercises")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { isPresented = false }
+                    }
+                }
+                .onAppear {
+                    proxy.scrollTo(vm.currentExerciseIndex, anchor: .center)
+                }
             }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func statusColor(isCurrent: Bool, allDone: Bool) -> Color {
+        if allDone { return .green }
+        if isCurrent { return .blue }
+        return .secondary
+    }
+
+    private func bodyPartLabel(_ part: String) -> String {
+        switch part {
+        case "legs": return "Legs"
+        case "chest": return "Chest"
+        case "back": return "Back"
+        case "shoulders": return "Shoulders"
+        case "biceps": return "Biceps"
+        case "triceps": return "Triceps"
+        case "core": return "Core"
+        default: return part.capitalized
+        }
+    }
+
+    private func techniqueName(_ technique: String) -> String {
+        switch technique {
+        case "drop_set": return "Drop"
+        case "rest_pause": return "Rest-Pause"
+        case "myo_reps": return "Myo"
+        case "superset": return "Superset"
+        default: return technique
+        }
+    }
+
+    private func techniqueColor(_ technique: String) -> Color {
+        switch technique {
+        case "drop_set": return .orange
+        case "rest_pause": return .blue
+        case "myo_reps": return .purple
+        case "superset": return .purple
+        default: return .secondary
+        }
+    }
+}
+
+// MARK: - Exercise Rating (shown between exercises)
+
+private struct ExerciseRatingView: View {
+    @Bindable var vm: ActiveWorkoutViewModel
+
+    var body: some View {
+        let exName = vm.exercises[vm.ratingExerciseIndex].name
+
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.green)
+
+            Text(exName)
+                .font(.title3.weight(.bold))
+                .multilineTextAlignment(.center)
+
+            Text("How did it feel?")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 16) {
+                ratingButton("Heavy", icon: "flame.fill", color: .red, value: 3)
+                ratingButton("OK", icon: "hand.thumbsup.fill", color: .blue, value: 2)
+                ratingButton("Easy", icon: "wind", color: .green, value: 1)
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            Button("Skip") { vm.submitExerciseRating(nil) }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 24)
+        }
+        .padding()
+    }
+
+    private func ratingButton(
+        _ label: String,
+        icon: String,
+        color: Color,
+        value: Int
+    ) -> some View {
+        Button {
+            vm.submitExerciseRating(value)
         } label: {
-            Image(systemName: "list.bullet")
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                Text(label)
+                    .font(.caption.weight(.medium))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            .foregroundStyle(color)
         }
     }
 }
@@ -460,25 +793,18 @@ private func formatted(_ value: Double) -> String {
 
 private struct FinishWorkoutSheet: View {
     @Bindable var vm: ActiveWorkoutViewModel
-    @State private var effort: Double = 7
+    @State private var effort: PerceivedEffort = .moderate
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Session RPE") {
-                    VStack {
-                        Text("\(Int(effort))")
-                            .font(.title.weight(.bold))
-                        Slider(value: $effort, in: 1...10, step: 1)
+                Section("How hard was it?") {
+                    Picker("Effort", selection: $effort) {
+                        ForEach(PerceivedEffort.allCases, id: \.self) { e in
+                            Text(e.label).tag(e)
+                        }
                     }
-                }
-                Section("Notes") {
-                    TextField(
-                        "How did it go?",
-                        text: $vm.finishNotes,
-                        axis: .vertical
-                    )
-                    .lineLimit(3...6)
+                    .pickerStyle(.segmented)
                 }
                 Section {
                     HStack {
@@ -497,12 +823,32 @@ private struct FinishWorkoutSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        vm.finishEffort = Int(effort)
+                        vm.finishEffort = effort.logValue
                         vm.saveWorkout()
                     }
                     .fontWeight(.bold)
                 }
             }
+        }
+    }
+}
+
+enum PerceivedEffort: String, CaseIterable {
+    case easy, moderate, hard
+
+    var label: String {
+        switch self {
+        case .easy: "Easy"
+        case .moderate: "Moderate"
+        case .hard: "Hard"
+        }
+    }
+
+    var logValue: Int {
+        switch self {
+        case .easy: 1
+        case .moderate: 2
+        case .hard: 3
         }
     }
 }
