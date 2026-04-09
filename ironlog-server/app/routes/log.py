@@ -94,6 +94,25 @@ async def get_log(
     return results
 
 
+@router.delete("/log/{workout_id}")
+async def delete_log(
+    workout_id: str,
+    user: dict = Depends(get_current_user),
+    response: Response = None,
+):
+    _attach_refreshed_token(user, response)
+
+    result = await get_db().workout_logs.delete_one(
+        {"user_id": user["_id"], "id": workout_id},
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout not found",
+        )
+    return {"deleted": workout_id}
+
+
 def _attach_refreshed_token(user: dict, response: Response | None) -> None:
     payload = user.get("_token_payload")
     if payload and response:

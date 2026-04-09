@@ -114,6 +114,7 @@
 		70A347B31B8BDD449846EFE0 /* SchemaRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaRegistry.swift; sourceTree = "<group>"; };
 		71EBFF0127D2BB2A6364411D /* RestPauseFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestPauseFlow.swift; sourceTree = "<group>"; };
 		744DAE6CAFA21C0C011011FB /* TechniqueFlowFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechniqueFlowFactory.swift; sourceTree = "<group>"; };
+		77FD0FF6F621454F8735020E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7DA7DAF98BF56BC4F63DE0B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7FB8A89E56D00AB1E9359AFA /* IronLog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IronLog.entitlements; sourceTree = "<group>"; };
 		91F1BA55C15D47CFEF1663B3 /* SDPrescribedSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDPrescribedSet.swift; sourceTree = "<group>"; };
@@ -319,6 +320,7 @@
 			isa = PBXGroup;
 			children = (
 				4DFB2BDF5ACD13AA4AA122DE /* ContentView.swift */,
+				77FD0FF6F621454F8735020E /* Info.plist */,
 				7FB8A89E56D00AB1E9359AFA /* IronLog.entitlements */,
 				32F525BCBC44EAA20594F626 /* IronLogApp.swift */,
 				915A40F25C13986B6CCF91AD /* Models */,
@@ -565,11 +567,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = IronLog/IronLog.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "IronLog saves your strength training workouts to Apple Health";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_FILE = IronLog/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -589,11 +587,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = IronLog/IronLog.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "IronLog saves your strength training workouts to Apple Health";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_FILE = IronLog/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

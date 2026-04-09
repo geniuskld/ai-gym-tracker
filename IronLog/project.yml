@@ -39,13 +39,18 @@ targets:
       path: IronLog/IronLog.entitlements
       properties:
         com.apple.developer.healthkit: true
+    info:
+      path: IronLog/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSSupportsLiveActivities: true
+        NSHealthUpdateUsageDescription: IronLog saves your strength training workouts to Apple Health
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
     settings:
       base:
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_NSSupportsLiveActivities: true
-        INFOPLIST_KEY_NSHealthUpdateUsageDescription: IronLog saves your strength training workouts to Apple Health
-        GENERATE_INFOPLIST_FILE: true
         PRODUCT_BUNDLE_IDENTIFIER: com.W88C7J82R5.ironlog
         PRODUCT_NAME: IronLog
         SWIFT_EMIT_LOC_STRINGS: true

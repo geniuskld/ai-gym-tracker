@@ -37,7 +37,15 @@ struct WorkoutHistoryView: View {
 
     private func deleteWorkouts(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(workouts[index])
+            let workout = workouts[index]
+            let workoutId = workout.workoutId
+            modelContext.delete(workout)
+
+            if SyncService.isConfigured, SyncService.isAuthenticated {
+                Task.detached {
+                    try? await SyncService.deleteWorkout(workoutId)
+                }
+            }
         }
         try? modelContext.save()
     }

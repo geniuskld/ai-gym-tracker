@@ -41,6 +41,7 @@ struct AuthResponse: Codable {
 enum SyncService {
 
     private static let serverURLKey = "syncServerURL"
+    static let defaultServerURL = "http://v170184.hosted-by-vdsina.com:8844"
     private static let keychainTokenKey = "ironlog_jwt"
     private static let keychainEmailKey = "ironlog_email"
 
@@ -198,6 +199,21 @@ enum SyncService {
             workouts: [WorkoutExportService.workoutToJSON(workout)]
         )
         try await uploadLog(log)
+    }
+
+    // MARK: - Delete Log
+
+    static func deleteWorkout(_ workoutId: String) async throws {
+        let base = try baseURL()
+        let url = base.appendingPathComponent("log/\(workoutId)")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        try attachAuth(&request)
+
+        let (data, response) = try await urlSession.data(for: request)
+        handleRefreshedToken(response)
+        try checkResponse(response, data: data)
     }
 
     // MARK: - Helpers
