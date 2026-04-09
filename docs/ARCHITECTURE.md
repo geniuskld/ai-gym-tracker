@@ -1,10 +1,10 @@
-# IronLog -- Workout Tracker iOS App
-## Architecture Document
+# IronLog -- Architecture Document
 
-**Updated:** 2026-03-30
+**Updated:** 2026-04-09
 **Target:** iOS 17+, Swift, SwiftUI, SwiftData
 **Pattern:** MVVM + Services
 **Build:** XcodeGen (project.yml -> xcodeproj)
+**Server:** Python, FastAPI, MongoDB, Docker
 
 ---
 
@@ -12,29 +12,31 @@
 
 ```
 IronLog/
-├── IronLogApp.swift                 # Entry point, SwiftData container setup
-├── ContentView.swift                # Tab-based root: Plans / Active Workout / History
+├── IronLogApp.swift                 # Entry point, SwiftData container, default settings
+├── ContentView.swift                # Tab-based root: Plans / Active Workout / History / Settings
 │
 ├── Models/
 │   ├── JSON/                        # Codable structs for import/export
-│   │   ├── WorkoutPlanJSON.swift    # Import schema types
-│   │   └── WorkoutLogJSON.swift     # Export schema types (with exerciseRating, planName)
+│   │   ├── WorkoutPlanJSON.swift    # Import schema types (PlanType enum)
+│   │   └── WorkoutLogJSON.swift     # Export schema types (exerciseRating, planName, planType, planId)
 │   │
 │   └── Data/                        # SwiftData @Model classes (SD* prefix)
-│       ├── SDPlan.swift             # Stored workout plan
+│       ├── SDPlan.swift             # Stored plan (planType, planId, planVersion)
 │       ├── SDTemplate.swift         # Training day template
 │       ├── SDExerciseGroup.swift    # Muscle group container
-│       ├── SDExercise.swift         # Exercise definition (incl. maxMiniSets)
+│       ├── SDExercise.swift         # Exercise definition (incl. maxMiniSets, notes)
 │       ├── SDPrescribedSet.swift    # Prescribed set (type, reps, weightKg, rir, weightPercentDrop)
-│       ├── SDWorkout.swift          # Completed workout session (incl. planName)
+│       ├── SDWorkout.swift          # Workout session (planName, planType, planId)
 │       ├── SDExerciseLog.swift      # Logged exercise (incl. exerciseRating)
 │       └── SDSetLog.swift           # Logged individual set
 │
 ├── Services/
-│   ├── PlanImportService.swift      # JSON parsing, validation, SwiftData persistence
+│   ├── PlanImportService.swift      # JSON parsing, schema validation, SwiftData persistence
 │   ├── WorkoutExportService.swift   # Build export JSON from SwiftData models
 │   ├── RestTimerService.swift       # Countdown timer with haptics, notifications, Live Activity
-│   └── RestTimerActivity.swift      # ActivityKit: RestTimerAttributes + RestTimerActivityManager
+│   ├── RestTimerActivity.swift      # ActivityKit: RestTimerAttributes + RestTimerActivityManager
+│   ├── SyncService.swift            # Server sync: auth, plan fetch, log upload/delete, JWT/Keychain
+│   └── SchemaRegistry.swift         # PlanType enum, PlanSchema.id (schema timestamp)
 │
 ├── TechniqueFlows/                  # Stateless flow protocols for technique-specific set ordering
 │   ├── TechniqueFlow.swift          # TechniqueFlow protocol + TechniqueStep struct
@@ -51,29 +53,53 @@ IronLog/
 │
 ├── Views/
 │   ├── Plans/
-│   │   ├── PlansListView.swift      # List of imported plans
+│   │   ├── PlansListView.swift      # List of plans + sync button
 │   │   ├── ImportView.swift         # Paste JSON / pick file
 │   │   └── PlanPreviewView.swift    # Preview before confirming import
 │   │
 │   ├── Workout/
-│   │   ├── TemplatePicker.swift     # Choose Day A / Day B
+│   │   ├── TemplatePicker.swift     # Choose template + resume banner + plan update banner
 │   │   ├── ActiveWorkoutView.swift  # Main workout screen (all phases)
 │   │   └── DebugLogView.swift       # Debug: view raw set data during workout
 │   │
-│   └── History/
-│       └── WorkoutHistoryView.swift # List + detail + swipe-delete + ShareLink export
+│   ├── History/
+│   │   └── WorkoutHistoryView.swift # List + detail + swipe-delete (with server sync) + export
+│   │
+│   └── Settings/
+│       └── SettingsView.swift       # Server URL, account (login/register/logout), test connection
 │
 ├── Utilities/
 │   └── Extensions.swift             # Date formatting, etc.
 │
 └── Resources/
     ├── Assets.xcassets/             # App icon (bicep+brain), AccentColor
-    └── sample-plan.json             # Bundled example plan for first launch
+    └── sample-plan.json             # Bundled example plan
 
 IronLogWidgets/                      # Widget extension target (Live Activity UI)
-├── Info.plist                       # NSExtension with widgetkit-extension point
-├── IronLogWidgetsBundle.swift       # @main WidgetBundle
+├── Info.plist
+├── IronLogWidgetsBundle.swift
 └── RestTimerLiveActivity.swift      # Dynamic Island + Lock Screen Live Activity views
+
+ironlog-server/                      # Sync server
+├── app/
+│   ├── main.py                      # FastAPI app, lifespan, middleware, routers
+│   ├── config.py                    # pydantic-settings (JWT, MongoDB)
+│   ├── auth.py                      # JWT (sliding 90d), bcrypt, maybe_refresh_token
+│   ├── database.py                  # motor async client, get_db(), indexes
+│   ├── middleware.py                # request_id, access log (JSON stdout)
+│   ├── schemas/
+│   │   ├── __init__.py              # SCHEMA_REGISTRY, PlanType enum
+│   │   ├── base.py                  # Base contract validation (plan_name, created_at)
+│   │   ├── strength_v1.py           # strength validation (groups, exercises, sets)
+│   │   └── workout-plan.schema.json # JSON Schema for plan format (x-schema-id)
+│   └── routes/
+│       ├── auth_routes.py           # POST /register, POST /login
+│       ├── plan.py                  # GET /plans, GET /plan, PUT /plan, GET /plan/versions
+│       ├── log.py                   # POST /log, GET /log, DELETE /log/{id}
+│       └── schema.py               # GET /schema (public)
+├── Dockerfile
+├── docker-compose.yml
+└── requirements.txt
 ```
 
 ---
@@ -81,40 +107,86 @@ IronLogWidgets/                      # Widget extension target (Live Activity UI
 ## 2. Data Flow
 
 ```
-JSON Plan (from AI)
+Claude (AI)
     |
     v
-PlanImportService --> SwiftData Store (SDPlan -> SDTemplate -> SDExercise -> SDPrescribedSet)
+Sync Server (FastAPI + MongoDB)
+    |                        ^
+    | GET /plan              | POST /log
+    v                        |
+iOS App (SwiftData)  ------->
+    |
+    v
+PlanImportService --> SDPlan -> SDTemplate -> SDExercise -> SDPrescribedSet
     |
     v
 ActiveWorkoutViewModel
     |-- builds ExerciseState[] + SetState[] from SDTemplate
     |-- creates TechniqueFlow via TechniqueFlowFactory
-    |-- manages SetPhase: ready -> performing -> enterReps -> resting -> ratingExercise
+    |-- manages SetPhase: ready -> performing -> resting -> ratingExercise
     |-- updates Live Activity (performing / resting / overtime)
     |
     v
-SDWorkout + SDExerciseLog + SDSetLog (persisted to SwiftData)
+SDWorkout + SDExerciseLog + SDSetLog
     |
     v
+SyncService.uploadWorkout() --> POST /log (fire-and-forget)
 WorkoutExportService --> JSON (Share Sheet / clipboard)
 ```
 
 ---
 
-## 3. SwiftData Models -- Design Decisions
+## 3. Sync Architecture
+
+### Auth
+- Email/password -> JWT (90-day sliding expiry)
+- При каждом запросе: если до expiry < 30 дней -> X-Refreshed-Token header
+- Клиент хранит JWT + email в Keychain
+- 401 -> token очищается, пользователь переходит на логин
+
+### Plan Sync
+- При запуске TemplatePicker: GET /plan -> сравнить plan_version
+- Если новая версия + schema поддерживается -> баннер "Update"
+- Если schema не поддерживается -> баннер "Update app"
+- PlansListView: ручная кнопка "Sync Plan"
+
+### Log Sync
+- После завершения тренировки: SyncService.uploadWorkout() (fire-and-forget)
+- При swipe-to-delete: SyncService.deleteWorkout() (fire-and-forget)
+- Upsert по workout ID на сервере
+
+### Schema & Compatibility
+- Каждый план несет поле `schema` -- timestamp идентификатор схемы (e.g. `"2026-04-09T22:00:00Z"`)
+- Серверная JSON-схема содержит `x-schema-id` с тем же timestamp; Claude копирует его в план
+- Приложение хранит `PlanSchema.id` -- timestamp своей поддерживаемой схемы
+- **Валидация структурная**: приложение проверяет plan_type, body_part, technique, наличие templates/groups/exercises/sets
+- Загруженные планы не проходящие валидацию -> "not supported" + timestamps обеих схем
+- Ответ сервера не декодируется -> баннер "Update app"
+- PlanType -- enum на обеих сторонах (Python Enum, Swift enum), сейчас: `strength`
+- Неизвестный plan_type -> 422
+
+---
+
+## 4. SwiftData Models -- Design Decisions
 
 ### Two-layer model strategy
 - **Layer 1: JSON Codable structs** -- pure value types, 1:1 mirror of JSON schemas, no SwiftData deps
 - **Layer 2: SwiftData @Model classes** -- prefixed with `SD`, relationships via SwiftData, source of truth
 
+### Shared Base Contract
+Каждый план содержит обязательные поля:
+- `plan_type` -- тип плана (strength, в будущем cycling, cardio, ...)
+- `plan_id` -- стабильный slug (не меняется при переименовании)
+- `plan_version` -- инкрементальная версия содержимого
+- `plan_name` -- человекочитаемое название
+- `schema` -- timestamp идентификатор схемы (для отладки совместимости)
+- `created_at` -- дата создания
+
 ### Weight prefill strategy
-- Each PrescribedSet may have optional `weight_kg` (integer, from plan)
-- Each set in a plan can have its own weight (e.g., warmup 40, warmup 70, working 100)
-- First workout: weight pre-filled from plan's `weight_kg`
-- Subsequent workouts: weight copied from previous workout's same exercise/set
-- Fallback chain: previous workout -> plan -> empty (user enters manually)
-- readySlideRight only applies lastCompletedWeight when the set has no prescribed weight
+- Каждый PrescribedSet может иметь optional `weight_kg` (из плана)
+- Первая тренировка: вес из плана
+- Последующие: вес из прошлой тренировки того же упражнения/сета
+- Fallback: previous workout -> plan -> empty (ручной ввод)
 
 ### Key relationships
 ```
@@ -131,7 +203,7 @@ SDExerciseLog.exerciseId -> string FK to SDExercise (survives re-import)
 
 ---
 
-## 4. Active Workout -- State Machine
+## 5. Active Workout -- State Machine
 
 ### Workout States
 ```
@@ -144,14 +216,10 @@ IDLE -> ACTIVE -> LOGGING_SET <-> REST_TIMER -> ... -> FINISHING -> SAVED
 ### Set Phases (within a set)
 ```
 ready -> performing -> resting -> ready (next set)
-  |          |
-  v          v
-setWeight  enterReps (manual reps entry)
 ```
 
 - **ready**: shows SetRoadmap, slide right = start, slide left = set weight
 - **performing**: stopwatch running, Live Activity shows weight + timer
-- **enterReps**: manual reps input if not using prescribed
 - **resting**: countdown timer, Live Activity shows countdown, overtime pulsing
 - **ratingExercise**: Heavy/OK/Easy rating between exercises (optional)
 
@@ -172,17 +240,17 @@ protocol TechniqueFlow {
 }
 ```
 
-| Technique | Behavior | Flow |
-|-----------|----------|------|
-| `straight` | Sequential sets with rest | StraightFlow: next incomplete set, carry last working weight |
-| `drop_set` | Working + drop (reduce weight %) | DropSetFlow: working -> drops with calculated weight |
-| `rest_pause` | Main set + short-rest continuations | RestPauseFlow: main set -> continuations at same weight |
-| `myo_reps` | Activation + mini-sets (limited) | MyoRepsFlow: activation -> minis (max N, stop if reps < 3) |
-| `superset` | Alternate between paired exercises | SupersetFlow: A1 -> A2 -> rest -> A1 -> A2 -> ... |
+| Technique | Behavior | Timer |
+|-----------|----------|-------|
+| `straight` | Sequential sets with rest | After each set |
+| `drop_set` | Working + drop (reduce weight %) | After last drop only |
+| `rest_pause` | Main set + short-rest continuations | 15-20s between continuations |
+| `myo_reps` | Activation + mini-sets (limited) | 5s between minis |
+| `superset` | Alternate between paired exercises | After both exercises |
 
 ---
 
-## 5. Dynamic Island + Live Activity
+## 6. Dynamic Island + Live Activity
 
 ### Architecture
 - **RestTimerAttributes** (ActivityAttributes): shared between app and widget via source file inclusion
@@ -196,15 +264,9 @@ protocol TechniqueFlow {
 | Resting | timer icon | countdown (blue) | exercise + next label + progress bar |
 | Overtime | timer icon | "GO!" (yellow) | exercise + next label + yellow progress |
 
-### Integration
-- `beginPerforming()` -> `RestTimerActivityManager.startPerforming()`
-- `startRest()` -> `RestTimerActivityManager.startResting()` (via RestTimerService)
-- `enterOvertime()` -> `RestTimerActivityManager.markOvertime()`
-- `reset()` / `stop()` -> `RestTimerActivityManager.endIfNeeded()`
-
 ---
 
-## 6. UI Components (ActiveWorkoutView)
+## 7. UI Components (ActiveWorkoutView)
 
 | Component | Purpose |
 |-----------|---------|
@@ -218,31 +280,32 @@ protocol TechniqueFlow {
 
 ---
 
-## 7. Sprint History
+## 8. Sprint History
 
-### Sprint 1: Foundation (completed)
+### Sprint 1: Foundation
 - Xcode project (XcodeGen), JSON Codable models, SwiftData models
 - PlanImportService, Plans UI (list, import, preview)
 - Basic ActiveWorkout: template picker, set logging, rest timer
 
-### Sprint 2: UX + Features (completed)
+### Sprint 2: UX + Features
 - TechniqueFlow system (straight, drop, myo, rest-pause, superset)
 - Dynamic Island + Lock Screen Live Activity
 - App icon (golden bicep with blue brain)
-- SetRoadmap replacing "1/5" badge
-- Exercise list sheet with progress
-- WeightStepper (-5/-1/+1/+5 buttons)
+- SetRoadmap, WeightStepper, Exercise list sheet
 - Exercise rating (Heavy/OK/Easy) + export
 - Workout history: swipe-delete, ShareLink export, planName
-- max_mini_sets for myo-reps
-- Warmup sets support
+- max_mini_sets for myo-reps, warmup sets
 - Schema documentation
-- Bug fixes: weight override, effort labels, flow instructions
 
-### Sprint 3: Planned
-- Periodization (auto rep-scheme by week)
-- Progress analytics (weight/volume graphs)
-- Auto weight recommendations from history
-- Russian localization
-- AI analysis integration
-- Apple Watch companion (stretch)
+### Sprint 3: Sync Server + Auth
+- Sync-сервер: FastAPI + MongoDB + Docker
+- JWT auth (sliding 90-day expiry, bcrypt)
+- Shared Base Contract (plan_type, plan_id, plan_version, schema)
+- PlanType enum (server + client синхронизированы)
+- Schema identification (timestamp в плане + структурная валидация в приложении)
+- Plan sync: auto-check + manual + update banner
+- Log sync: fire-and-forget upload + delete
+- Keychain storage (JWT, email)
+- Settings: server URL, account management
+- ATS exception для HTTP
+- Exercise notes из плана

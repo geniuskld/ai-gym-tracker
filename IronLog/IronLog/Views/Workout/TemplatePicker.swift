@@ -9,13 +9,41 @@ struct TemplatePicker: View {
         sort: \SDWorkout.startedAt,
         order: .reverse
     ) private var activeWorkouts: [SDWorkout]
+    @Query(
+        sort: \SDWorkout.startedAt,
+        order: .reverse
+    ) private var allWorkouts: [SDWorkout]
     @State private var vm = ActiveWorkoutViewModel()
     @State private var navPath = NavigationPath()
     @State private var didAutoResume = false
     @State private var updateBanner: PlanUpdateBanner?
+    @AppStorage("selectedPlanId") private var selectedPlanId: String = ""
     var autoResumeWorkout: Bool = false
 
     private var activeWorkout: SDWorkout? { activeWorkouts.first }
+
+    private var supportedPlans: [SDPlan] {
+        plans.filter(\.isSupported)
+    }
+
+    private var currentPlan: SDPlan? {
+        // 1. Saved selection
+        if !selectedPlanId.isEmpty,
+           let plan = supportedPlans.first(where: { $0.planId == selectedPlanId }) {
+            return plan
+        }
+        // 2. Last used (from most recent workout)
+        if let lastPlanId = allWorkouts.first(where: { $0.planId != nil })?.planId,
+           let plan = supportedPlans.first(where: { $0.planId == lastPlanId }) {
+            return plan
+        }
+        // 3. First available
+        return supportedPlans.first
+    }
+
+    private var unsupportedPlans: [SDPlan] {
+        plans.filter { !$0.isSupported }
+    }
 
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -26,7 +54,17 @@ struct TemplatePicker: View {
                         systemImage: "dumbbell",
                         description: Text("Import a plan first in the Plans tab")
                     )
-                } else {
+                } else if supportedPlans.isEmpty {
+                    let planDates = unsupportedPlans
+                        .map(\.schema)
+                        .filter { !$0.isEmpty }
+                        .joined(separator: ", ")
+                    ContentUnavailableView(
+                        "Plans Outdated",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text("Schema not supported. Sync or re-import.\nPlan: \(planDates.isEmpty ? "unknown" : planDates), app: \(PlanSchema.id)")
+                    )
+                } else if let plan = currentPlan {
                     List {
                         // Plan update banner
                         if let banner = updateBanner {
@@ -46,30 +84,59 @@ struct TemplatePicker: View {
                             }
                         }
 
-                        ForEach(plans) { plan in
-                            Section(plan.planName) {
-                                let templates = plan.templates.sorted {
-                                    $0.sortOrder < $1.sortOrder
+                        let templates = plan.templates.sorted {
+                            $0.sortOrder < $1.sortOrder
+                        }
+                        ForEach(templates) { template in
+                            TemplateRow(template: template) {
+                                if let old = activeWorkout {
+                                    context.delete(old)
                                 }
-                                ForEach(templates) { template in
-                                    TemplateRow(template: template) {
-                                        // Discard any stale active workout
-                                        if let old = activeWorkout {
-                                            context.delete(old)
-                                        }
-                                        vm.startWorkout(
-                                            template: template,
-                                            context: context
-                                        )
-                                        navPath.append("workout")
-                                    }
-                                }
+                                vm.startWorkout(
+                                    template: template,
+                                    context: context
+                                )
+                                navPath.append("workout")
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("Start Workout")
+            .navigationTitle(currentPlan?.planName ?? "Start Workout")
+            .toolbar {
+                if plans.count > 1 {
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            ForEach(supportedPlans) { plan in
+                                Button {
+                                    selectedPlanId = plan.planId
+                                } label: {
+                                    if plan.planId == currentPlan?.planId {
+                                        Label(plan.planName, systemImage: "checkmark")
+                                    } else {
+                                        Text(plan.planName)
+                                    }
+                                }
+                            }
+                            if !unsupportedPlans.isEmpty {
+                                Divider()
+                                ForEach(unsupportedPlans) { plan in
+                                    VStack(alignment: .leading) {
+                                        Label(
+                                            "\(plan.planName) -- not supported",
+                                            systemImage: "exclamationmark.triangle"
+                                        )
+                                        Text("plan: \(plan.schema), app: \(PlanSchema.id)")
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+                    }
+                }
+            }
             .navigationDestination(for: String.self) { _ in
                 ActiveWorkoutView(vm: vm)
             }
@@ -89,35 +156,33 @@ struct TemplatePicker: View {
         Task {
             do {
                 let remote = try await SyncService.fetchPlan()
+                let remotePlanType = remote.planType.rawValue
                 let local = plans.first {
-                    $0.planId == remote.planId && $0.planType == remote.planType
+                    $0.planId == remote.planId && $0.planType == remotePlanType
                 }
                 let localVersion = local?.planVersion ?? 0
 
                 if remote.planVersion > localVersion {
-                    let supported = SchemaRegistry.isSupported(
-                        type: remote.planType,
-                        version: remote.schemaVersion
-                    )
                     await MainActor.run {
-                        updateBanner = PlanUpdateBanner(
-                            plan: remote,
-                            isSchemaSupported: supported
-                        )
+                        updateBanner = PlanUpdateBanner(plan: remote)
                     }
                 }
+            } catch is DecodingError {
+                await MainActor.run {
+                    updateBanner = PlanUpdateBanner(plan: nil)
+                }
             } catch {
-                // silently ignore -- not critical
+                // network/auth errors -- silently ignore
             }
         }
     }
 
     private func applyUpdate(_ banner: PlanUpdateBanner) {
-        guard banner.isSchemaSupported else { return }
+        guard let plan = banner.plan else { return }
         Task {
             do {
                 _ = try PlanImportService.importPlan(
-                    banner.plan,
+                    plan,
                     into: context,
                     replaceExisting: true
                 )
@@ -216,8 +281,7 @@ private struct TemplateRow: View {
 // MARK: - Plan Update Banner
 
 struct PlanUpdateBanner {
-    let plan: WorkoutPlanJSON
-    let isSchemaSupported: Bool
+    let plan: WorkoutPlanJSON?
 }
 
 private struct PlanUpdateRow: View {
@@ -225,18 +289,18 @@ private struct PlanUpdateRow: View {
     let onUpdate: () -> Void
 
     var body: some View {
-        if banner.isSchemaSupported {
+        if let plan = banner.plan {
             Button(action: onUpdate) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Label(
-                            "New plan v\(banner.plan.planVersion) available",
+                            "New plan v\(plan.planVersion) available",
                             systemImage: "arrow.down.circle.fill"
                         )
                         .font(.headline)
                         .foregroundStyle(.blue)
 
-                        Text(banner.plan.planName)
+                        Text(plan.planName)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -251,13 +315,13 @@ private struct PlanUpdateRow: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(
-                        "Update app for plan v\(banner.plan.planVersion)",
+                        "Update app for new plan",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.headline)
                     .foregroundStyle(.orange)
 
-                    Text("Schema \(banner.plan.planType):\(banner.plan.schemaVersion) not supported")
+                    Text("Plan format not supported by this version")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

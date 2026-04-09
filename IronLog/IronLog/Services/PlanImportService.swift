@@ -3,7 +3,6 @@ import SwiftData
 
 enum PlanImportError: LocalizedError {
     case invalidJSON(String)
-    case unsupportedSchema(String, String)
     case emptyTemplates
     case duplicatePlan(String)
 
@@ -11,8 +10,6 @@ enum PlanImportError: LocalizedError {
         switch self {
         case .invalidJSON(let detail):
             return "Invalid JSON: \(detail)"
-        case .unsupportedSchema(let type, let version):
-            return "Unsupported schema \(type):\(version). Update the app to use this plan."
         case .emptyTemplates:
             return "Plan must contain at least one template"
         case .duplicatePlan(let name):
@@ -43,12 +40,6 @@ final class PlanImportService {
             throw PlanImportError.invalidJSON(error.friendlyDescription)
         }
 
-        guard SchemaRegistry.isSupported(
-            type: plan.planType,
-            version: plan.schemaVersion
-        ) else {
-            throw PlanImportError.unsupportedSchema(plan.planType, plan.schemaVersion)
-        }
         guard !plan.templates.isEmpty else {
             throw PlanImportError.emptyTemplates
         }
@@ -65,10 +56,14 @@ final class PlanImportService {
         replaceExisting: Bool = false
     ) throws -> SDPlan {
         let jsonPlanId = json.planId
-        let jsonPlanType = json.planType
+        let jsonPlanType = json.planType.rawValue
+        let jsonPlanName = json.planName
         let descriptor = FetchDescriptor<SDPlan>(
             predicate: #Predicate {
-                $0.planId == jsonPlanId && $0.planType == jsonPlanType
+                $0.planType == jsonPlanType && (
+                    $0.planId == jsonPlanId
+                    || ($0.planId == "" && $0.planName == jsonPlanName)
+                )
             }
         )
         let existing = try context.fetch(descriptor)
@@ -82,7 +77,7 @@ final class PlanImportService {
         }
 
         let plan = SDPlan(
-            planType: json.planType,
+            planType: json.planType.rawValue,
             planId: json.planId,
             planName: json.planName,
             planVersion: json.planVersion,
@@ -90,6 +85,7 @@ final class PlanImportService {
             author: json.author,
             notes: json.notes
         )
+        plan.schema = json.schema ?? PlanSchema.id
         context.insert(plan)
 
         for (tIdx, tJSON) in json.templates.enumerated() {

@@ -1,11 +1,9 @@
 import Foundation
 
-enum SchemaRegistry {
-    static let supported: [String: Set<String>] = [
-        "strength": ["1.0"],
-    ]
+enum PlanType: String, Codable, CaseIterable {
+    case strength
+}
 
-    static func isSupported(type: String, version: String) -> Bool {
-        supported[type]?.contains(version) ?? false
-    }
+enum PlanSchema {
+    static let id = "2026-04-09T22:00:00Z"
 }

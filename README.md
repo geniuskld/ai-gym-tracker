@@ -1,38 +1,58 @@
 # IronLog -- AI Gym Tracker
 
-iOS-приложение для трекинга силовых тренировок с двусторонним обменом данными через JSON.
+iOS-приложение для трекинга силовых тренировок + sync-сервер. AI генерирует планы, приложение исполняет, логи синхронизируются для анализа.
 
 ## Концепция
 
-1. **Импорт плана** -- получаешь JSON от Claude (или другого ИИ), вставляешь в приложение -- готовые шаблоны тренировок с весами, повторами, техниками
-2. **Тренировка** -- приложение ведёт по упражнениям: показывает prescribed вес/повторы, таймер отдыха, Dynamic Island, поддерживает drop-сеты, myo-reps и другие техники
-3. **Экспорт логов** -- формируешь JSON с историей, отправляешь Claude для анализа прогресса и корректировки плана
+1. **Импорт плана** -- Claude генерирует JSON-план, загружает на сервер. Приложение синхронизирует автоматически или импортирует вручную
+2. **Тренировка** -- приложение ведет по упражнениям: prescribed вес/повторы, таймер отдыха, Dynamic Island, техники (drop-сеты, myo-reps, rest-pause, суперсеты)
+3. **Синхронизация логов** -- после тренировки лог автоматически отправляется на сервер. Claude забирает логи для анализа прогресса и корректировки плана
 
 ## Стек
 
+### iOS-приложение (`IronLog/`)
 - Swift / SwiftUI / SwiftData (iOS 17+)
 - MVVM + Services
 - ActivityKit (Dynamic Island + Lock Screen Live Activity)
 - WidgetKit (виджет-расширение для Live Activity)
 - XcodeGen (генерация xcodeproj из project.yml)
 
+### Sync-сервер (`ironlog-server/`)
+- Python / FastAPI / MongoDB (motor async)
+- JWT auth (sliding 90-day expiry)
+- Docker Compose (app + mongo)
+
 ## Возможности
 
+### Синхронизация
+- Регистрация / вход по email + пароль
+- JWT в Keychain, auto-refresh при активности
+- Sync плана: автоматическая проверка новой версии при запуске
+- Баннер обновления: "New plan vN available" или "Update app" (если план не декодируется)
+- Структурная валидация: приложение проверяет plan_type, body_part, technique, наличие templates/groups/exercises/sets
+- Несовместимые планы показываются как "not supported" с timestamps схем для отладки
+- Upload логов: fire-and-forget после завершения тренировки
+- Delete логов: синхронное удаление на сервере при swipe-to-delete
+- Настройки: server URL, аккаунт, test connection
+
 ### Импорт плана
-- JSON через буфер обмена или файл
+- JSON через буфер обмена, файл или sync с сервера
 - Превью плана перед подтверждением
-- Повторный импорт обновляет существующий план
-- Поддержка нескольких планов
+- Повторный импорт обновляет существующий план (один план на plan_id)
+- Поддержка нескольких планов с выбором (по умолчанию -- последний использованный)
+- Shared Base Contract: plan_type, plan_id, plan_version, plan_name, schema (timestamp), created_at
 
 ### Тренировка
+- Выбор плана: saved -> last used -> first available (авто-выбор если один)
 - Пошаговый UI: одно упражнение на экране, свайп для навигации
 - Prescribed вес/повторы/RIR из плана с автозаполнением
+- Заметки к упражнению из плана (notes)
 - Техники: straight, drop_set, myo_reps, rest_pause, superset
 - TechniqueFlow -- stateless протокол для управления потоком сетов
 - SetRoadmap -- визуальный список сетов (warmup/working/drop/mini)
 - WeightStepper -- кнопки -5/-1/+1/+5 kg
 - Таймер отдыха с вибрацией и уведомлениями
-- Dynamic Island: вес + таймер во время сета, обратный отсчёт во время отдыха
+- Dynamic Island: вес + таймер во время сета, обратный отсчет во время отдыха
 - Lock Screen Live Activity
 - Оценка упражнения (Heavy/OK/Easy) между упражнениями
 - Perceived effort (1-3) при завершении тренировки
@@ -42,15 +62,41 @@ iOS-приложение для трекинга силовых трениров
 ### История и экспорт
 - Хронологический список тренировок с планом и шаблоном
 - Детали тренировки с полным логом
-- Swipe-to-delete
+- Swipe-to-delete (с удалением на сервере)
 - ShareLink экспорт в JSON
 - Оценки упражнений и planName в экспорте
 
+## Сервер
+
+| Method | Path | Auth | Описание |
+|--------|------|------|----------|
+| GET | /health | нет | Healthcheck |
+| GET | /schema | нет | Описание схемы по plan_type |
+| POST | /register | нет | Регистрация -> JWT |
+| POST | /login | нет | Вход -> JWT |
+| GET | /plans | JWT | Список планов (последняя версия каждого) |
+| GET | /plan | JWT | Последний план по type+id |
+| GET | /plan/versions | JWT | История версий |
+| PUT | /plan | JWT | Загрузка новой версии (с валидацией) |
+| POST | /log | JWT | Upsert лога тренировки |
+| GET | /log | JWT | Запрос логов (since, template_id, type, limit) |
+| DELETE | /log/{id} | JWT | Удаление лога |
+
 ## JSON-схемы
 
-- `schemas/workout-plan.schema.json` -- схема импорта плана (документирована для ИИ)
+- `schemas/workout-plan.schema.json` -- схема импорта плана (документирована для AI)
 - `schemas/workout-log.schema.json` -- схема экспорта лога
-- `schemas/sample-plan.json` -- пример плана с весами, warmup-сетами, myo-reps
+- `schemas/sample-plan.json` -- пример плана с Shared Base Contract
+
+## Сборка
+
+```bash
+# iOS
+cd IronLog && xcodegen generate && open IronLog.xcodeproj
+
+# Server
+cd ironlog-server && docker compose up --build -d
+```
 
 ## Структура
 

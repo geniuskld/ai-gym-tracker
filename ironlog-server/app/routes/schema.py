@@ -1,22 +1,20 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.schemas import SCHEMA_REGISTRY, supported_types_summary
+from app.schemas import SCHEMA_REGISTRY, PlanType
 
 router = APIRouter(tags=["schema"])
 
 
 @router.get("/schema")
-async def get_schema(type: str | None = None):
+async def get_schema(type: PlanType | None = None):
     if type is None:
-        return {"types": supported_types_summary()}
+        return {"types": list(SCHEMA_REGISTRY.keys())}
 
-    entry = SCHEMA_REGISTRY.get(type)
-    if not entry:
+    module = SCHEMA_REGISTRY.get(type.value)
+    if not module:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Unknown plan_type '{type}'. Supported: {list(SCHEMA_REGISTRY.keys())}",
+            detail=f"Unknown plan type '{type.value}'. Supported: {list(SCHEMA_REGISTRY.keys())}",
         )
 
-    current = entry["current_version"]
-    module = entry["versions"][current]
     return module.DESCRIPTION

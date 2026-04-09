@@ -3,11 +3,11 @@ import Foundation
 // MARK: - Workout Plan (import schema mirror)
 
 struct WorkoutPlanJSON: Codable {
-    let planType: String
+    let planType: PlanType
     let planId: String
-    let schemaVersion: String
     let planName: String
     let planVersion: Int
+    let schema: String?
     let createdAt: Date
     let author: String?
     let notes: String?
@@ -16,9 +16,9 @@ struct WorkoutPlanJSON: Codable {
     enum CodingKeys: String, CodingKey {
         case planType = "plan_type"
         case planId = "plan_id"
-        case schemaVersion = "schema_version"
         case planName = "plan_name"
         case planVersion = "plan_version"
+        case schema
         case createdAt = "created_at"
         case author
         case notes

@@ -139,8 +139,9 @@ struct PlansListView: View {
             do {
                 let json = try await SyncService.fetchPlan()
                 // Check if we already have this version
+                let jsonType = json.planType.rawValue
                 let existing = plans.first {
-                    $0.planId == json.planId && $0.planType == json.planType
+                    $0.planId == json.planId && $0.planType == jsonType
                 }
                 if let existing, existing.planVersion >= json.planVersion {
                     syncAlert = SyncAlertItem(

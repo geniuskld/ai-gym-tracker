@@ -138,10 +138,52 @@ enum SyncService {
         savedEmail = nil
     }
 
+    // MARK: - Plan Summary
+
+    struct PlanSummary: Codable {
+        let planId: String
+        let planType: PlanType
+        let planName: String
+        let planVersion: Int
+        let createdAt: String
+        let author: String?
+
+        enum CodingKeys: String, CodingKey {
+            case planId = "plan_id"
+            case planType = "plan_type"
+            case planName = "plan_name"
+            case planVersion = "plan_version"
+            case createdAt = "created_at"
+            case author
+        }
+    }
+
+    static func fetchPlans(
+        type: PlanType? = nil
+    ) async throws -> [PlanSummary] {
+        let base = try baseURL()
+        var components = URLComponents(
+            url: base.appendingPathComponent("plans"),
+            resolvingAgainstBaseURL: false
+        )!
+        if let type {
+            components.queryItems = [URLQueryItem(name: "type", value: type.rawValue)]
+        }
+
+        var request = URLRequest(url: components.url!)
+        try attachAuth(&request)
+
+        let (data, response) = try await urlSession.data(for: request)
+        handleRefreshedToken(response)
+        try checkResponse(response, data: data)
+
+        return try JSONDecoder().decode([PlanSummary].self, from: data)
+    }
+
     // MARK: - Fetch Plan
 
     static func fetchPlan(
-        type: String = "strength",
+        type: PlanType = .strength,
         id: String? = nil
     ) async throws -> WorkoutPlanJSON {
         let base = try baseURL()
@@ -149,7 +191,7 @@ enum SyncService {
             url: base.appendingPathComponent("plan"),
             resolvingAgainstBaseURL: false
         )!
-        var items = [URLQueryItem(name: "type", value: type)]
+        var items = [URLQueryItem(name: "type", value: type.rawValue)]
         if let id { items.append(URLQueryItem(name: "id", value: id)) }
         components.queryItems = items
 

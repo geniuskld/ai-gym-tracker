@@ -3,6 +3,8 @@ services:
     build: .
     ports:
       - "8000:8000"
+    volumes:
+      - ../schemas:/schemas:ro
     environment:
       - MONGODB_URL=mongodb://mongo:27017
       - MONGODB_DB=ironlog

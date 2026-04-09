@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.auth import get_current_user, maybe_refresh_token
 from app.database import get_db
+from app.schemas import PlanType
 
 router = APIRouter(tags=["log"])
 
@@ -56,7 +57,7 @@ async def post_log(
 async def get_log(
     since: str | None = None,
     template_id: str | None = None,
-    type: str | None = None,
+    type: PlanType | None = None,
     limit: int = 50,
     user: dict = Depends(get_current_user),
     response: Response = None,
@@ -79,7 +80,7 @@ async def get_log(
         query["template_id"] = template_id
 
     if type:
-        query["plan_type"] = type
+        query["plan_type"] = type.value
 
     cursor = get_db().workout_logs.find(
         query,

@@ -1,4 +1,7 @@
-"""Strength plan schema v1.0 -- validation and description."""
+"""Strength plan schema v1.0 -- validation."""
+
+import json
+from pathlib import Path
 
 from fastapi import HTTPException, status
 
@@ -7,43 +10,11 @@ VALID_BODY_PARTS = {
     "chest", "back", "shoulders", "legs", "arms", "core", "full_body",
 }
 
-DESCRIPTION = {
-    "plan_type": "strength",
-    "schema_version": "1.0",
-    "description": "Strength training plan with templates, exercises, and sets",
-    "required_base_fields": [
-        "plan_type", "plan_id", "plan_version", "plan_name",
-        "schema_version", "created_at",
-    ],
-    "type_specific_fields": {
-        "templates": {
-            "type": "array (non-empty)",
-            "items": {
-                "id": "string (unique within plan)",
-                "name": "string",
-                "exercises": {
-                    "type": "array (non-empty)",
-                    "items": {
-                        "id": "string",
-                        "name": "string",
-                        "body_part": f"enum: {sorted(VALID_BODY_PARTS)}",
-                        "technique": f"enum: {sorted(VALID_TECHNIQUES)}, default: straight",
-                        "notes": "string (optional, coach notes)",
-                        "sets": {
-                            "type": "array (non-empty)",
-                            "items": {
-                                "reps": "int",
-                                "weight_kg": "number (optional)",
-                                "rpe": "number (optional)",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    },
-    "optional_base_fields": ["author", "notes"],
-}
+# Docker: /schemas (volume mount); local: ../../schemas relative to repo
+_DOCKER_PATH = Path("/schemas/workout-plan.schema.json")
+_LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "workout-plan.schema.json"
+_SCHEMA_PATH = _DOCKER_PATH if _DOCKER_PATH.exists() else _LOCAL_PATH
+DESCRIPTION = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
 def validate(data: dict) -> None:
@@ -59,45 +30,55 @@ def validate(data: dict) -> None:
         _require_str(tmpl, "id", f"templates[{ti}]")
         _require_str(tmpl, "name", f"templates[{ti}]")
 
-        exercises = tmpl.get("exercises")
-        if not isinstance(exercises, list) or len(exercises) == 0:
+        groups = tmpl.get("groups")
+        if not isinstance(groups, list) or len(groups) == 0:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"templates[{ti}].exercises must be a non-empty array",
+                detail=f"templates[{ti}].groups must be a non-empty array",
             )
 
-        for ei, ex in enumerate(exercises):
-            prefix = f"templates[{ti}].exercises[{ei}]"
-            _require_str(ex, "id", prefix)
-            _require_str(ex, "name", prefix)
+        for gi, grp in enumerate(groups):
+            _require_str(grp, "name", f"templates[{ti}].groups[{gi}]")
 
-            bp = ex.get("body_part")
-            if bp not in VALID_BODY_PARTS:
+            exercises = grp.get("exercises")
+            if not isinstance(exercises, list) or len(exercises) == 0:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"{prefix}.body_part must be one of {sorted(VALID_BODY_PARTS)}, got '{bp}'",
+                    detail=f"templates[{ti}].groups[{gi}].exercises must be a non-empty array",
                 )
 
-            technique = ex.get("technique", "straight")
-            if technique not in VALID_TECHNIQUES:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"{prefix}.technique must be one of {sorted(VALID_TECHNIQUES)}, got '{technique}'",
-                )
+            for ei, ex in enumerate(exercises):
+                prefix = f"templates[{ti}].groups[{gi}].exercises[{ei}]"
+                _require_str(ex, "id", prefix)
+                _require_str(ex, "name", prefix)
 
-            sets = ex.get("sets")
-            if not isinstance(sets, list) or len(sets) == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"{prefix}.sets must be a non-empty array",
-                )
-
-            for si, s in enumerate(sets):
-                if not isinstance(s.get("reps"), int) or s["reps"] < 1:
+                bp = ex.get("body_part")
+                if bp not in VALID_BODY_PARTS:
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"{prefix}.sets[{si}].reps must be a positive integer",
+                        detail=f"{prefix}.body_part must be one of {sorted(VALID_BODY_PARTS)}, got '{bp}'",
                     )
+
+                technique = ex.get("technique", "straight")
+                if technique not in VALID_TECHNIQUES:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"{prefix}.technique must be one of {sorted(VALID_TECHNIQUES)}, got '{technique}'",
+                    )
+
+                sets = ex.get("sets")
+                if not isinstance(sets, list) or len(sets) == 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"{prefix}.sets must be a non-empty array",
+                    )
+
+                for si, s in enumerate(sets):
+                    if not isinstance(s.get("reps"), int) or s["reps"] < 1:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=f"{prefix}.sets[{si}].reps must be a positive integer",
+                        )
 
 
 def _require_str(obj: dict, field: str, prefix: str) -> None:
