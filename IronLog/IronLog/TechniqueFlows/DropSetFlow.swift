@@ -30,11 +30,12 @@ struct DropSetFlow: TechniqueFlow {
             return TechniqueStep(
                 exerciseIndex: exerciseIndex,
                 setIndex: nextSetIdx,
-                instruction: "Drop to \(Int(dropWeight)) kg",
+                instruction: "Drop to \(Int(dropWeight)) kg -- no rest!",
                 suggestedWeightKg: dropWeight,
                 restSeconds: nil, // no rest before drop
                 prescribedReps: nextSet.prescribedReps,
-                isTerminal: nextSetIdx == ex.sets.count - 1
+                isTerminal: nextSetIdx == ex.sets.count - 1,
+                lockWeight: true
             )
         } else {
             // Working set: rest after previous (unless first)

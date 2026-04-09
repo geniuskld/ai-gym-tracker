@@ -35,11 +35,16 @@ targets:
     platform: iOS
     sources:
       - path: IronLog
+    entitlements:
+      path: IronLog/IronLog.entitlements
+      properties:
+        com.apple.developer.healthkit: true
     settings:
       base:
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSSupportsLiveActivities: true
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: IronLog saves your strength training workouts to Apple Health
         GENERATE_INFOPLIST_FILE: true
         PRODUCT_BUNDLE_IDENTIFIER: com.W88C7J82R5.ironlog
         PRODUCT_NAME: IronLog
@@ -50,6 +55,7 @@ targets:
       - path: IronLog/Resources
     dependencies:
       - target: IronLogWidgets
+      - sdk: HealthKit.framework
 
   IronLogWidgets:
     type: app-extension

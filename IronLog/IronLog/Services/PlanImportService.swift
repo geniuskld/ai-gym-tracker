@@ -3,7 +3,7 @@ import SwiftData
 
 enum PlanImportError: LocalizedError {
     case invalidJSON(String)
-    case unsupportedVersion(String)
+    case unsupportedSchema(String, String)
     case emptyTemplates
     case duplicatePlan(String)
 
@@ -11,8 +11,8 @@ enum PlanImportError: LocalizedError {
         switch self {
         case .invalidJSON(let detail):
             return "Invalid JSON: \(detail)"
-        case .unsupportedVersion(let v):
-            return "Unsupported version: \(v). Expected 1.0"
+        case .unsupportedSchema(let type, let version):
+            return "Unsupported schema \(type):\(version). Update the app to use this plan."
         case .emptyTemplates:
             return "Plan must contain at least one template"
         case .duplicatePlan(let name):
@@ -43,8 +43,11 @@ final class PlanImportService {
             throw PlanImportError.invalidJSON(error.friendlyDescription)
         }
 
-        guard plan.version == "1.0" else {
-            throw PlanImportError.unsupportedVersion(plan.version)
+        guard SchemaRegistry.isSupported(
+            type: plan.planType,
+            version: plan.schemaVersion
+        ) else {
+            throw PlanImportError.unsupportedSchema(plan.planType, plan.schemaVersion)
         }
         guard !plan.templates.isEmpty else {
             throw PlanImportError.emptyTemplates
@@ -61,8 +64,12 @@ final class PlanImportService {
         into context: ModelContext,
         replaceExisting: Bool = false
     ) throws -> SDPlan {
+        let jsonPlanId = json.planId
+        let jsonPlanType = json.planType
         let descriptor = FetchDescriptor<SDPlan>(
-            predicate: #Predicate { $0.planName == json.planName }
+            predicate: #Predicate {
+                $0.planId == jsonPlanId && $0.planType == jsonPlanType
+            }
         )
         let existing = try context.fetch(descriptor)
 
@@ -75,7 +82,10 @@ final class PlanImportService {
         }
 
         let plan = SDPlan(
+            planType: json.planType,
+            planId: json.planId,
             planName: json.planName,
+            planVersion: json.planVersion,
             createdAt: json.createdAt,
             author: json.author,
             notes: json.notes

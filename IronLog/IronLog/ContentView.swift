@@ -10,7 +10,7 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .workout
 
     enum Tab: Hashable {
-        case plans, workout, history
+        case plans, workout, history, settings
     }
 
     var body: some View {
@@ -32,6 +32,14 @@ struct ContentView: View {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
                 .tag(Tab.history)
+
+            NavigationStack {
+                SettingsView()
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .tag(Tab.settings)
         }
         .onAppear {
             if !plans.isEmpty {

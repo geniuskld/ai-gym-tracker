@@ -11,6 +11,7 @@ struct PlanPreviewView: View {
         List {
             Section {
                 LabeledContent("Plan", value: plan.planName)
+                LabeledContent("Version", value: "v\(plan.planVersion)")
                 if let author = plan.author {
                     LabeledContent("Author", value: author)
                 }

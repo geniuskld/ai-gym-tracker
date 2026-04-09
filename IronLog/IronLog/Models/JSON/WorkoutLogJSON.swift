@@ -45,7 +45,10 @@ struct WorkoutJSON: Codable {
     let id: String
     let templateId: String
     let templateName: String?
+    let planType: String?
+    let planId: String?
     let planName: String?
+    let planVersion: Int?
     let startedAt: Date
     let finishedAt: Date?
     let durationMinutes: Double?
@@ -57,7 +60,10 @@ struct WorkoutJSON: Codable {
         case id
         case templateId = "template_id"
         case templateName = "template_name"
+        case planType = "plan_type"
+        case planId = "plan_id"
         case planName = "plan_name"
+        case planVersion = "plan_version"
         case startedAt = "started_at"
         case finishedAt = "finished_at"
         case durationMinutes = "duration_minutes"

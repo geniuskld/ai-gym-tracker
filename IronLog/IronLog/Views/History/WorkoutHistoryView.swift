@@ -55,9 +55,14 @@ private struct WorkoutRow: View {
                     Text(workout.templateName)
                         .font(.headline)
                     if let plan = workout.planName {
-                        Text(plan)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text(plan)
+                            if let v = workout.planVersion {
+                                Text("v\(v)")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                 }
                 Spacer()

@@ -16,6 +16,8 @@ struct TechniqueStep {
     let prescribedReps: Int?
     /// True if this is the last step in the technique
     let isTerminal: Bool
+    /// When true, UI should not allow changing weight (drop sets, myo mini-sets)
+    var lockWeight: Bool = false
 }
 
 /// Each technique (straight, drop_set, superset, etc.) implements this protocol.

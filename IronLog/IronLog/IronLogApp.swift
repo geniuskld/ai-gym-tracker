@@ -27,6 +27,7 @@ struct IronLogApp: App {
 
     init() {
         RestTimerService.requestPermission()
+        HealthKitManager.shared.requestAuthorization()
     }
 
     var body: some Scene {

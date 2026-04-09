@@ -10,14 +10,15 @@ struct TemplatePicker: View {
         order: .reverse
     ) private var activeWorkouts: [SDWorkout]
     @State private var vm = ActiveWorkoutViewModel()
-    @State private var showWorkout = false
+    @State private var navPath = NavigationPath()
     @State private var didAutoResume = false
+    @State private var updateBanner: PlanUpdateBanner?
     var autoResumeWorkout: Bool = false
 
     private var activeWorkout: SDWorkout? { activeWorkouts.first }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             Group {
                 if plans.isEmpty {
                     ContentUnavailableView(
@@ -27,6 +28,15 @@ struct TemplatePicker: View {
                     )
                 } else {
                     List {
+                        // Plan update banner
+                        if let banner = updateBanner {
+                            Section {
+                                PlanUpdateRow(banner: banner) {
+                                    applyUpdate(banner)
+                                }
+                            }
+                        }
+
                         // Resume banner
                         if let active = activeWorkout {
                             Section {
@@ -51,7 +61,7 @@ struct TemplatePicker: View {
                                             template: template,
                                             context: context
                                         )
-                                        showWorkout = true
+                                        navPath.append("workout")
                                     }
                                 }
                             }
@@ -60,7 +70,7 @@ struct TemplatePicker: View {
                 }
             }
             .navigationTitle("Start Workout")
-            .navigationDestination(isPresented: $showWorkout) {
+            .navigationDestination(for: String.self) { _ in
                 ActiveWorkoutView(vm: vm)
             }
             .onAppear {
@@ -69,12 +79,58 @@ struct TemplatePicker: View {
                     didAutoResume = true
                     resumeWorkout(active)
                 }
+                checkForPlanUpdate()
+            }
+        }
+    }
+
+    private func checkForPlanUpdate() {
+        guard SyncService.isConfigured, SyncService.isAuthenticated else { return }
+        Task {
+            do {
+                let remote = try await SyncService.fetchPlan()
+                let local = plans.first {
+                    $0.planId == remote.planId && $0.planType == remote.planType
+                }
+                let localVersion = local?.planVersion ?? 0
+
+                if remote.planVersion > localVersion {
+                    let supported = SchemaRegistry.isSupported(
+                        type: remote.planType,
+                        version: remote.schemaVersion
+                    )
+                    await MainActor.run {
+                        updateBanner = PlanUpdateBanner(
+                            plan: remote,
+                            isSchemaSupported: supported
+                        )
+                    }
+                }
+            } catch {
+                // silently ignore -- not critical
+            }
+        }
+    }
+
+    private func applyUpdate(_ banner: PlanUpdateBanner) {
+        guard banner.isSchemaSupported else { return }
+        Task {
+            do {
+                _ = try PlanImportService.importPlan(
+                    banner.plan,
+                    into: context,
+                    replaceExisting: true
+                )
+                await MainActor.run {
+                    updateBanner = nil
+                }
+            } catch {
+                // keep banner visible on failure
             }
         }
     }
 
     private func resumeWorkout(_ workout: SDWorkout) {
-        // Find the template for this workout
         let templateId = workout.templateId
         let template = plans.flatMap(\.templates).first {
             $0.templateId == templateId
@@ -86,7 +142,7 @@ struct TemplatePicker: View {
             template: template,
             context: context
         )
-        showWorkout = true
+        navPath.append("workout")
     }
 }
 
@@ -154,5 +210,60 @@ private struct TemplateRow: View {
             .padding(.vertical, 4)
         }
         .foregroundStyle(.primary)
+    }
+}
+
+// MARK: - Plan Update Banner
+
+struct PlanUpdateBanner {
+    let plan: WorkoutPlanJSON
+    let isSchemaSupported: Bool
+}
+
+private struct PlanUpdateRow: View {
+    let banner: PlanUpdateBanner
+    let onUpdate: () -> Void
+
+    var body: some View {
+        if banner.isSchemaSupported {
+            Button(action: onUpdate) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(
+                            "New plan v\(banner.plan.planVersion) available",
+                            systemImage: "arrow.down.circle.fill"
+                        )
+                        .font(.headline)
+                        .foregroundStyle(.blue)
+
+                        Text(banner.plan.planName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text("Update")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.blue)
+                }
+                .padding(.vertical, 4)
+            }
+        } else {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(
+                        "Update app for plan v\(banner.plan.planVersion)",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(.orange)
+
+                    Text("Schema \(banner.plan.planType):\(banner.plan.schemaVersion) not supported")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 4)
+        }
     }
 }

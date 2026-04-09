@@ -56,11 +56,12 @@ struct MyoRepsFlow: TechniqueFlow {
                 return TechniqueStep(
                     exerciseIndex: exerciseIndex,
                     setIndex: nextSetIdx,
-                    instruction: "Mini-set \(miniSetsCompleted + 1)/\(maxMiniSets)",
+                    instruction: "Mini-set \(miniSetsCompleted + 1)/\(maxMiniSets) -- same weight!",
                     suggestedWeightKg: weight,
                     restSeconds: miniRestSeconds,
                     prescribedReps: miniSetReps,
-                    isTerminal: miniSetsCompleted + 1 >= maxMiniSets
+                    isTerminal: miniSetsCompleted + 1 >= maxMiniSets,
+                    lockWeight: true
                 )
             }
         }
@@ -72,11 +73,12 @@ struct MyoRepsFlow: TechniqueFlow {
         return TechniqueStep(
             exerciseIndex: exerciseIndex,
             setIndex: nextIdx,
-            instruction: "Mini-set \(miniSetsCompleted + 1)/\(maxMiniSets)",
+            instruction: "Mini-set \(miniSetsCompleted + 1)/\(maxMiniSets) -- same weight!",
             suggestedWeightKg: weight,
             restSeconds: miniRestSeconds,
             prescribedReps: miniSetReps,
-            isTerminal: miniSetsCompleted + 1 >= maxMiniSets
+            isTerminal: miniSetsCompleted + 1 >= maxMiniSets,
+            lockWeight: true
         )
     }
 }

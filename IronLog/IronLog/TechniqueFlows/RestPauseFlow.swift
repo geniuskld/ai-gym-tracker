@@ -27,9 +27,9 @@ struct RestPauseFlow: TechniqueFlow {
 
         let instruction: String
         if isFirstStep {
-            instruction = "Go to failure"
+            instruction = "To failure!"
         } else {
-            instruction = "Continue to failure"
+            instruction = "To failure again"
         }
 
         // Short pause between sets (20s), no pause before first
@@ -42,7 +42,8 @@ struct RestPauseFlow: TechniqueFlow {
             suggestedWeightKg: weight,
             restSeconds: restSeconds,
             prescribedReps: nextSet.prescribedReps,
-            isTerminal: nextSetIdx == ex.sets.count - 1
+            isTerminal: nextSetIdx == ex.sets.count - 1,
+            lockWeight: !isFirstStep
         )
     }
 }

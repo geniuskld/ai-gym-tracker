@@ -42,10 +42,8 @@ struct ExerciseState: Identifiable {
 // MARK: - Phases within a set
 
 enum SetPhase: Equatable {
-    case ready          // before set: slider right=start, left=set weight
-    case performing     // during set: slider right=done, left=enter reps
-    case enterReps      // quick reps entry after slide-left during performing
-    case setWeight      // weight entry from ready phase slide-left
+    case ready          // before set: shows weight preview + Start
+    case performing     // during set: timer + weight/reps adjustable + Done
     case resting        // countdown, auto-transitions to next step
     case ratingExercise // optional exercise rating before moving to next
 }
@@ -76,12 +74,15 @@ final class ActiveWorkoutViewModel {
     var setStopwatch = StopwatchService()
     var finishNotes: String = ""
     var finishEffort: Int?
+    var skipHealthKit = false
 
     /// Current technique flow driving the workout progression
     private(set) var currentFlow: (any TechniqueFlow)?
 
     /// Instruction text from the current technique flow
     var flowInstruction: String = ""
+    /// Whether the current step locks weight (drop/myo mini)
+    var flowLockWeight: Bool = false
 
     private(set) var workout: SDWorkout?
     private var modelContext: ModelContext?
@@ -138,19 +139,16 @@ final class ActiveWorkoutViewModel {
         currentFlow?.supportsDynamicSets ?? false
     }
 
-    var prescribedHint: String {
-        guard let s = currentSet else { return "" }
-        var parts: [String] = []
-        if s.type == "warmup" {
-            parts.append("Warmup")
-        }
-        if let reps = s.prescribedReps {
-            parts.append("\(reps) reps")
-        }
-        if let rir = s.prescribedRir {
-            parts.append("RIR \(rir)")
-        }
-        return parts.joined(separator: " / ")
+    /// True when resting before advancing to the next exercise (not next set)
+    var isRestBeforeNextExercise: Bool {
+        pendingAdvanceToNextExercise
+    }
+
+    /// Name of the next exercise (if any)
+    var nextExerciseName: String? {
+        let nextIdx = currentExerciseIndex + 1
+        guard nextIdx < exercises.count else { return nil }
+        return exercises[nextIdx].name
     }
 
     // MARK: - Start Workout
@@ -164,7 +162,10 @@ final class ActiveWorkoutViewModel {
         let sdWorkout = SDWorkout(
             templateId: template.templateId,
             templateName: template.name,
-            planName: template.plan?.planName
+            planType: template.plan?.planType,
+            planId: template.plan?.planId,
+            planName: template.plan?.planName,
+            planVersion: template.plan?.planVersion
         )
         context.insert(sdWorkout)
         try? context.save()
@@ -300,6 +301,7 @@ final class ActiveWorkoutViewModel {
             completedReps: completedReps
         ) {
             flowInstruction = step.instruction
+            flowLockWeight = step.lockWeight
             // Apply suggested weight if the set has no weight yet
             if let w = step.suggestedWeightKg,
                step.exerciseIndex < exercises.count,
@@ -319,17 +321,6 @@ final class ActiveWorkoutViewModel {
         if set.weightKg == nil, let last = lastCompletedWeight {
             exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = last
         }
-        beginPerforming()
-    }
-
-    // Ready phase: slide left = set weight before starting
-    func readySlideLeft() {
-        setPhase = .setWeight
-    }
-
-    // Confirm weight and start performing
-    func confirmWeightAndStart(_ kg: Double) {
-        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = kg
         beginPerforming()
     }
 
@@ -354,22 +345,11 @@ final class ActiveWorkoutViewModel {
         )
     }
 
-    // Performing phase: slide right = done (auto reps from prescribed)
-    func performingSlideRight() {
+    // Performing phase: confirm weight + reps and finish set
+    func confirmPerforming(weight: Double, reps: Int) {
         setStopwatch.stop()
-        let set = exercises[currentExerciseIndex].sets[currentSetIndex]
-        let reps = set.prescribedReps ?? 10
+        exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = weight
         completeCurrentSet(reps: reps)
-    }
-
-    // Performing phase: slide left = enter reps manually
-    func performingSlideLeft() {
-        setStopwatch.stop()
-        setPhase = .enterReps
-    }
-
-    func confirmReps(_ count: Int) {
-        completeCurrentSet(reps: count)
     }
 
     // MARK: - Core: Complete Set + Flow-Driven Progression
@@ -405,6 +385,7 @@ final class ActiveWorkoutViewModel {
         ) else {
             // Flow complete -- rest then advance to next exercise
             flowInstruction = ""
+            flowLockWeight = false
             let restSeconds = exercises[completedExIdx].restSeconds
             pendingAdvanceToNextExercise = true
             startRest(seconds: restSeconds)
@@ -575,6 +556,40 @@ final class ActiveWorkoutViewModel {
         advanceToNextExercise()
     }
 
+    // MARK: - Exercise Notes
+
+    func saveExerciseNote(
+        _ note: String,
+        forExerciseAt index: Int
+    ) {
+        guard let workout, let context = modelContext else { return }
+        let exState = exercises[index]
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let exLog = workout.exercises.first(where: {
+            $0.exerciseId == exState.exerciseId
+        }) {
+            exLog.exerciseNotes = trimmed.isEmpty ? nil : trimmed
+        } else {
+            let newLog = SDExerciseLog(
+                exerciseId: exState.exerciseId,
+                exerciseName: exState.name,
+                order: index,
+                exerciseNotes: trimmed.isEmpty ? nil : trimmed
+            )
+            newLog.workout = workout
+        }
+        try? context.save()
+    }
+
+    func exerciseNote(at index: Int) -> String {
+        guard let workout else { return "" }
+        let exId = exercises[index].exerciseId
+        return workout.exercises
+            .first { $0.exerciseId == exId }?
+            .exerciseNotes ?? ""
+    }
+
     // MARK: - Finish
 
     func beginFinishing() {
@@ -665,12 +680,41 @@ final class ActiveWorkoutViewModel {
     func saveWorkout() {
         guard let workout, let context = modelContext else { return }
 
-        workout.finishedAt = .now
-        workout.durationMinutes = Date.now.timeIntervalSince(workout.startedAt) / 60
+        let endDate = Date.now
+        workout.finishedAt = endDate
+        workout.durationMinutes = endDate.timeIntervalSince(workout.startedAt) / 60
         workout.workoutNotes = finishNotes.isEmpty ? nil : finishNotes
         workout.perceivedEffort = finishEffort
 
         try? context.save()
+
+        // Save to HealthKit
+        if !skipHealthKit {
+            let totalVolume = workout.exercises.flatMap(\.sets).reduce(0.0) { sum, set in
+                let w = set.weightKg ?? 0
+                let r = Double(set.reps ?? 0)
+                return sum + w * r
+            }
+            let totalSets = workout.exercises.flatMap(\.sets).count
+
+            HealthKitManager.shared.saveWorkout(
+                startDate: workout.startedAt,
+                endDate: endDate,
+                totalVolume: totalVolume,
+                totalSets: totalSets,
+                templateName: workout.templateName,
+                planName: workout.planName
+            )
+        }
+
+        // Upload log to sync server (fire-and-forget)
+        if SyncService.isConfigured {
+            let workoutRef = workout
+            Task.detached {
+                try? await SyncService.uploadWorkout(workoutRef)
+            }
+        }
+
         state = .saved
     }
 
@@ -686,6 +730,7 @@ final class ActiveWorkoutViewModel {
         finishEffort = nil
         currentFlow = nil
         flowInstruction = ""
+        flowLockWeight = false
         pendingAdvanceToNextExercise = false
         restTimer.stop()
         setStopwatch.stop()
