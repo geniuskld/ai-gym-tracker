@@ -8,6 +8,7 @@ struct WorkoutHistoryView: View {
         order: .reverse
     ) private var workouts: [SDWorkout]
     @Environment(\.modelContext) private var modelContext
+    @State private var syncingIds: Set<String> = []
 
     var body: some View {
         NavigationStack {
@@ -24,7 +25,22 @@ struct WorkoutHistoryView: View {
                             NavigationLink {
                                 WorkoutDetailView(workout: workout)
                             } label: {
-                                WorkoutRow(workout: workout)
+                                WorkoutRow(
+                                    workout: workout,
+                                    isSyncing: syncingIds.contains(workout.workoutId)
+                                )
+                            }
+                            .swipeActions(edge: .leading) {
+                                if workout.syncedAt == nil,
+                                   SyncService.isAuthenticated,
+                                   !syncingIds.contains(workout.workoutId) {
+                                    Button {
+                                        syncWorkout(workout)
+                                    } label: {
+                                        Label("Sync", systemImage: "arrow.up.icloud")
+                                    }
+                                    .tint(.blue)
+                                }
                             }
                         }
                         .onDelete(perform: deleteWorkouts)
@@ -35,13 +51,29 @@ struct WorkoutHistoryView: View {
         }
     }
 
+    private func syncWorkout(_ workout: SDWorkout) {
+        let id = workout.workoutId
+        syncingIds.insert(id)
+        Task {
+            do {
+                try await SyncService.uploadWorkout(workout)
+                workout.syncedAt = .now
+                try? modelContext.save()
+            } catch {
+                // sync failed -- icon stays as icloud.slash
+            }
+            syncingIds.remove(id)
+        }
+    }
+
     private func deleteWorkouts(at offsets: IndexSet) {
         for index in offsets {
             let workout = workouts[index]
             let workoutId = workout.workoutId
+            let wasSynced = workout.syncedAt != nil
             modelContext.delete(workout)
 
-            if SyncService.isConfigured, SyncService.isAuthenticated {
+            if wasSynced, SyncService.isConfigured, SyncService.isAuthenticated {
                 Task.detached {
                     try? await SyncService.deleteWorkout(workoutId)
                 }
@@ -55,6 +87,7 @@ struct WorkoutHistoryView: View {
 
 private struct WorkoutRow: View {
     let workout: SDWorkout
+    var isSyncing: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -74,6 +107,18 @@ private struct WorkoutRow: View {
                     }
                 }
                 Spacer()
+                if isSyncing {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else if workout.syncedAt != nil {
+                    Image(systemName: "checkmark.icloud")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                } else if SyncService.isAuthenticated {
+                    Image(systemName: "icloud.slash")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
                 if let effort = workout.perceivedEffort {
                     effortBadge(effort)
                 }

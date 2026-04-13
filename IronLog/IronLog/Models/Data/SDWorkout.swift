@@ -15,6 +15,7 @@ final class SDWorkout {
     var durationMinutes: Double?
     var workoutNotes: String?
     var perceivedEffort: Int?
+    var syncedAt: Date?
 
     @Relationship(deleteRule: .cascade, inverse: \SDExerciseLog.workout)
     var exercises: [SDExerciseLog]

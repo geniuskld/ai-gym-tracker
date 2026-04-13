@@ -29,6 +29,20 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3FF2A23F26CD7F06645A932F"
+               BuildableName = "IronLogWatch.app"
+               BlueprintName = "IronLogWatch"
+               ReferencedContainer = "container:IronLog.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "5770372D1CCD9F541968845C"
                BuildableName = "IronLogWidgets.appex"
                BlueprintName = "IronLogWidgets"

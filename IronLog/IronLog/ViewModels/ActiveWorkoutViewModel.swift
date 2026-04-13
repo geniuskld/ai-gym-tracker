@@ -178,6 +178,9 @@ final class ActiveWorkoutViewModel {
         setPhase = .ready
         state = .active
         activateFlowForCurrentExercise()
+
+        // Mirror to Apple Watch
+        WorkoutSessionManager.shared.startMirroring()
     }
 
     // MARK: - Resume Workout
@@ -688,6 +691,9 @@ final class ActiveWorkoutViewModel {
 
         try? context.save()
 
+        // Stop Apple Watch mirroring
+        WorkoutSessionManager.shared.stopMirroring()
+
         // Save to HealthKit
         if !skipHealthKit {
             let totalVolume = workout.exercises.flatMap(\.sets).reduce(0.0) { sum, set in
@@ -708,10 +714,21 @@ final class ActiveWorkoutViewModel {
         }
 
         // Upload log to sync server (fire-and-forget)
-        if SyncService.isConfigured {
+        if SyncService.isConfigured,
+           SyncService.isAuthenticated,
+           workout.syncedAt == nil {
             let workoutRef = workout
+            let ctx = context
             Task.detached {
-                try? await SyncService.uploadWorkout(workoutRef)
+                do {
+                    try await SyncService.uploadWorkout(workoutRef)
+                    await MainActor.run {
+                        workoutRef.syncedAt = .now
+                        try? ctx.save()
+                    }
+                } catch {
+                    // sync failed silently -- will remain unsynced
+                }
             }
         }
 

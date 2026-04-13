@@ -6,6 +6,7 @@ struct ContentView: View {
     @Query(
         filter: #Predicate<SDWorkout> { $0.finishedAt == nil }
     ) private var activeWorkouts: [SDWorkout]
+    @Environment(\.modelContext) private var context
 
     @State private var selectedTab: Tab = .workout
 
@@ -45,6 +46,9 @@ struct ContentView: View {
             if !plans.isEmpty {
                 selectedTab = .workout
             }
+        }
+        .task {
+            await PlanSyncHelper.syncIfNeeded(context: context)
         }
     }
 }

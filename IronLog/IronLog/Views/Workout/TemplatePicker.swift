@@ -16,7 +16,6 @@ struct TemplatePicker: View {
     @State private var vm = ActiveWorkoutViewModel()
     @State private var navPath = NavigationPath()
     @State private var didAutoResume = false
-    @State private var updateBanner: PlanUpdateBanner?
     @AppStorage("selectedPlanId") private var selectedPlanId: String = ""
     var autoResumeWorkout: Bool = false
 
@@ -66,15 +65,6 @@ struct TemplatePicker: View {
                     )
                 } else if let plan = currentPlan {
                     List {
-                        // Plan update banner
-                        if let banner = updateBanner {
-                            Section {
-                                PlanUpdateRow(banner: banner) {
-                                    applyUpdate(banner)
-                                }
-                            }
-                        }
-
                         // Resume banner
                         if let active = activeWorkout {
                             Section {
@@ -152,46 +142,8 @@ struct TemplatePicker: View {
     }
 
     private func checkForPlanUpdate() {
-        guard SyncService.isConfigured, SyncService.isAuthenticated else { return }
         Task {
-            do {
-                let remote = try await SyncService.fetchPlan()
-                let remotePlanType = remote.planType.rawValue
-                let local = plans.first {
-                    $0.planId == remote.planId && $0.planType == remotePlanType
-                }
-                let localVersion = local?.planVersion ?? 0
-
-                if remote.planVersion > localVersion {
-                    await MainActor.run {
-                        updateBanner = PlanUpdateBanner(plan: remote)
-                    }
-                }
-            } catch is DecodingError {
-                await MainActor.run {
-                    updateBanner = PlanUpdateBanner(plan: nil)
-                }
-            } catch {
-                // network/auth errors -- silently ignore
-            }
-        }
-    }
-
-    private func applyUpdate(_ banner: PlanUpdateBanner) {
-        guard let plan = banner.plan else { return }
-        Task {
-            do {
-                _ = try PlanImportService.importPlan(
-                    plan,
-                    into: context,
-                    replaceExisting: true
-                )
-                await MainActor.run {
-                    updateBanner = nil
-                }
-            } catch {
-                // keep banner visible on failure
-            }
+            await PlanSyncHelper.syncIfNeeded(context: context)
         }
     }
 
@@ -278,56 +230,3 @@ private struct TemplateRow: View {
     }
 }
 
-// MARK: - Plan Update Banner
-
-struct PlanUpdateBanner {
-    let plan: WorkoutPlanJSON?
-}
-
-private struct PlanUpdateRow: View {
-    let banner: PlanUpdateBanner
-    let onUpdate: () -> Void
-
-    var body: some View {
-        if let plan = banner.plan {
-            Button(action: onUpdate) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(
-                            "New plan v\(plan.planVersion) available",
-                            systemImage: "arrow.down.circle.fill"
-                        )
-                        .font(.headline)
-                        .foregroundStyle(.blue)
-
-                        Text(plan.planName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Text("Update")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.blue)
-                }
-                .padding(.vertical, 4)
-            }
-        } else {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(
-                        "Update app for new plan",
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .font(.headline)
-                    .foregroundStyle(.orange)
-
-                    Text("Plan format not supported by this version")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            .padding(.vertical, 4)
-        }
-    }
-}

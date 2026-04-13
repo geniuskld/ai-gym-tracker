@@ -5,95 +5,24 @@ struct PlansListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \SDPlan.importedAt, order: .reverse) private var plans: [SDPlan]
     @State private var vm = PlansViewModel()
-    @State private var isSyncing = false
-    @State private var syncAlert: SyncAlertItem?
 
     var body: some View {
         NavigationStack {
             Group {
                 if plans.isEmpty {
-                    VStack(spacing: 20) {
-                        Spacer()
-
-                        if SyncService.isConfigured {
-                            Button {
-                                syncPlan()
-                            } label: {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                        .font(.system(size: 48))
-                                    Text("Sync Plan from Server")
-                                        .font(.title3.weight(.semibold))
-                                    Text("Pull the latest version")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 32)
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.blue)
-                        }
-
-                        Button {
-                            vm.showImportSheet = true
-                        } label: {
-                            VStack(spacing: 12) {
-                                Image(systemName: "dumbbell.fill")
-                                    .font(.system(size: 48))
-                                Text("Import Your Program")
-                                    .font(.title3.weight(.semibold))
-                                Text("Paste or pick a JSON training plan")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 32)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.primary)
-
-                        #if DEBUG
-                        Button {
-                            loadSamplePlan()
-                        } label: {
-                            Label("Load Sample Plan", systemImage: "doc.text")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.orange)
-                        #endif
-
-                        Spacer()
-                    }
-                    .padding()
+                    emptyState
                 } else {
                     List {
-                        // Sync banner
-                        if SyncService.isConfigured {
-                            Section {
-                                Button {
-                                    syncPlan()
-                                } label: {
-                                    HStack {
-                                        Label(
-                                            "Sync Plan",
-                                            systemImage: "arrow.triangle.2.circlepath"
-                                        )
-                                        .foregroundStyle(.blue)
-                                        Spacer()
-                                        if isSyncing {
-                                            ProgressView()
-                                        }
-                                    }
-                                }
-                                .disabled(isSyncing)
-                            }
-                        }
-
                         ForEach(plans) { plan in
                             PlanRow(plan: plan)
                         }
                         .onDelete(perform: deletePlans)
+                    }
+                    .refreshable {
+                        await PlanSyncHelper.syncIfNeeded(
+                            context: context,
+                            force: true
+                        )
                     }
                 }
             }
@@ -115,57 +44,49 @@ struct PlansListView: View {
                     PlanPreviewView(vm: vm, plan: plan)
                 }
             }
-            .alert(
-                item: $syncAlert
-            ) { item in
-                Alert(
-                    title: Text(item.title),
-                    message: Text(item.message),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Button {
+                vm.showImportSheet = true
+            } label: {
+                VStack(spacing: 12) {
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 48))
+                    Text("Import Your Program")
+                        .font(.title3.weight(.semibold))
+                    Text("Paste or pick a JSON training plan")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+            }
+            .buttonStyle(.bordered)
+            .tint(.primary)
+
+            #if DEBUG
+            Button {
+                loadSamplePlan()
+            } label: {
+                Label("Load Sample Plan", systemImage: "doc.text")
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
+            #endif
+
+            Spacer()
+        }
+        .padding()
     }
 
     private func deletePlans(at offsets: IndexSet) {
         for index in offsets {
             vm.deletePlan(plans[index], context: context)
-        }
-    }
-
-    private func syncPlan() {
-        isSyncing = true
-        Task {
-            do {
-                let json = try await SyncService.fetchPlan()
-                // Check if we already have this version
-                let jsonType = json.planType.rawValue
-                let existing = plans.first {
-                    $0.planId == json.planId && $0.planType == jsonType
-                }
-                if let existing, existing.planVersion >= json.planVersion {
-                    syncAlert = SyncAlertItem(
-                        title: "Up to date",
-                        message: "\(json.planName) v\(json.planVersion) -- already imported"
-                    )
-                } else {
-                    _ = try PlanImportService.importPlan(
-                        json,
-                        into: context,
-                        replaceExisting: true
-                    )
-                    syncAlert = SyncAlertItem(
-                        title: "Updated",
-                        message: "\(json.planName) v\(json.planVersion)"
-                    )
-                }
-            } catch {
-                syncAlert = SyncAlertItem(
-                    title: "Sync failed",
-                    message: error.localizedDescription
-                )
-            }
-            isSyncing = false
         }
     }
 
@@ -178,12 +99,6 @@ struct PlansListView: View {
         vm.parseFromFile(url)
     }
     #endif
-}
-
-private struct SyncAlertItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let message: String
 }
 
 // MARK: - Plan Row
