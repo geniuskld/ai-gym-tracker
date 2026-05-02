@@ -56,7 +56,16 @@
       "required": ["exercise_id", "exercise_name", "sets"],
       "properties": {
         "exercise_id": { "type": "string" },
+        "catalog_id": {
+          "type": "string",
+          "description": "Optional exercise catalog slug. When present, analytics groups this exercise across plan versions and plans."
+        },
         "exercise_name": { "type": "string" },
+        "body_part": {
+          "type": "string",
+          "enum": ["chest", "back", "shoulders", "legs", "arms", "core", "full_body"],
+          "description": "Optional denormalized primary body part for analytics."
+        },
         "order": { "type": "integer" },
         "sets": {
           "type": "array",

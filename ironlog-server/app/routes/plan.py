@@ -1,11 +1,10 @@
-from uuid import uuid4
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.auth import get_current_user, maybe_refresh_token
 from app.database import get_db
 from app.schemas import SCHEMA_REGISTRY, PlanType
 from app.schemas.base import validate_base
+from app.schemas import strength_v1
 
 router = APIRouter(tags=["plan"])
 
@@ -16,27 +15,22 @@ async def list_plans(
     user: dict = Depends(get_current_user),
     response: Response = None,
 ):
+    """Return the latest version of each plan (full content) for the user."""
     _attach_refreshed_token(user, response)
 
+    match: dict = {"user_id": user["_id"]}
+    if type:
+        match["plan_type"] = type.value
+
     pipeline = [
-        {"$match": {"user_id": user["_id"], **({"plan_type": type.value} if type else {})}},
+        {"$match": match},
         {"$sort": {"plan_version": -1}},
         {"$group": {
             "_id": {"plan_id": "$plan_id", "plan_type": "$plan_type"},
-            "plan_name": {"$first": "$plan_name"},
-            "plan_version": {"$first": "$plan_version"},
-            "created_at": {"$first": "$created_at"},
-            "author": {"$first": "$author"},
+            "doc": {"$first": "$$ROOT"},
         }},
-        {"$project": {
-            "_id": 0,
-            "plan_id": "$_id.plan_id",
-            "plan_type": "$_id.plan_type",
-            "plan_name": 1,
-            "plan_version": 1,
-            "created_at": 1,
-            "author": 1,
-        }},
+        {"$replaceRoot": {"newRoot": "$doc"}},
+        {"$project": {"_id": 0, "user_id": 0}},
         {"$sort": {"plan_name": 1}},
     ]
 
@@ -46,93 +40,38 @@ async def list_plans(
     return results
 
 
-@router.get("/plan")
-async def get_plan(
-    type: PlanType = PlanType.strength,
-    id: str | None = None,
-    user: dict = Depends(get_current_user),
-    response: Response = None,
-):
-    _attach_refreshed_token(user, response)
-
-    query: dict = {"user_id": user["_id"], "plan_type": type.value}
-    if id:
-        query["plan_id"] = id
-
-    doc = await get_db().plans.find_one(
-        query,
-        sort=[("plan_version", -1)],
-    )
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No plan found",
-        )
-    doc.pop("_id", None)
-    doc.pop("user_id", None)
-    return doc
-
-
-@router.get("/plan/versions")
-async def get_plan_versions(
-    type: PlanType = PlanType.strength,
-    id: str | None = None,
-    limit: int = 10,
-    user: dict = Depends(get_current_user),
-    response: Response = None,
-):
-    _attach_refreshed_token(user, response)
-
-    query: dict = {"user_id": user["_id"], "plan_type": type.value}
-    if id:
-        query["plan_id"] = id
-
-    cursor = get_db().plans.find(
-        query,
-        sort=[("plan_version", -1)],
-    ).limit(limit)
-
-    results = []
-    async for doc in cursor:
-        doc.pop("_id", None)
-        doc.pop("user_id", None)
-        results.append(doc)
-    return results
-
-
 @router.put("/plan")
 async def put_plan(
-    type: PlanType,
     request: Request,
     user: dict = Depends(get_current_user),
     response: Response = None,
-    id: str | None = None,
 ):
     _attach_refreshed_token(user, response)
 
     data = await request.json()
-    plan_type = type.value
 
-    # 1. Base field validation (version, plan_name, created_at, templates)
+    # 1. Base field validation (plan_type, plan_id, plan_version, plan_name, created_at)
     validate_base(data)
+
+    plan_type = data["plan_type"]
+    plan_id = data["plan_id"]
+    plan_version = data["plan_version"]
 
     # 2. Schema validation for this plan type
     schema_module = SCHEMA_REGISTRY.get(plan_type)
     if not schema_module:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unknown plan type '{plan_type}'. Supported: {list(SCHEMA_REGISTRY.keys())}",
+            detail=(
+                f"Unknown plan_type '{plan_type}'. "
+                f"Supported: {list(SCHEMA_REGISTRY.keys())}. "
+                f"See: /schema"
+            ),
         )
 
     schema_module.validate(data)
 
-    # 3. Resolve plan_id: from query param, or auto-generate
-    plan_id = id or str(uuid4())
-
-    # 4. plan_version: from body, default to 1
-    plan_version = data.get("plan_version", 1)
-
-    # 5. Version must be greater than existing for this plan_id
+    # 3. Version must be greater than existing for this plan_id
     latest = await get_db().plans.find_one(
         {"user_id": user["_id"], "plan_type": plan_type, "plan_id": plan_id},
         sort=[("plan_version", -1)],
@@ -147,16 +86,33 @@ async def put_plan(
             ),
         )
 
-    # 6. Store with server metadata
-    data["user_id"] = user["_id"]
-    data["plan_type"] = plan_type
-    data["plan_id"] = plan_id
-    data["plan_version"] = plan_version
+    # 4. Soft warnings (e.g. missing catalog_id). Strength only for now.
+    warnings: list[str] = []
+    if plan_type == "strength":
+        catalog_slugs = await _load_catalog_slugs("strength")
+        warnings = strength_v1.collect_warnings(data, catalog_slugs)
 
+    # 5. Store
+    data["user_id"] = user["_id"]
     await get_db().plans.insert_one(data)
     data.pop("_id", None)
     data.pop("user_id", None)
+
+    # 6. Attach warnings to response if any (only when non-empty)
+    if warnings:
+        data["_warnings"] = warnings
     return data
+
+
+# MARK: - Helpers
+
+async def _load_catalog_slugs(plan_type: str) -> set[str]:
+    """Returns slugs of non-deprecated exercises in the catalog for a plan type."""
+    cursor = get_db().exercises.find(
+        {"applies_to": plan_type, "deprecated": {"$ne": True}},
+        projection={"slug": 1, "_id": 0},
+    )
+    return {doc["slug"] async for doc in cursor}
 
 
 def _attach_refreshed_token(user: dict, response: Response | None) -> None:

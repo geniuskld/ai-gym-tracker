@@ -1,0 +1,27 @@
+[
+  { "slug": "quadriceps",  "name": "Quadriceps",         "region": "legs",      "antagonist_slugs": ["hamstrings"], "aliases": ["quads", "quadriceps femoris", "front thigh"] },
+  { "slug": "hamstrings",  "name": "Hamstrings",         "region": "legs",      "antagonist_slugs": ["quadriceps"], "aliases": ["hams", "hamstring", "back of thigh", "biceps femoris"] },
+  { "slug": "glutes",      "name": "Glutes",             "region": "legs",      "antagonist_slugs": [],             "aliases": ["gluteus maximus", "gluteal muscles", "buttocks"] },
+  { "slug": "calves",      "name": "Calves",             "region": "legs",      "antagonist_slugs": [],             "aliases": ["gastrocnemius", "soleus", "lower leg"] },
+  { "slug": "adductors",   "name": "Hip Adductors",      "region": "legs",      "antagonist_slugs": ["abductors"],  "aliases": ["inner thigh", "adductor magnus"] },
+  { "slug": "abductors",   "name": "Hip Abductors",      "region": "legs",      "antagonist_slugs": ["adductors"],  "aliases": ["outer thigh", "gluteus medius"] },
+
+  { "slug": "chest",       "name": "Chest",              "region": "chest",     "antagonist_slugs": ["lats", "mid_back"], "aliases": ["pectoralis", "pectoralis major", "pecs"] },
+
+  { "slug": "lats",        "name": "Latissimus Dorsi",   "region": "back",      "antagonist_slugs": ["chest"],      "aliases": ["latissimus", "lat", "wings"] },
+  { "slug": "mid_back",    "name": "Mid Back",           "region": "back",      "antagonist_slugs": ["chest"],      "aliases": ["rhomboids", "middle trapezius", "scapular retractors"] },
+  { "slug": "traps",       "name": "Upper Traps",        "region": "back",      "antagonist_slugs": [],             "aliases": ["upper trapezius", "trapezius"] },
+  { "slug": "lower_back",  "name": "Lower Back",         "region": "back",      "antagonist_slugs": ["abs"],        "aliases": ["erector spinae", "spinal erectors", "lumbar"] },
+
+  { "slug": "front_delts", "name": "Anterior Deltoids",  "region": "shoulders", "antagonist_slugs": ["rear_delts"], "aliases": ["front delts", "anterior deltoid"] },
+  { "slug": "side_delts",  "name": "Lateral Deltoids",   "region": "shoulders", "antagonist_slugs": [],             "aliases": ["side delts", "lateral deltoid", "medial deltoid"] },
+  { "slug": "rear_delts",  "name": "Posterior Deltoids", "region": "shoulders", "antagonist_slugs": ["front_delts"], "aliases": ["rear delts", "posterior deltoid"] },
+
+  { "slug": "biceps",      "name": "Biceps",             "region": "arms",      "antagonist_slugs": ["triceps"],    "aliases": ["biceps brachii", "bis"] },
+  { "slug": "brachialis",  "name": "Brachialis",         "region": "arms",      "antagonist_slugs": [],             "aliases": ["brachialis muscle"] },
+  { "slug": "triceps",     "name": "Triceps",            "region": "arms",      "antagonist_slugs": ["biceps"],     "aliases": ["triceps brachii", "tris"] },
+  { "slug": "forearms",    "name": "Forearms",           "region": "arms",      "antagonist_slugs": [],             "aliases": ["wrist flexors", "wrist extensors", "grip"] },
+
+  { "slug": "abs",         "name": "Abdominals",         "region": "core",      "antagonist_slugs": ["lower_back"], "aliases": ["rectus abdominis", "abdominals", "six-pack"] },
+  { "slug": "obliques",    "name": "Obliques",           "region": "core",      "antagonist_slugs": [],             "aliases": ["external obliques", "internal obliques", "side abs"] }
+]

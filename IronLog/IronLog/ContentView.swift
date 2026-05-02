@@ -7,6 +7,7 @@ struct ContentView: View {
         filter: #Predicate<SDWorkout> { $0.finishedAt == nil }
     ) private var activeWorkouts: [SDWorkout]
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: Tab = .workout
 
@@ -49,6 +50,14 @@ struct ContentView: View {
         }
         .task {
             await PlanSyncHelper.syncIfNeeded(context: context)
+            await WorkoutSyncService.retryPending(context: context)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await PlanSyncHelper.syncIfNeeded(context: context)
+                await WorkoutSyncService.retryPending(context: context)
+            }
         }
     }
 }

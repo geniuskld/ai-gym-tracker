@@ -1,8 +1,17 @@
 import Foundation
 import WatchConnectivity
 
-// Sends start/stop workout commands to Apple Watch via WatchConnectivity.
-// The watchOS app receives the message and starts HKWorkoutSession locally.
+/// Listener for live HR samples streamed from the Apple Watch during a
+/// cardio workout. Implemented by `WatchHRSource`.
+@MainActor
+protocol HRSampleListener: AnyObject {
+    func didReceiveHRSample(bpm: Int, at: Date)
+}
+
+/// Sends start/stop workout commands to Apple Watch via WatchConnectivity
+/// and receives in-flight events back (e.g. live heart-rate samples during
+/// a cycling workout). Single shared instance is the global WCSession
+/// delegate.
 @MainActor
 final class WorkoutSessionManager: NSObject, ObservableObject {
 
@@ -11,6 +20,7 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
     @Published var isMirroring = false
 
     private var wcSession: WCSession?
+    private weak var hrListener: HRSampleListener?
 
     override init() {
         super.init()
@@ -21,13 +31,60 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
         wcSession = session
     }
 
-    func startMirroring() {
-        guard let session = wcSession,
-              session.isReachable
-        else { return }
+    // MARK: - Reachability
 
+    /// True iff a paired Watch with the IronLog app installed is currently
+    /// activated. Reachability (`isReachable`) is a tighter check, but for
+    /// "should we even try to source HR from the Watch?" this is enough --
+    /// the executor falls back to no-HR if no samples arrive.
+    var isWatchAvailable: Bool {
+        guard let s = wcSession else { return false }
+        return s.activationState == .activated
+            && s.isPaired
+            && s.isWatchAppInstalled
+    }
+
+    // MARK: - Strength (existing API)
+
+    func startMirroring() {
+        sendStartCommand(activity: "strength")
+    }
+
+    func stopMirroring() {
+        guard let session = wcSession, session.isReachable else {
+            isMirroring = false
+            return
+        }
         session.sendMessage(
-            ["command": "startWorkout"],
+            ["command": "stopWorkout"],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+        isMirroring = false
+    }
+
+    // MARK: - Cardio (Phase 2)
+
+    func startMirroringCardio() {
+        sendStartCommand(activity: "cycling")
+    }
+
+    func registerHRListener(_ listener: HRSampleListener) {
+        hrListener = listener
+    }
+
+    func unregisterHRListener(_ listener: HRSampleListener) {
+        if hrListener === listener {
+            hrListener = nil
+        }
+    }
+
+    // MARK: - Private
+
+    private func sendStartCommand(activity: String) {
+        guard let session = wcSession, session.isReachable else { return }
+        session.sendMessage(
+            ["command": "startWorkout", "activity": activity],
             replyHandler: { _ in
                 Task { @MainActor in
                     self.isMirroring = true
@@ -37,22 +94,6 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
                 // Watch not reachable -- ignore silently
             }
         )
-    }
-
-    func stopMirroring() {
-        guard let session = wcSession,
-              session.isReachable
-        else {
-            isMirroring = false
-            return
-        }
-
-        session.sendMessage(
-            ["command": "stopWorkout"],
-            replyHandler: nil,
-            errorHandler: nil
-        )
-        isMirroring = false
     }
 }
 
@@ -70,5 +111,28 @@ extension WorkoutSessionManager: WCSessionDelegate {
 
     nonisolated func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
+    }
+
+    /// Watch posts events here: HR samples during cardio, etc.
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any]
+    ) {
+        guard let event = message["event"] as? String else { return }
+        switch event {
+        case "hr_sample":
+            guard let bpm = message["bpm"] as? Int else { return }
+            let ts: Date = {
+                if let t = message["t"] as? TimeInterval {
+                    return Date(timeIntervalSince1970: t)
+                }
+                return Date()
+            }()
+            Task { @MainActor in
+                self.hrListener?.didReceiveHRSample(bpm: bpm, at: ts)
+            }
+        default:
+            break
+        }
     }
 }

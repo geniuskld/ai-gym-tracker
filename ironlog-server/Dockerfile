@@ -6,6 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ app/
+COPY tools/ tools/
 
 # schemas/ is mounted as /schemas via docker-compose volume
 

@@ -23,8 +23,6 @@ struct ActiveWorkoutView: View {
                 PerformingPhaseView(vm: vm)
             case .resting:
                 RestingPhaseView(vm: vm)
-            case .ratingExercise:
-                ExerciseRatingView(vm: vm)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -76,6 +74,19 @@ struct ActiveWorkoutView: View {
                 vm.reset()
                 dismiss()
             }
+        }
+        .alert(
+            "Save Failed",
+            isPresented: Binding(
+                get: { vm.persistenceErrorMessage != nil },
+                set: { if !$0 { vm.persistenceErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                vm.persistenceErrorMessage = nil
+            }
+        } message: {
+            Text(vm.persistenceErrorMessage ?? "")
         }
     }
 
@@ -304,7 +315,11 @@ private struct RestingPhaseView: View {
 
             Spacer()
 
-            if vm.isDynamicFlow {
+            // Show rating buttons during rest before next exercise
+            if vm.isRestBeforeNextExercise {
+                InlineRatingBar(vm: vm)
+                    .padding(.bottom, 16)
+            } else if vm.isDynamicFlow {
                 Button("Finish exercise") { vm.finishExercise() }
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.orange)
@@ -444,7 +459,7 @@ private struct SetRoadmap: View {
             }
 
             // Weight
-            if let w = s.isCompleted ? s.weightKg : (s.weightKg ?? s.prescribedWeightKg.map { Double($0) }) {
+            if let w = s.isCompleted ? s.weightKg : (s.weightKg ?? s.prescribedWeightKg) {
                 Text("\(formatted(w)) kg")
                     .font(.caption)
             }
@@ -709,44 +724,24 @@ private struct ExerciseListSheet: View {
     }
 }
 
-// MARK: - Exercise Rating (shown between exercises)
+// MARK: - Inline Exercise Rating (shown during rest before next exercise)
 
-private struct ExerciseRatingView: View {
+struct InlineRatingBar: View {
     @Bindable var vm: ActiveWorkoutViewModel
 
     var body: some View {
-        let exName = vm.exercises[vm.ratingExerciseIndex].name
-
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.green)
-
-            Text(exName)
-                .font(.title3.weight(.bold))
-                .multilineTextAlignment(.center)
-
+        VStack(spacing: 8) {
             Text("How did it feel?")
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 ratingButton("Heavy", icon: "flame.fill", color: .red, value: 3)
                 ratingButton("OK", icon: "hand.thumbsup.fill", color: .blue, value: 2)
                 ratingButton("Easy", icon: "wind", color: .green, value: 1)
             }
-            .padding(.horizontal, 24)
-
-            Spacer()
-
-            Button("Skip") { vm.submitExerciseRating(nil) }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 24)
         }
-        .padding()
+        .padding(.horizontal, 16)
     }
 
     private func ratingButton(
@@ -755,20 +750,29 @@ private struct ExerciseRatingView: View {
         color: Color,
         value: Int
     ) -> some View {
-        Button {
-            vm.submitExerciseRating(value)
+        let selected = vm.pendingRating == value
+        return Button {
+            vm.setPendingRating(value)
         } label: {
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.title2)
+                    .font(.title3)
                 Text(label)
-                    .font(.caption.weight(.medium))
+                    .font(.caption2.weight(.medium))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            .padding(.vertical, 10)
+            .background(
+                color.opacity(selected ? 0.30 : 0.12),
+                in: RoundedRectangle(cornerRadius: 10)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(color, lineWidth: selected ? 2 : 0)
+            }
             .foregroundStyle(color)
         }
+        .buttonStyle(.plain)
     }
 }
 

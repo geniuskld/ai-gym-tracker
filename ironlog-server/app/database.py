@@ -58,4 +58,41 @@ async def _ensure_indexes() -> None:
         ),
         IndexModel([("user_id", ASCENDING), ("started_at", DESCENDING)]),
         IndexModel([("user_id", ASCENDING), ("template_id", ASCENDING)]),
+        # Analytics: per (user, plan_type) timeseries
+        IndexModel([
+            ("user_id", ASCENDING),
+            ("plan_type", ASCENDING),
+            ("started_at", DESCENDING),
+        ]),
+        # Analytics: per-exercise progression (multikey on exercises.exercise_id)
+        IndexModel([
+            ("user_id", ASCENDING),
+            ("exercises.exercise_id", ASCENDING),
+            ("started_at", DESCENDING),
+        ]),
+        # Analytics: per-catalog-id grouping (multikey on exercises.catalog_id)
+        IndexModel([
+            ("user_id", ASCENDING),
+            ("exercises.catalog_id", ASCENDING),
+            ("started_at", DESCENDING),
+        ]),
+        # Analytics: per-body-part group-by (after denorm at log-write time)
+        IndexModel([
+            ("user_id", ASCENDING),
+            ("exercises.body_part", ASCENDING),
+            ("started_at", DESCENDING),
+        ]),
+    ])
+
+    # exercise catalog
+    await _db.muscle_groups.create_indexes([
+        IndexModel([("slug", ASCENDING)], unique=True),
+        IndexModel([("region", ASCENDING)]),
+    ])
+    await _db.exercises.create_indexes([
+        IndexModel([("slug", ASCENDING)], unique=True),
+        IndexModel([("body_part", ASCENDING)]),
+        IndexModel([("primary_muscles", ASCENDING)]),
+        IndexModel([("applies_to", ASCENDING)]),
+        IndexModel([("deprecated", ASCENDING)]),
     ])

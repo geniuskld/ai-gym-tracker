@@ -17,7 +17,7 @@ struct SetState: Identifiable {
 
     // Prescribed hints
     var prescribedReps: Int?
-    var prescribedWeightKg: Int?
+    var prescribedWeightKg: Double?
     var prescribedRir: Int?
     var prescribedWeightPercentDrop: Double?
 }
@@ -25,6 +25,7 @@ struct SetState: Identifiable {
 struct ExerciseState: Identifiable {
     let id = UUID()
     let exerciseId: String
+    let catalogId: String?
     let name: String
     let bodyPart: String
     let equipment: String?
@@ -45,7 +46,6 @@ enum SetPhase: Equatable {
     case ready          // before set: shows weight preview + Start
     case performing     // during set: timer + weight/reps adjustable + Done
     case resting        // countdown, auto-transitions to next step
-    case ratingExercise // optional exercise rating before moving to next
 }
 
 // MARK: - ViewModel
@@ -75,6 +75,7 @@ final class ActiveWorkoutViewModel {
     var finishNotes: String = ""
     var finishEffort: Int?
     var skipHealthKit = false
+    var persistenceErrorMessage: String?
 
     /// Current technique flow driving the workout progression
     private(set) var currentFlow: (any TechniqueFlow)?
@@ -118,7 +119,7 @@ final class ActiveWorkoutViewModel {
         if let w = ex.sets[setIdx].weightKg { return w }
         // 4. Prescribed weight from plan
         if let pw = ex.sets[setIdx].prescribedWeightKg {
-            return Double(pw)
+            return pw
         }
         return nil
     }
@@ -168,7 +169,7 @@ final class ActiveWorkoutViewModel {
             planVersion: template.plan?.planVersion
         )
         context.insert(sdWorkout)
-        try? context.save()
+        _ = saveContext(context, action: "start workout")
         workout = sdWorkout
 
         buildExercises(from: template, loggedSets: [:])
@@ -240,7 +241,7 @@ final class ActiveWorkoutViewModel {
                         return SetState(
                             setNumber: idx + 1,
                             type: ps.type,
-                            weightKg: matchingLog?.weightKg ?? ps.weightKg.map { Double($0) },
+                            weightKg: matchingLog?.weightKg ?? ps.weightKg,
                             reps: matchingLog?.reps,
                             isCompleted: matchingLog != nil,
                             failed: matchingLog?.failed ?? false,
@@ -252,6 +253,7 @@ final class ActiveWorkoutViewModel {
                     }
                     return ExerciseState(
                         exerciseId: exercise.exerciseId,
+                        catalogId: exercise.catalogId,
                         name: exercise.name,
                         bodyPart: exercise.bodyPart,
                         equipment: exercise.equipment,
@@ -461,7 +463,7 @@ final class ActiveWorkoutViewModel {
     private func onRestComplete() {
         if pendingAdvanceToNextExercise {
             pendingAdvanceToNextExercise = false
-            showExerciseRating()
+            applyPendingRatingAndAdvance()
         } else {
             // Flow already set currentExerciseIndex/currentSetIndex
             setPhase = .ready
@@ -470,28 +472,35 @@ final class ActiveWorkoutViewModel {
     }
 
     func finishExercise() {
-        restTimer.stop()
-        setStopwatch.stop()
-        showExerciseRating()
+        // Trigger rest-before-next-exercise so the user can rate during rest
+        pendingAdvanceToNextExercise = true
+        let restSeconds = currentExercise?.restSeconds ?? 60
+        startRest(seconds: restSeconds)
     }
 
-    /// Index of the exercise being rated (before advancing to next)
-    var ratingExerciseIndex: Int = 0
+    /// Pending rating set by the user during rest. Applied on rest completion.
+    var pendingRating: Int?
 
-    private func showExerciseRating() {
-        ratingExerciseIndex = currentExerciseIndex
-        setPhase = .ratingExercise
+    /// User taps Heavy/OK/Easy during rest. Toggles off if same value pressed again.
+    func setPendingRating(_ rating: Int?) {
+        if pendingRating == rating {
+            pendingRating = nil
+        } else {
+            pendingRating = rating
+        }
     }
 
-    func submitExerciseRating(_ rating: Int?) {
-        // Save rating to the exercise log
-        if let rating, let workout {
-            let exId = exercises[ratingExerciseIndex].exerciseId
+    private func applyPendingRatingAndAdvance() {
+        if let rating = pendingRating, let workout {
+            let exId = exercises[currentExerciseIndex].exerciseId
             if let exLog = workout.exercises.first(where: { $0.exerciseId == exId }) {
                 exLog.exerciseRating = rating
-                try? modelContext?.save()
+                if let context = modelContext {
+                    _ = saveContext(context, action: "save exercise rating")
+                }
             }
         }
+        pendingRating = nil
         advanceToNextExercise()
     }
 
@@ -576,13 +585,15 @@ final class ActiveWorkoutViewModel {
         } else {
             let newLog = SDExerciseLog(
                 exerciseId: exState.exerciseId,
+                catalogId: exState.catalogId,
                 exerciseName: exState.name,
+                bodyPart: exState.bodyPart,
                 order: index,
                 exerciseNotes: trimmed.isEmpty ? nil : trimmed
             )
             newLog.workout = workout
         }
-        try? context.save()
+        _ = saveContext(context, action: "save exercise note")
     }
 
     func exerciseNote(at index: Int) -> String {
@@ -621,7 +632,9 @@ final class ActiveWorkoutViewModel {
         } else {
             let newLog = SDExerciseLog(
                 exerciseId: exState.exerciseId,
+                catalogId: exState.catalogId,
                 exerciseName: exState.name,
+                bodyPart: exState.bodyPart,
                 order: currentExerciseIndex
             )
             newLog.workout = workout
@@ -647,7 +660,7 @@ final class ActiveWorkoutViewModel {
         )
         setLog.exerciseLog = exerciseLog
 
-        try? context.save()
+        _ = saveContext(context, action: "save completed set")
     }
 
     private func persistRestDuration(_ seconds: Int) {
@@ -662,9 +675,9 @@ final class ActiveWorkoutViewModel {
             }),
                let setLog = exLog.sets.first(where: {
                    $0.setNumber == prevSetIdx + 1
-               }) {
+                }) {
                 setLog.restSecondsAfter = seconds
-                try? context.save()
+                _ = saveContext(context, action: "save rest duration")
             }
         } else if currentExerciseIndex > 0 {
             let prevEx = exercises[currentExerciseIndex - 1]
@@ -675,7 +688,7 @@ final class ActiveWorkoutViewModel {
                    $0.setNumber < $1.setNumber
                }).last {
                 lastSet.restSecondsAfter = seconds
-                try? context.save()
+                _ = saveContext(context, action: "save rest duration")
             }
         }
     }
@@ -689,7 +702,7 @@ final class ActiveWorkoutViewModel {
         workout.workoutNotes = finishNotes.isEmpty ? nil : finishNotes
         workout.perceivedEffort = finishEffort
 
-        try? context.save()
+        guard saveContext(context, action: "save workout") else { return }
 
         // Stop Apple Watch mirroring
         WorkoutSessionManager.shared.stopMirroring()
@@ -717,22 +730,30 @@ final class ActiveWorkoutViewModel {
         if SyncService.isConfigured,
            SyncService.isAuthenticated,
            workout.syncedAt == nil {
-            let workoutRef = workout
-            let ctx = context
-            Task.detached {
-                do {
-                    try await SyncService.uploadWorkout(workoutRef)
-                    await MainActor.run {
-                        workoutRef.syncedAt = .now
-                        try? ctx.save()
-                    }
-                } catch {
-                    // sync failed silently -- will remain unsynced
-                }
+            Task {
+                await WorkoutSyncService.uploadStrength(
+                    workout,
+                    context: context,
+                    force: true
+                )
             }
         }
 
         state = .saved
+    }
+
+    @discardableResult
+    private func saveContext(
+        _ context: ModelContext,
+        action: String
+    ) -> Bool {
+        do {
+            try context.save()
+            return true
+        } catch {
+            persistenceErrorMessage = "Could not \(action): \(error.localizedDescription)"
+            return false
+        }
     }
 
     func reset() {
@@ -745,6 +766,7 @@ final class ActiveWorkoutViewModel {
         setPhase = .ready
         finishNotes = ""
         finishEffort = nil
+        persistenceErrorMessage = nil
         currentFlow = nil
         flowInstruction = ""
         flowLockWeight = false

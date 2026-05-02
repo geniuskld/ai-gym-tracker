@@ -28,5 +28,7 @@
 	<array>
 		<string>workout-processing</string>
 	</array>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.W88C7J82R5.ironlog</string>
 </dict>
 </plist>

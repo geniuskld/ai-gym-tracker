@@ -15,7 +15,7 @@ struct RestTimerLiveActivity: Widget {
                             .lineLimit(1)
                         if isPerformingPhase(context) {
                             if let w = context.state.weightKg, w > 0 {
-                                Text("\(Int(w)) kg")
+                                Text("\(formatWeight(w)) kg")
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
@@ -44,11 +44,15 @@ struct RestTimerLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
+                // During a working set: icon + weight here, set stopwatch on
+                // trailing -- no duplication. While resting: just the timer
+                // icon (countdown is on the trailing).
                 HStack(spacing: 4) {
                     Image(systemName: isPerformingPhase(context) ? "dumbbell.fill" : "timer")
                         .foregroundStyle(accentColor(context: context))
-                    if isPerformingPhase(context), let w = context.state.weightKg, w > 0 {
-                        Text("\(Int(w)) kg")
+                    if isPerformingPhase(context),
+                       let w = context.state.weightKg, w > 0 {
+                        Text("\(formatWeight(w)) kg")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(.secondary)
                     }
@@ -76,7 +80,7 @@ struct RestTimerLiveActivity: Widget {
                     .lineLimit(1)
                 if isPerformingPhase(context) {
                     if let w = context.state.weightKg, w > 0 {
-                        Text("\(Int(w)) kg")
+                        Text("\(formatWeight(w)) kg")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -101,15 +105,18 @@ struct RestTimerLiveActivity: Widget {
         context: ActivityViewContext<RestTimerAttributes>
     ) -> some View {
         if isPerformingPhase(context) {
-            // Show weight during set
-            if let w = context.state.weightKg, w > 0 {
-                Text("\(Int(w)) kg")
-                    .fontWeight(.bold)
-                    .foregroundStyle(.green)
-            } else {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .foregroundStyle(.green)
-            }
+            // Set is in progress: show how long the user has been performing
+            // it. SwiftUI's `Text(timerInterval:)` ticks on its own without
+            // pushing updates from the host app -- so the countdown keeps
+            // running even when IronLog is fully backgrounded.
+            // `timerDate` here is the start-of-set wall-clock time.
+            Text(
+                timerInterval: context.state.timerDate...Date.distantFuture,
+                countsDown: false,
+                showsHours: false
+            )
+            .fontWeight(.bold)
+            .foregroundStyle(.green)
         } else if context.state.isOvertime {
             // Overtime: clear call to action
             Text("GO!")
@@ -138,4 +145,15 @@ struct RestTimerLiveActivity: Widget {
         if isPerformingPhase(context) { return .green }
         return context.state.isOvertime ? .yellow : .blue
     }
+}
+
+/// Formats a weight in kg, dropping the decimal when it is an integer.
+/// 100.0 -> "100", 102.5 -> "102.5". Defined here (private to the widget
+/// module) because the analogous helper in the main app is not visible
+/// to the IronLogWidgets target.
+private func formatWeight(_ kg: Double) -> String {
+    if kg.rounded() == kg {
+        return String(Int(kg))
+    }
+    return String(format: "%g", kg)
 }

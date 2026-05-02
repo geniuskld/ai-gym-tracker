@@ -5,7 +5,9 @@ import SwiftData
 final class SDPrescribedSet {
     var type: String
     var reps: Int?
-    var weightKg: Int?
+    /// Stored as Double to support fractional plate increments (e.g. 102.5 kg).
+    /// Schema bumped on 2026-04-29 from Int to Double; old stores require wipe.
+    var weightKg: Double?
     var rir: Int?
     var weightPercentDrop: Double?
     var sortOrder: Int
@@ -15,7 +17,7 @@ final class SDPrescribedSet {
     init(
         type: String = "working",
         reps: Int? = nil,
-        weightKg: Int? = nil,
+        weightKg: Double? = nil,
         rir: Int? = nil,
         weightPercentDrop: Double? = nil,
         sortOrder: Int = 0

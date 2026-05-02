@@ -79,6 +79,17 @@ def validate(data: dict) -> None:
                             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=f"{prefix}.sets[{si}].reps must be a positive integer",
                         )
+                    # weight_kg is optional; if present it must be a non-negative
+                    # number (int or float -- fractional plates allowed).
+                    if "weight_kg" in s:
+                        wk = s["weight_kg"]
+                        # Reject bool (Python bool is subclass of int) and
+                        # require numeric non-negative.
+                        if isinstance(wk, bool) or not isinstance(wk, (int, float)) or wk < 0:
+                            raise HTTPException(
+                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"{prefix}.sets[{si}].weight_kg must be a non-negative number",
+                            )
 
 
 def _require_str(obj: dict, field: str, prefix: str) -> None:
@@ -88,3 +99,34 @@ def _require_str(obj: dict, field: str, prefix: str) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{prefix}.{field} must be a non-empty string",
         )
+
+
+def collect_warnings(data: dict, known_catalog_slugs: set[str]) -> list[str]:
+    """Return non-fatal warnings for a strength plan.
+
+    Currently checks `catalog_id`:
+    - missing -> warning that analytics continuity may break
+    - present but not in `known_catalog_slugs` -> warning about typo or
+      unregistered slug
+
+    Hard errors (missing required fields, bad enums, etc) are still
+    raised by `validate()`. This function never raises.
+    """
+    warnings: list[str] = []
+    for ti, tmpl in enumerate(data.get("templates", []) or []):
+        for gi, grp in enumerate(tmpl.get("groups", []) or []):
+            for ei, ex in enumerate(grp.get("exercises", []) or []):
+                prefix = f"templates[{ti}].groups[{gi}].exercises[{ei}]"
+                ex_id = ex.get("id", "?")
+                cid = ex.get("catalog_id")
+                if not cid:
+                    warnings.append(
+                        f"{prefix} ({ex_id}): no catalog_id -- "
+                        "analytics continuity may break across plan versions"
+                    )
+                elif cid not in known_catalog_slugs:
+                    warnings.append(
+                        f"{prefix} ({ex_id}): catalog_id '{cid}' not in catalog "
+                        "(typo or unregistered exercise)"
+                    )
+    return warnings

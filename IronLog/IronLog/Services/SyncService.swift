@@ -138,26 +138,23 @@ enum SyncService {
         savedEmail = nil
     }
 
-    // MARK: - Plan Summary
+    // MARK: - Fetch Plans
 
-    struct PlanSummary: Codable {
+    /// Lightweight summary returned by /plans -- enough for UI without
+    /// committing to one full schema. The body contains full plan JSON,
+    /// but here we expose only the headers callers usually need.
+    struct PlanSummary {
+        let planType: String
         let planId: String
-        let planType: PlanType
         let planName: String
         let planVersion: Int
-        let createdAt: String
-        let author: String?
-
-        enum CodingKeys: String, CodingKey {
-            case planId = "plan_id"
-            case planType = "plan_type"
-            case planName = "plan_name"
-            case planVersion = "plan_version"
-            case createdAt = "created_at"
-            case author
-        }
+        /// Raw JSON of the full plan, ready to feed into PlanImportService.parse.
+        let rawJSON: Data
     }
 
+    /// Fetches all plans (full content, latest version of each plan_id).
+    /// Returns one entry per plan with its raw JSON, so callers can decide
+    /// per-plan how to decode (strength vs cycling vs unknown).
     static func fetchPlans(
         type: PlanType? = nil
     ) async throws -> [PlanSummary] {
@@ -177,38 +174,27 @@ enum SyncService {
         handleRefreshedToken(response)
         try checkResponse(response, data: data)
 
-        return try JSONDecoder().decode([PlanSummary].self, from: data)
-    }
+        // Parse as array-of-objects without committing to a concrete schema.
+        guard let raw = try? JSONSerialization.jsonObject(with: data),
+              let arr = raw as? [[String: Any]] else {
+            throw SyncError.decodingError("Expected JSON array of plan objects")
+        }
 
-    // MARK: - Fetch Plan
-
-    static func fetchPlan(
-        type: PlanType = .strength,
-        id: String? = nil
-    ) async throws -> WorkoutPlanJSON {
-        let base = try baseURL()
-        var components = URLComponents(
-            url: base.appendingPathComponent("plan"),
-            resolvingAgainstBaseURL: false
-        )!
-        var items = [URLQueryItem(name: "type", value: type.rawValue)]
-        if let id { items.append(URLQueryItem(name: "id", value: id)) }
-        components.queryItems = items
-
-        var request = URLRequest(url: components.url!)
-        try attachAuth(&request)
-
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
-
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-
-        do {
-            return try decoder.decode(WorkoutPlanJSON.self, from: data)
-        } catch {
-            throw SyncError.decodingError(error.localizedDescription)
+        return arr.compactMap { dict -> PlanSummary? in
+            guard
+                let planType = dict["plan_type"] as? String,
+                let planId = dict["plan_id"] as? String,
+                let planName = dict["plan_name"] as? String,
+                let planVersion = dict["plan_version"] as? Int,
+                let rawJSON = try? JSONSerialization.data(withJSONObject: dict)
+            else { return nil }
+            return PlanSummary(
+                planType: planType,
+                planId: planId,
+                planName: planName,
+                planVersion: planVersion,
+                rawJSON: rawJSON
+            )
         }
     }
 
@@ -241,6 +227,53 @@ enum SyncService {
             workouts: [WorkoutExportService.workoutToJSON(workout)]
         )
         try await uploadLog(log)
+    }
+
+    /// Cycling workouts use a different shape (segments, not exercises),
+    /// so we POST a separate envelope. The server's /log endpoint stores
+    /// any `{ workouts: [...] }` payload regardless of inner shape.
+    static func uploadCyclingWorkout(_ workout: SDCyclingWorkout) async throws {
+        let envelope = CyclingLogEnvelopeJSON(
+            version: "1.0",
+            exportedAt: .now,
+            workouts: [WorkoutExportService.cyclingWorkoutToJSON(workout)]
+        )
+        try await uploadCyclingLog(envelope)
+    }
+
+    static func uploadCyclingLog(_ envelope: CyclingLogEnvelopeJSON) async throws {
+        let base = try baseURL()
+        let url = base.appendingPathComponent("log")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try attachAuth(&request)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        request.httpBody = try encoder.encode(envelope)
+
+        let (data, response) = try await urlSession.data(for: request)
+        handleRefreshedToken(response)
+        try checkResponse(response, data: data)
+    }
+
+    // MARK: - Crash Reports
+
+    static func uploadCrashReport(rawJSON: Data) async throws {
+        let base = try baseURL()
+        let url = base.appendingPathComponent("crash")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try attachAuth(&request)
+        request.httpBody = rawJSON
+
+        let (data, response) = try await urlSession.data(for: request)
+        handleRefreshedToken(response)
+        try checkResponse(response, data: data)
     }
 
     // MARK: - Delete Log

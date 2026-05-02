@@ -37,6 +37,14 @@ async def post_log(
                 detail="Each workout must have an 'id' field",
             )
 
+        # Denorm body_part on each strength exercise log entry so analytics
+        # queries can group by body_part with a single index hit (no $lookup
+        # to plans collection). Cycling logs have segments instead -- skip.
+        if w.get("plan_type") == "strength":
+            await _enrich_strength_exercises_with_body_part(
+                user_id=user["_id"], workout=w
+            )
+
         doc = {**w, "user_id": user["_id"]}
         if device_id:
             doc["device_id"] = device_id
@@ -112,6 +120,83 @@ async def delete_log(
             detail="Workout not found",
         )
     return {"deleted": workout_id}
+
+
+# MARK: - Body-part denorm middleware
+
+async def _enrich_strength_exercises_with_body_part(
+    user_id: str,
+    workout: dict,
+) -> None:
+    """Mutates each entry in `workout["exercises"]` adding `body_part`.
+
+    Resolution priority:
+      1. `exercise.catalog_id` -> exercises.body_part in catalog
+      2. fallback to plans collection lookup by (plan_id, plan_version, exercise_id)
+      3. otherwise leave body_part absent
+    """
+    exercises = workout.get("exercises")
+    if not isinstance(exercises, list) or not exercises:
+        return
+
+    db = get_db()
+    plan_id = workout.get("plan_id")
+    plan_version = workout.get("plan_version")
+
+    # Pre-load plan exercises map once if any catalog lookup falls back.
+    plan_exercises_by_id: dict[str, str] = {}
+    plan_doc_loaded = False
+
+    async def _load_plan_exercises_once() -> None:
+        nonlocal plan_doc_loaded
+        if plan_doc_loaded:
+            return
+        plan_doc_loaded = True
+        if not (plan_id and plan_version is not None):
+            return
+        plan_doc = await db.plans.find_one(
+            {
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "plan_version": plan_version,
+            },
+            projection={"templates": 1},
+        )
+        if not plan_doc:
+            return
+        for tmpl in plan_doc.get("templates", []) or []:
+            for grp in tmpl.get("groups", []) or []:
+                for ex in grp.get("exercises", []) or []:
+                    ex_id = ex.get("id")
+                    bp = ex.get("body_part")
+                    if ex_id and bp:
+                        plan_exercises_by_id[ex_id] = bp
+
+    for ex_log in exercises:
+        if not isinstance(ex_log, dict):
+            continue
+        if ex_log.get("body_part"):
+            # Already populated by client -- respect it.
+            continue
+
+        body_part: str | None = None
+        cid = ex_log.get("catalog_id")
+        if cid:
+            cat = await db.exercises.find_one(
+                {"slug": cid},
+                projection={"body_part": 1, "_id": 0},
+            )
+            if cat:
+                body_part = cat.get("body_part")
+
+        if not body_part:
+            await _load_plan_exercises_once()
+            ex_id = ex_log.get("exercise_id")
+            if ex_id:
+                body_part = plan_exercises_by_id.get(ex_id)
+
+        if body_part:
+            ex_log["body_part"] = body_part
 
 
 def _attach_refreshed_token(user: dict, response: Response | None) -> None:

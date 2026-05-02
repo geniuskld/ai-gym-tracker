@@ -48,7 +48,10 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSSupportsLiveActivities: true
-        NSHealthUpdateUsageDescription: IronLog saves your strength training workouts to Apple Health
+        NSHealthUpdateUsageDescription: IronLog saves your strength and cycling workouts to Apple Health.
+        NSHealthShareUsageDescription: IronLog reads your heart rate during cycling workouts so you can see live BPM and time-in-zone.
+        UIBackgroundModes:
+          - workout-processing
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
     settings:
@@ -62,6 +65,8 @@ targets:
       - path: IronLog/Resources
     dependencies:
       - target: IronLogWidgets
+      - target: IronLogWatch
+        embed: true
       - sdk: HealthKit.framework
 
   IronLogWidgets:
@@ -70,6 +75,7 @@ targets:
     sources:
       - path: IronLogWidgets
       - path: IronLog/Services/RestTimerActivity.swift
+      - path: IronLog/Services/CyclingActivity.swift
     info:
       path: IronLogWidgets/Info.plist
       properties:
@@ -95,6 +101,10 @@ targets:
       path: IronLogWatch/Info.plist
       properties:
         WKApplication: true
+        # Declares this watch app is the companion for the iPhone app.
+        # iOS uses this to surface "IronLog" in the Watch app's
+        # "Available Apps" list and auto-install it on first iPhone run.
+        WKCompanionAppBundleIdentifier: com.W88C7J82R5.ironlog
         NSHealthShareUsageDescription: Read health data during workouts
         NSHealthUpdateUsageDescription: Record workout data
         WKBackgroundModes:

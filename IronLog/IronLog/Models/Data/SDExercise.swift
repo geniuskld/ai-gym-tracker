@@ -4,6 +4,7 @@ import SwiftData
 @Model
 final class SDExercise {
     var exerciseId: String
+    var catalogId: String?
     var name: String
     var bodyPart: String
     var equipment: String?
@@ -23,6 +24,7 @@ final class SDExercise {
 
     init(
         exerciseId: String,
+        catalogId: String? = nil,
         name: String,
         bodyPart: String,
         equipment: String? = nil,
@@ -36,6 +38,7 @@ final class SDExercise {
         maxMiniSets: Int? = nil
     ) {
         self.exerciseId = exerciseId
+        self.catalogId = catalogId
         self.name = name
         self.bodyPart = bodyPart
         self.equipment = equipment

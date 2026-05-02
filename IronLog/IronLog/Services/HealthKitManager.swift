@@ -23,9 +23,17 @@ final class HealthKitManager {
             HKObjectType.workoutType()
         ]
 
+        // Read access for heart rate so the cycling executor can show
+        // live BPM regardless of which app records the workout on the
+        // watch (Apple Fitness, Strava, IronLogWatch, etc.).
+        var typesToRead: Set<HKObjectType> = []
+        if let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+            typesToRead.insert(hrType)
+        }
+
         store.requestAuthorization(
             toShare: typesToWrite,
-            read: []
+            read: typesToRead
         ) { _, _ in }
     }
 

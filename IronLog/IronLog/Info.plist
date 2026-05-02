@@ -23,10 +23,16 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>IronLog reads your heart rate during cycling workouts so you can see live BPM and time-in-zone.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>IronLog saves your strength training workouts to Apple Health</string>
+	<string>IronLog saves your strength and cycling workouts to Apple Health.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "workout-plan.schema.json",
   "title": "WorkoutPlan",
-  "x-schema-id": "2026-04-09T22:00:00Z",
+  "x-schema-id": "2026-04-30T00:00:00Z",
   "description": "Training plan for the IronLog gym app. The plan contains templates (workout days), each template has exercise groups (muscle groups), each group has exercises with prescribed sets. The app guides the user through each exercise step by step, tracking weight, reps, and rest timers. IMPORTANT: Use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
   "type": "object",
   "required": ["plan_type", "plan_id", "plan_version", "plan_name", "created_at", "templates"],
@@ -57,7 +57,11 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique exercise ID within the plan, e.g. \"a1\", \"b3\". Used to link supersets via superset_with."
+          "description": "Unique exercise ID within the plan, e.g. \"a1\", \"b3\". Used to link supersets via superset_with. Should remain stable across versions of the same plan when it identifies the same exercise."
+        },
+        "catalog_id": {
+          "type": "string",
+          "description": "Optional reference to a slug in the server exercise catalog (GET /exercises/catalog?plan_type=strength). Recommended for analytics continuity across plan versions and across plans -- the same physical exercise will be tracked as one progression line. If omitted, server returns a warning but accepts the plan."
         },
         "name": {
           "type": "string",
@@ -129,8 +133,9 @@
           "description": "Exact number of prescribed repetitions. The app shows this as a target. Examples: 12 for hypertrophy, 5 for strength, 15 for warm-up."
         },
         "weight_kg": {
-          "type": "integer",
-          "description": "Starting weight in kg. Optional but highly recommended -- without it the user starts at 0 kg and has to manually set the weight. For warmup sets, use ~40-60% of working weight. For drop sets, omit this -- the app auto-calculates from weight_percent_drop."
+          "type": "number",
+          "minimum": 0,
+          "description": "Starting weight in kg (fractional values allowed for 0.5/1.25/2.5 kg plate increments). Optional but highly recommended -- without it the user starts at 0 kg and has to manually set the weight. For warmup sets, use ~40-60% of working weight. For drop sets, omit this -- the app auto-calculates from weight_percent_drop."
         },
         "rir": {
           "type": "integer",

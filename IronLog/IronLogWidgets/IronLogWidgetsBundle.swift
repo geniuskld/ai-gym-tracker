@@ -5,5 +5,6 @@ import WidgetKit
 struct IronLogWidgetsBundle: WidgetBundle {
     var body: some Widget {
         RestTimerLiveActivity()
+        CyclingLiveActivity()
     }
 }

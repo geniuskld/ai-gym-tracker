@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cycling-plan.schema.json",
+  "title": "CyclingPlan",
+  "x-schema-id": "2026-04-27T00:00:00Z",
+  "description": "Cardio/cycling training plan for the IronLog app. The plan contains workout templates; each template is a sequence of timed segments executed in order. Segments can be a leaf (warmup/work/recovery/cooldown/steady) or an interval_block that repeats N times over its children. The app guides the user through each segment with a timer, target heart-rate range, and (when an Apple Watch is available) live HR readings. Without HR source the app still runs the timer and assumes the user followed the plan. IMPORTANT: use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
+  "type": "object",
+  "required": ["plan_type", "plan_id", "plan_version", "plan_name", "created_at", "templates"],
+  "properties": {
+    "plan_type": { "type": "string", "enum": ["cycling"], "description": "Plan type. Determines which validator runs on the server." },
+    "plan_id": { "type": "string", "description": "Stable plan identifier (slug). Does not change when the plan is renamed. Example: \"norwegian-4x4-progression\"" },
+    "plan_version": { "type": "integer", "minimum": 1, "description": "Content version. Increment when updating the plan. Server rejects version <= current." },
+    "plan_name": { "type": "string", "description": "Human-readable plan name." },
+    "schema": { "type": "string", "description": "Schema identifier (timestamp). Take from x-schema-id in this schema file. Helps debug schema mismatches between server and app." },
+    "created_at": { "type": "string", "format": "date-time", "description": "ISO 8601 timestamp." },
+    "author": { "type": "string", "description": "Who created the plan (optional)." },
+    "notes": { "type": "string", "description": "General notes about the plan: goals, periodization, contraindications." },
+    "max_hr_bpm": {
+      "type": "integer", "minimum": 60, "maximum": 240,
+      "description": "User's max heart rate (bpm). Reference value only -- the source of truth for targets is segment.target.min/max in absolute BPM. Useful for the LLM when designing zones."
+    },
+    "templates": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Workout templates. Each is one complete cardio session.",
+      "items": { "$ref": "#/$defs/Template" }
+    }
+  },
+  "$defs": {
+    "Template": {
+      "type": "object",
+      "required": ["id", "name", "segments"],
+      "description": "One cardio workout session.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique template ID within the plan, e.g. \"week1-3x3\"." },
+        "name": { "type": "string", "description": "Display name shown to the user." },
+        "equipment": {
+          "type": "string",
+          "enum": ["stationary_bike", "spin_bike", "outdoor_bike"],
+          "description": "Equipment type. Default: stationary_bike."
+        },
+        "notes": { "type": "string", "description": "Coaching notes for the whole session." },
+        "progression": { "$ref": "#/$defs/Progression" },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ordered segments executed top-to-bottom.",
+          "items": { "$ref": "#/$defs/Segment" }
+        }
+      }
+    },
+    "Segment": {
+      "type": "object",
+      "description": "Either a leaf segment (warmup/work/recovery/cooldown/steady) with duration+target, or an interval_block that repeats its children N times.",
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["warmup", "work", "recovery", "cooldown", "steady", "interval_block"],
+          "description": "Segment kind. Leaf kinds require duration_seconds and target. interval_block requires repeats and children."
+        },
+        "name": { "type": "string", "description": "Display name for the segment." },
+        "duration_seconds": {
+          "type": "integer", "minimum": 1,
+          "description": "Required for leaf kinds. Forbidden for interval_block."
+        },
+        "target": { "$ref": "#/$defs/Target", "description": "Required for leaf kinds. Forbidden for interval_block." },
+        "repeats": {
+          "type": "integer", "minimum": 1,
+          "description": "Required for interval_block. Forbidden for leaf kinds."
+        },
+        "children": {
+          "type": "array", "minItems": 1,
+          "description": "Required for interval_block. Forbidden for leaf kinds. Children must be leaf segments only (no nested interval_blocks).",
+          "items": { "$ref": "#/$defs/Segment" }
+        },
+        "notes": { "type": "string", "description": "Coaching cue for this segment." }
+      }
+    },
+    "Target": {
+      "type": "object",
+      "required": ["type"],
+      "description": "Intensity target for a leaf segment.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["hr_bpm_range", "rpe", "free"],
+          "description": "hr_bpm_range = absolute heart-rate range (min/max in bpm). rpe = perceived exertion 1-10 (min/max as integers). free = no target, just keep moving."
+        },
+        "min": { "type": "integer", "description": "Lower bound. Required for hr_bpm_range and rpe." },
+        "max": { "type": "integer", "description": "Upper bound. Required for hr_bpm_range and rpe." },
+        "zone_label": { "type": "string", "description": "Optional human label, e.g. \"Z2\" or \"Z3-Z4\". Shown to user verbatim." }
+      }
+    },
+    "Progression": {
+      "type": "object",
+      "description": "Hints for how the next plan version should evolve. Optional. The app may show advance_when as text and (in the future) use axis+step to suggest the next version.",
+      "properties": {
+        "axis": {
+          "type": "string",
+          "enum": ["intervals", "work_duration", "intensity_hr", "manual"],
+          "description": "Primary progression dimension."
+        },
+        "step": {
+          "type": "object",
+          "description": "How much to add when advancing. All fields optional.",
+          "properties": {
+            "intervals_delta": { "type": "integer", "description": "Add this many repeats to the main interval_block." },
+            "work_duration_seconds": { "type": "integer", "description": "Add this many seconds to each \"work\" leaf." },
+            "hr_bpm_delta": { "type": "integer", "description": "Add this many bpm to target.min/max in \"work\" leaves." }
+          }
+        },
+        "advance_when": {
+          "type": "string",
+          "description": "Free-form criterion shown to the user, e.g. \"after 2 sessions with all intervals in target HR\"."
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("syncServerURL") private var serverURL = ""
     @State private var editingURL = ""
     @State private var email = ""
@@ -176,10 +177,17 @@ struct SettingsView: View {
 
         Task {
             do {
-                let plan = try await SyncService.fetchPlan()
-                testResult = .success(
-                    "\(plan.planName) v\(plan.planVersion)"
-                )
+                let plans = try await SyncService.fetchPlans()
+                if plans.isEmpty {
+                    testResult = .success("Connected (no plans)")
+                } else {
+                    let preview = plans
+                        .prefix(3)
+                        .map { "\($0.planName) v\($0.planVersion) [\($0.planType)]" }
+                        .joined(separator: ", ")
+                    let suffix = plans.count > 3 ? " +\(plans.count - 3)" : ""
+                    testResult = .success("\(plans.count) plans: \(preview)\(suffix)")
+                }
             } catch {
                 testResult = .failure(error.localizedDescription)
             }
@@ -211,6 +219,10 @@ struct SettingsView: View {
                     isError: false
                 )
                 password = ""
+                await WorkoutSyncService.retryPending(
+                    context: modelContext,
+                    force: true
+                )
             } catch {
                 authMessage = AuthMessage(
                     text: error.localizedDescription,

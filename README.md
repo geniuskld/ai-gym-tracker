@@ -33,6 +33,8 @@ iOS-приложение для трекинга силовых трениров
 - Несовместимые планы показываются как "not supported" с timestamps схем для отладки
 - Upload логов: fire-and-forget после завершения тренировки
 - Delete логов: синхронное удаление на сервере при swipe-to-delete
+- Несинхронизированные завершенные тренировки автоматически ретраятся при запуске,
+  возврате приложения в foreground и после входа в аккаунт
 - Настройки: server URL, аккаунт, test connection
 
 ### Импорт плана
@@ -74,13 +76,13 @@ iOS-приложение для трекинга силовых трениров
 | GET | /schema | нет | Описание схемы по plan_type |
 | POST | /register | нет | Регистрация -> JWT |
 | POST | /login | нет | Вход -> JWT |
-| GET | /plans | JWT | Список планов (последняя версия каждого) |
-| GET | /plan | JWT | Последний план по type+id |
-| GET | /plan/versions | JWT | История версий |
+| GET | /plans | JWT | Последняя версия каждого plan_id, FULL content |
 | PUT | /plan | JWT | Загрузка новой версии (с валидацией) |
 | POST | /log | JWT | Upsert лога тренировки |
 | GET | /log | JWT | Запрос логов (since, template_id, type, limit) |
 | DELETE | /log/{id} | JWT | Удаление лога |
+| POST | /crash | JWT | Приём краш-репорта |
+| GET | /crashes | JWT | Последние краш-репорты пользователя |
 
 ## JSON-схемы
 

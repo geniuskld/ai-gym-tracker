@@ -18,6 +18,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published var activeCalories: Double = 0
     @Published var isActive: Bool = false
     @Published var elapsedSeconds: Int = 0
+    @Published var isCardioMode: Bool = false
 
     private var startDate: Date?
     private var timer: Timer?
@@ -42,11 +43,18 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         ) { _, _ in }
     }
 
-    func startWorkout() async {
+    func startWorkout(activity: String = "strength") async {
         guard session == nil else { return }
 
         let config = HKWorkoutConfiguration()
-        config.activityType = .traditionalStrengthTraining
+        switch activity {
+        case "cycling":
+            config.activityType = .cycling
+            isCardioMode = true
+        default:
+            config.activityType = .traditionalStrengthTraining
+            isCardioMode = false
+        }
         config.locationType = .indoor
 
         do {
@@ -113,6 +121,24 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         heartRate = 0
         activeCalories = 0
         elapsedSeconds = 0
+        isCardioMode = false
+    }
+
+    /// Forwards a HR sample to the iPhone via WatchConnectivity. Only
+    /// invoked when the current activity is cardio. Best-effort: drops
+    /// the sample silently if the iPhone is not reachable.
+    private func sendHRToiPhone(_ bpm: Int) {
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(
+            [
+                "event": "hr_sample",
+                "bpm": bpm,
+                "t": Date().timeIntervalSince1970,
+            ],
+            replyHandler: nil,
+            errorHandler: nil
+        )
     }
 }
 
@@ -135,10 +161,11 @@ extension WatchWorkoutManager: WCSessionDelegate {
             replyHandler(["status": "unknown"])
             return
         }
+        let activity = message["activity"] as? String ?? "strength"
         Task { @MainActor in
             switch command {
             case "startWorkout":
-                await startWorkout()
+                await startWorkout(activity: activity)
                 replyHandler(["status": "started"])
             case "stopWorkout":
                 endWorkout()
@@ -203,8 +230,12 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
                 switch qType {
                 case HKQuantityType(.heartRate):
                     let unit = HKUnit.count().unitDivided(by: .minute())
-                    heartRate = stats.mostRecentQuantity()?
+                    let bpm = stats.mostRecentQuantity()?
                         .doubleValue(for: unit) ?? 0
+                    heartRate = bpm
+                    if isCardioMode, bpm > 0 {
+                        sendHRToiPhone(Int(bpm.rounded()))
+                    }
 
                 case HKQuantityType(.activeEnergyBurned):
                     activeCalories = stats.sumQuantity()?

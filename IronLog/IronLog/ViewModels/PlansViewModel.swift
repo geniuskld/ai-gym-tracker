@@ -9,7 +9,7 @@ final class PlansViewModel {
 
     enum State {
         case idle
-        case parsed(WorkoutPlanJSON)
+        case parsed(ParsedPlan)
         case error(String)
     }
 
@@ -59,10 +59,10 @@ final class PlansViewModel {
         context: ModelContext,
         replace: Bool = false
     ) -> Bool {
-        guard case .parsed(let json) = state else { return false }
+        guard case .parsed(let parsed) = state else { return false }
         do {
-            _ = try PlanImportService.importPlan(
-                json,
+            try PlanImportService.importPlan(
+                parsed,
                 into: context,
                 replaceExisting: replace
             )
@@ -83,9 +83,13 @@ final class PlansViewModel {
         context.delete(plan)
     }
 
+    func deleteCyclingPlan(_ plan: SDCyclingPlan, context: ModelContext) {
+        context.delete(plan)
+    }
+
     // MARK: - Helpers
 
-    var parsedPlan: WorkoutPlanJSON? {
+    var parsedPlan: ParsedPlan? {
         if case .parsed(let plan) = state { return plan }
         return nil
     }
