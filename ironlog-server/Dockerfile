@@ -10,4 +10,4 @@ COPY tools/ tools/
 
 # schemas/ is mounted as /schemas via docker-compose volume
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--proxy-headers", "--forwarded-allow-ips=*", "--host", "0.0.0.0", "--port", "8000"]

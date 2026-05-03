@@ -41,7 +41,15 @@ struct AuthResponse: Codable {
 enum SyncService {
 
     private static let serverURLKey = "syncServerURL"
-    static let defaultServerURL = "http://v170184.hosted-by-vdsina.com:8844"
+    static let defaultServerURL = "https://v170184.hosted-by-vdsina.com"
+    private static let legacyDefaultServerURLs: Set<String> = [
+        "http://v170184.hosted-by-vdsina.com:8844",
+        "http://v170184.hosted-by-vdsina.com:8844/",
+        "http://89.110.84.41:8844",
+        "http://89.110.84.41:8844/",
+    ]
+    private static let legacyDefaultFallbackURL =
+        "http://v170184.hosted-by-vdsina.com:8844"
     private static let keychainTokenKey = "ironlog_jwt"
     private static let keychainEmailKey = "ironlog_email"
 
@@ -55,6 +63,19 @@ enum SyncService {
     static var isConfigured: Bool {
         guard let url = serverURL, !url.isEmpty else { return false }
         return URL(string: url) != nil
+    }
+
+    static func migrateDefaultServerURLIfNeeded() {
+        guard let savedURL = serverURL else { return }
+        let normalized = savedURL
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingTrailingSlashes()
+        let legacyDefaults = legacyDefaultServerURLs.map {
+            $0.trimmingTrailingSlashes()
+        }
+        if legacyDefaults.contains(normalized) {
+            serverURL = defaultServerURL
+        }
     }
 
     // MARK: - Token (Keychain)
@@ -91,18 +112,12 @@ enum SyncService {
         email: String,
         password: String
     ) async throws -> AuthResponse {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("register")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            ["email": email, "password": password]
-        )
-
-        let (data, response) = try await urlSession.data(for: request)
-        try checkResponse(response, data: data)
+        let body = try JSONEncoder().encode(["email": email, "password": password])
+        let (data, _) = try await performRequest(path: "register") { request in
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
 
         let auth = try JSONDecoder().decode(AuthResponse.self, from: data)
         token = auth.token
@@ -114,18 +129,12 @@ enum SyncService {
         email: String,
         password: String
     ) async throws -> AuthResponse {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("login")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            ["email": email, "password": password]
-        )
-
-        let (data, response) = try await urlSession.data(for: request)
-        try checkResponse(response, data: data)
+        let body = try JSONEncoder().encode(["email": email, "password": password])
+        let (data, _) = try await performRequest(path: "login") { request in
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
 
         let auth = try JSONDecoder().decode(AuthResponse.self, from: data)
         token = auth.token
@@ -158,21 +167,19 @@ enum SyncService {
     static func fetchPlans(
         type: PlanType? = nil
     ) async throws -> [PlanSummary] {
-        let base = try baseURL()
-        var components = URLComponents(
-            url: base.appendingPathComponent("plans"),
-            resolvingAgainstBaseURL: false
-        )!
+        let queryItems: [URLQueryItem]?
         if let type {
-            components.queryItems = [URLQueryItem(name: "type", value: type.rawValue)]
+            queryItems = [URLQueryItem(name: "type", value: type.rawValue)]
+        } else {
+            queryItems = nil
         }
 
-        var request = URLRequest(url: components.url!)
-        try attachAuth(&request)
-
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
+        let (data, _) = try await performRequest(
+            path: "plans",
+            queryItems: queryItems
+        ) { request in
+            try attachAuth(&request)
+        }
 
         // Parse as array-of-objects without committing to a concrete schema.
         guard let raw = try? JSONSerialization.jsonObject(with: data),
@@ -201,21 +208,16 @@ enum SyncService {
     // MARK: - Upload Log
 
     static func uploadLog(_ log: WorkoutLogJSON) async throws {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("log")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        try attachAuth(&request)
-
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        request.httpBody = try encoder.encode(log)
+        let body = try encoder.encode(log)
 
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
+        _ = try await performRequest(path: "log") { request in
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            try attachAuth(&request)
+            request.httpBody = body
+        }
     }
 
     static func uploadWorkout(_ workout: SDWorkout) async throws {
@@ -242,53 +244,36 @@ enum SyncService {
     }
 
     static func uploadCyclingLog(_ envelope: CyclingLogEnvelopeJSON) async throws {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("log")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        try attachAuth(&request)
-
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        request.httpBody = try encoder.encode(envelope)
+        let body = try encoder.encode(envelope)
 
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
+        _ = try await performRequest(path: "log") { request in
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            try attachAuth(&request)
+            request.httpBody = body
+        }
     }
 
     // MARK: - Crash Reports
 
     static func uploadCrashReport(rawJSON: Data) async throws {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("crash")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        try attachAuth(&request)
-        request.httpBody = rawJSON
-
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
+        _ = try await performRequest(path: "crash") { request in
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            try attachAuth(&request)
+            request.httpBody = rawJSON
+        }
     }
 
     // MARK: - Delete Log
 
     static func deleteWorkout(_ workoutId: String) async throws {
-        let base = try baseURL()
-        let url = base.appendingPathComponent("log/\(workoutId)")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        try attachAuth(&request)
-
-        let (data, response) = try await urlSession.data(for: request)
-        handleRefreshedToken(response)
-        try checkResponse(response, data: data)
+        _ = try await performRequest(path: "log/\(workoutId)") { request in
+            request.httpMethod = "DELETE"
+            try attachAuth(&request)
+        }
     }
 
     // MARK: - Helpers
@@ -301,6 +286,74 @@ enum SyncService {
             throw SyncError.invalidURL
         }
         return url
+    }
+
+    private static func candidateBaseURLs() throws -> [URL] {
+        let primary = try baseURL()
+        guard shouldUseLegacyFallback(for: primary),
+              let fallback = URL(string: legacyDefaultFallbackURL)
+        else { return [primary] }
+        return [primary, fallback]
+    }
+
+    private static func shouldUseLegacyFallback(for url: URL) -> Bool {
+        url.absoluteString
+            .trimmingTrailingSlashes() == defaultServerURL.trimmingTrailingSlashes()
+    }
+
+    private static func performRequest(
+        path: String,
+        queryItems: [URLQueryItem]? = nil,
+        configure: (inout URLRequest) throws -> Void
+    ) async throws -> (Data, URLResponse) {
+        let bases = try candidateBaseURLs()
+        var lastRetryableError: Error?
+
+        for (index, base) in bases.enumerated() {
+            var components = URLComponents(
+                url: base.appendingPathComponent(path),
+                resolvingAgainstBaseURL: false
+            )
+            components?.queryItems = queryItems
+
+            guard let url = components?.url else {
+                throw SyncError.invalidURL
+            }
+
+            var request = URLRequest(url: url)
+            try configure(&request)
+
+            do {
+                let (data, response) = try await urlSession.data(for: request)
+                if shouldRetryWithFallback(response),
+                   index < bases.count - 1 {
+                    continue
+                }
+                handleRefreshedToken(response)
+                try checkResponse(response, data: data)
+                return (data, response)
+            } catch {
+                guard isRetryableTransportError(error),
+                      index < bases.count - 1
+                else { throw error }
+                lastRetryableError = error
+            }
+        }
+
+        if let lastRetryableError {
+            throw lastRetryableError
+        }
+        throw SyncError.networkError("Could not connect to the server.")
+    }
+
+    private static func shouldRetryWithFallback(_ response: URLResponse) -> Bool {
+        guard let http = response as? HTTPURLResponse else { return false }
+        return [502, 503, 504].contains(http.statusCode)
+    }
+
+    private static func isRetryableTransportError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        return urlError.code != .cancelled
     }
 
     private static func attachAuth(_ request: inout URLRequest) throws {
@@ -340,6 +393,16 @@ enum SyncService {
         config.timeoutIntervalForRequest = 15
         return URLSession(configuration: config)
     }()
+}
+
+private extension String {
+    func trimmingTrailingSlashes() -> String {
+        var result = self
+        while result.hasSuffix("/") {
+            result.removeLast()
+        }
+        return result
+    }
 }
 
 // MARK: - Keychain Helper

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cycling-workout-log.export.schema.json",
+  "title": "CyclingWorkoutLogExport",
+  "description": "Cycling workout log for analysis (exported by the app)",
+  "type": "object",
+  "required": ["version", "exported_at", "workouts"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "workouts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CyclingWorkout" }
+    }
+  },
+  "$defs": {
+    "CyclingWorkout": {
+      "type": "object",
+      "required": [
+        "id",
+        "plan_type",
+        "template_id",
+        "started_at",
+        "total_duration_seconds",
+        "had_hr_source",
+        "segments"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "plan_type": { "type": "string", "const": "cycling" },
+        "plan_id": { "type": "string" },
+        "plan_name": { "type": "string" },
+        "plan_version": { "type": "integer", "minimum": 1 },
+        "template_id": { "type": "string" },
+        "template_name": { "type": "string" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "total_duration_seconds": { "type": "integer", "minimum": 0 },
+        "had_hr_source": { "type": "boolean" },
+        "average_hr": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "max_hr": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "calories": { "type": "integer", "minimum": 0 },
+        "workout_notes": { "type": "string" },
+        "perceived_effort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Session RPE on a 1-10 scale."
+        },
+        "segments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CyclingSegmentLog" }
+        }
+      }
+    },
+    "CyclingSegmentLog": {
+      "type": "object",
+      "required": [
+        "segment_path",
+        "kind",
+        "name",
+        "duration_seconds_actual",
+        "skipped"
+      ],
+      "properties": {
+        "segment_path": {
+          "type": "string",
+          "description": "Stable path in the expanded workout, e.g. block[0].rep[1].work."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["warmup", "work", "recovery", "cooldown", "steady"]
+        },
+        "name": { "type": "string" },
+        "duration_seconds_actual": { "type": "integer", "minimum": 0 },
+        "target_min_bpm": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "target_max_bpm": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "average_hr": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "max_hr": { "type": "integer", "minimum": 30, "maximum": 240 },
+        "in_zone_seconds": { "type": "integer", "minimum": 0 },
+        "in_zone_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "skipped": { "type": "boolean" }
+      }
+    }
+  }
+}

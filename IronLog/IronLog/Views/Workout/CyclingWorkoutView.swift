@@ -28,6 +28,12 @@ struct CyclingWorkoutView: View {
         .navigationBarBackButtonHidden(vm.state == .running || vm.state == .paused)
         .onAppear { startTicker() }
         .onDisappear { stopTicker() }
+        .onChange(of: vm.state) { _, newState in
+            if case .saved = newState {
+                vm.reset()
+                dismiss()
+            }
+        }
         .alert(
             "Save Failed",
             isPresented: Binding(

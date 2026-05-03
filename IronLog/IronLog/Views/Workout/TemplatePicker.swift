@@ -85,12 +85,28 @@ struct TemplatePicker: View {
     @State private var cyclingVM = CyclingWorkoutViewModel()
     @State private var navPath = NavigationPath()
     @State private var didAutoResume = false
+    @State private var pendingWorkoutStart: PendingWorkoutStart?
+    @State private var showStartConfirmation = false
+    @State private var recoveryMessage: String?
     @AppStorage(PlanSelectionKey.storageKey) private var selectedPlanKey: String = ""
     @AppStorage(PlanSelectionKey.legacyStorageKey) private var legacySelectedPlanId: String = ""
     var autoResumeWorkout: Bool = false
 
-    private var activeWorkout: SDWorkout? { activeWorkouts.first }
-    private var activeCyclingWorkout: SDCyclingWorkout? { activeCyclingWorkouts.first }
+    private var activeStrengthWorkouts: [SDWorkout] {
+        activeWorkouts.filter { $0.finishedAt == nil }
+    }
+    private var activeCyclingWorkoutEntries: [SDCyclingWorkout] {
+        activeCyclingWorkouts.filter { $0.finishedAt == nil }
+    }
+    private var activeWorkout: SDWorkout? {
+        activeStrengthWorkouts.first
+    }
+    private var activeCyclingWorkout: SDCyclingWorkout? {
+        activeCyclingWorkoutEntries.first
+    }
+    private var hasActiveWorkout: Bool {
+        activeWorkout != nil || activeCyclingWorkout != nil
+    }
 
     private var allPlans: [AnyPlanHandle] {
         strengthPlans.map(AnyPlanHandle.strength) + cyclingPlans.map(AnyPlanHandle.cycling)
@@ -202,45 +218,150 @@ struct TemplatePicker: View {
                 }
                 checkForPlanUpdate()
             }
+            .confirmationDialog(
+                "Workout in progress",
+                isPresented: $showStartConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Resume Current Workout") {
+                    resumeCurrentWorkout()
+                    pendingWorkoutStart = nil
+                }
+                Button("Discard and Start New", role: .destructive) {
+                    if let pendingWorkoutStart {
+                        startPendingWorkout(pendingWorkoutStart, replacingActive: true)
+                    }
+                    pendingWorkoutStart = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingWorkoutStart = nil
+                }
+            } message: {
+                Text(activeWorkoutMessage)
+            }
+            .alert(
+                "Workout Updated",
+                isPresented: Binding(
+                    get: { recoveryMessage != nil },
+                    set: { if !$0 { recoveryMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    recoveryMessage = nil
+                }
+            } message: {
+                Text(recoveryMessage ?? "")
+            }
         }
     }
 
     private enum WorkoutRoute: Hashable { case strength, cycling }
+
+    private enum PendingWorkoutStart {
+        case strength(SDTemplate)
+        case cycling(SDCyclingPlan, SDCyclingTemplate)
+    }
 
     @ViewBuilder
     private func planList(_ plan: AnyPlanHandle) -> some View {
         switch plan {
         case .strength(let sd):
             List {
-                if let active = activeWorkout {
-                    Section {
-                        ResumeRow(workout: active) {
-                            resumeStrengthWorkout(active)
-                        }
-                    }
-                }
+                activeWorkoutSections
                 let templates = sd.templates.sorted { $0.sortOrder < $1.sortOrder }
                 ForEach(templates) { template in
                     TemplateRow(template: template) {
-                        if let old = activeWorkout {
-                            context.delete(old)
-                        }
-                        vm.startWorkout(template: template, context: context)
-                        navPath.append(WorkoutRoute.strength)
+                        requestStartStrength(template)
                     }
                 }
             }
         case .cycling(let sd):
             List {
+                activeWorkoutSections
                 let templates = sd.templates.sorted { $0.sortOrder < $1.sortOrder }
                 ForEach(templates) { template in
                     CyclingTemplateRow(template: template) {
-                        cyclingVM.startWorkout(plan: sd, template: template, context: context)
-                        navPath.append(WorkoutRoute.cycling)
+                        requestStartCycling(plan: sd, template: template)
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var activeWorkoutSections: some View {
+        if hasActiveWorkout {
+            Section("In Progress") {
+                ForEach(activeStrengthWorkouts) { active in
+                    ResumeRow(
+                        title: "Strength in progress",
+                        detail: activeWorkoutDetail(
+                            name: active.templateName,
+                            startedAt: active.startedAt
+                        ),
+                        systemImage: "figure.strengthtraining.traditional",
+                        tint: .orange
+                    ) {
+                        resumeStrengthWorkout(active)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            discardStrengthWorkout(active)
+                        } label: {
+                            Label("Discard", systemImage: "trash")
+                        }
+                        Button {
+                            closeStrengthWorkout(active)
+                        } label: {
+                            Label("Close", systemImage: "checkmark.circle")
+                        }
+                        .tint(.green)
+                    }
+                }
+                ForEach(activeCyclingWorkoutEntries) { active in
+                    ResumeRow(
+                        title: "Cycling in progress",
+                        detail: activeWorkoutDetail(
+                            name: active.templateName,
+                            startedAt: active.startedAt
+                        ),
+                        systemImage: "bicycle",
+                        tint: .blue
+                    ) {
+                        resumeCyclingWorkout(active)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            discardCyclingWorkout(active)
+                        } label: {
+                            Label("Discard", systemImage: "trash")
+                        }
+                        Button {
+                            closeCyclingWorkout(active)
+                        } label: {
+                            Label("Close", systemImage: "checkmark.circle")
+                        }
+                        .tint(.green)
+                    }
+                }
+            }
+        }
+    }
+
+    private func activeWorkoutDetail(name: String, startedAt: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return "\(name) - \(formatter.localizedString(for: startedAt, relativeTo: .now))"
+    }
+
+    private var activeWorkoutMessage: String {
+        if let activeCyclingWorkout {
+            return "Resume \(activeCyclingWorkout.templateName), or discard it before starting another workout."
+        }
+        if let activeWorkout {
+            return "Resume \(activeWorkout.templateName), or discard it before starting another workout."
+        }
+        return "Resume the current workout, or discard it before starting another workout."
     }
 
     private func checkForPlanUpdate() {
@@ -263,8 +384,15 @@ struct TemplatePicker: View {
         let template = strengthPlans.flatMap(\.templates).first {
             $0.templateId == templateId
         }
-        guard let template else { return }
+        guard let template else {
+            closeStrengthWorkout(
+                workout,
+                message: "This workout's plan is no longer available, so I closed the stale in-progress entry."
+            )
+            return
+        }
 
+        navPath = NavigationPath()
         vm.resumeWorkout(
             sdWorkout: workout,
             template: template,
@@ -286,13 +414,14 @@ struct TemplatePicker: View {
             }
         }
         guard let plan = resolvedPlan, let template = resolvedTemplate else {
-            // The original plan/template was deleted; mark workout finished
-            // so we don't loop trying to resume it forever.
-            workout.finishedAt = .now
-            try? context.save()
+            closeCyclingWorkout(
+                workout,
+                message: "This cycling workout's plan is no longer available, so I closed the stale in-progress entry."
+            )
             return
         }
 
+        navPath = NavigationPath()
         cyclingVM.resumeWorkout(
             plan: plan,
             template: template,
@@ -301,12 +430,144 @@ struct TemplatePicker: View {
         )
         navPath.append(WorkoutRoute.cycling)
     }
+
+    private func resumeCurrentWorkout() {
+        if let activeCyclingWorkout {
+            resumeCyclingWorkout(activeCyclingWorkout)
+        } else if let activeWorkout {
+            resumeStrengthWorkout(activeWorkout)
+        }
+    }
+
+    private func closeStrengthWorkout(
+        _ workout: SDWorkout,
+        message: String = "Workout closed."
+    ) {
+        let finishedAt = Date.now
+        workout.finishedAt = finishedAt
+        if workout.durationMinutes == nil {
+            workout.durationMinutes = finishedAt.timeIntervalSince(workout.startedAt) / 60
+        }
+        saveRecoveryChange(successMessage: message)
+    }
+
+    private func closeCyclingWorkout(
+        _ workout: SDCyclingWorkout,
+        message: String = "Cycling workout closed."
+    ) {
+        let finishedAt = Date.now
+        workout.finishedAt = finishedAt
+        if workout.totalDurationSeconds == 0 {
+            workout.totalDurationSeconds = max(
+                0,
+                Int(finishedAt.timeIntervalSince(workout.startedAt))
+            )
+        }
+        saveRecoveryChange(successMessage: message)
+    }
+
+    private func discardStrengthWorkout(_ workout: SDWorkout) {
+        context.delete(workout)
+        saveRecoveryChange(successMessage: "Workout discarded.")
+    }
+
+    private func discardCyclingWorkout(_ workout: SDCyclingWorkout) {
+        context.delete(workout)
+        saveRecoveryChange(successMessage: "Cycling workout discarded.")
+    }
+
+    private func saveRecoveryChange(successMessage: String) {
+        do {
+            try context.save()
+            recoveryMessage = successMessage
+        } catch {
+            recoveryMessage = "Could not update workout: \(error.localizedDescription)"
+        }
+    }
+
+    private func requestStartStrength(_ template: SDTemplate) {
+        if hasActiveWorkout {
+            pendingWorkoutStart = .strength(template)
+            showStartConfirmation = true
+        } else {
+            startStrengthWorkout(template, replacingActive: false)
+        }
+    }
+
+    private func requestStartCycling(
+        plan: SDCyclingPlan,
+        template: SDCyclingTemplate
+    ) {
+        if hasActiveWorkout {
+            pendingWorkoutStart = .cycling(plan, template)
+            showStartConfirmation = true
+        } else {
+            startCyclingWorkout(
+                plan: plan,
+                template: template,
+                replacingActive: false
+            )
+        }
+    }
+
+    private func startPendingWorkout(
+        _ pending: PendingWorkoutStart,
+        replacingActive: Bool
+    ) {
+        switch pending {
+        case .strength(let template):
+            startStrengthWorkout(template, replacingActive: replacingActive)
+        case .cycling(let plan, let template):
+            startCyclingWorkout(
+                plan: plan,
+                template: template,
+                replacingActive: replacingActive
+            )
+        }
+    }
+
+    private func startStrengthWorkout(
+        _ template: SDTemplate,
+        replacingActive: Bool
+    ) {
+        if replacingActive {
+            discardActiveWorkouts()
+        }
+        vm.startWorkout(template: template, context: context)
+        navPath.append(WorkoutRoute.strength)
+    }
+
+    private func startCyclingWorkout(
+        plan: SDCyclingPlan,
+        template: SDCyclingTemplate,
+        replacingActive: Bool
+    ) {
+        if replacingActive {
+            discardActiveWorkouts()
+        }
+        cyclingVM.startWorkout(plan: plan, template: template, context: context)
+        navPath.append(WorkoutRoute.cycling)
+    }
+
+    private func discardActiveWorkouts() {
+        vm.reset()
+        cyclingVM.reset()
+        if let activeWorkout {
+            context.delete(activeWorkout)
+        }
+        if let activeCyclingWorkout {
+            context.delete(activeCyclingWorkout)
+        }
+    }
 }
 
 // MARK: - Resume Row
 
 private struct ResumeRow: View {
-    let workout: SDWorkout
+    let title: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
     let onResume: () -> Void
 
     var body: some View {
@@ -314,13 +575,13 @@ private struct ResumeRow: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(
-                        "Workout in progress",
-                        systemImage: "figure.run"
+                        title,
+                        systemImage: systemImage
                     )
                     .font(.headline)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(tint)
 
-                    Text("\(workout.templateName) - \(workout.startedAt, style: .relative) ago")
+                    Text(detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -329,7 +590,7 @@ private struct ResumeRow: View {
 
                 Text("Resume")
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(tint)
             }
             .padding(.vertical, 4)
         }

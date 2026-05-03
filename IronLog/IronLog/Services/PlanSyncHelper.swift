@@ -8,31 +8,40 @@ enum PlanSyncHelper {
 
     /// Sync if enough time has passed since the last auto-sync.
     /// Pull-to-refresh calls bypass throttle by passing `force: true`.
+    @discardableResult
     @MainActor
     static func syncIfNeeded(
         context: ModelContext,
         force: Bool = false
-    ) async {
-        guard SyncService.isConfigured, SyncService.isAuthenticated else { return }
+    ) async -> Error? {
+        guard SyncService.isConfigured else {
+            return force ? SyncError.noServerURL : nil
+        }
+        guard SyncService.isAuthenticated else {
+            return force ? SyncError.notAuthenticated : nil
+        }
         if !force,
            let last = lastSyncDate,
            Date.now.timeIntervalSince(last) < throttleInterval {
-            return
+            return nil
         }
-        await sync(context: context)
+        return await sync(context: context)
     }
 
+    @discardableResult
     @MainActor
-    static func sync(context: ModelContext) async {
-        guard SyncService.isConfigured, SyncService.isAuthenticated else { return }
+    static func sync(context: ModelContext) async -> Error? {
+        guard SyncService.isConfigured else { return SyncError.noServerURL }
+        guard SyncService.isAuthenticated else { return SyncError.notAuthenticated }
         do {
             let summaries = try await SyncService.fetchPlans()
             for summary in summaries {
                 importIfNewer(summary, context: context)
             }
             lastSyncDate = .now
+            return nil
         } catch {
-            // silent -- auto-sync should not bother the user
+            return error
         }
     }
 

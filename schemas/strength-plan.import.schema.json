@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "workout-plan.schema.json",
-  "title": "WorkoutPlan",
+  "$id": "strength-plan.import.schema.json",
+  "title": "StrengthPlanImport",
   "x-schema-id": "2026-04-30T00:00:00Z",
   "description": "Training plan for the IronLog gym app. The plan contains templates (workout days), each template has exercise groups (muscle groups), each group has exercises with prescribed sets. The app guides the user through each exercise step by step, tracking weight, reps, and rest timers. IMPORTANT: Use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
   "type": "object",

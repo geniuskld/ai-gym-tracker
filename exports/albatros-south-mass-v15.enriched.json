@@ -1,0 +1,769 @@
+{
+  "version": "1.0",
+  "plan_version": 15,
+  "plan_type": "strength",
+  "plan_id": "albatros-south-mass",
+  "plan_name": "Альбатрос Юг -- Масса 2x/нед",
+  "schema": "2026-04-30T00:00:00Z",
+  "created_at": "2026-05-03T10:00:00Z",
+  "author": "Claude",
+  "notes": "v15: БАЛАНС ЗАДНЕЙ ЦЕПИ. b1 узкий жим ногами ЗАМЕНЕН на hip thrust -- убираем перегруз квадрицепса, добавляем ягодицы и заднюю цепь. Безопасно для позвоночника (нет осевой нагрузки). День A: квадрицепс + грудь + спина + плечи + руки. День B: задняя цепь + квадрицепс (болгарские) + грудь + плечи + спина + руки.",
+  "templates": [
+    {
+      "id": "day-a",
+      "name": "День A",
+      "groups": [
+        {
+          "name": "Ноги",
+          "exercises": [
+            {
+              "id": "a1",
+              "catalog_id": "leg_press_machine",
+              "name": "Жим ногами",
+              "body_part": "legs",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 40
+                },
+                {
+                  "type": "warmup",
+                  "reps": 12,
+                  "weight_kg": 70
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 102.5
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 102.5
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 102.5
+                }
+              ],
+              "rest_seconds": 180,
+              "technique": "straight",
+              "tempo": "2-2-1-0",
+              "notes": "102.5кг. Отдых до пульса 125 ИЛИ 180с. Пауза 2с внизу.",
+              "stretch_focus": true
+            },
+            {
+              "id": "a2",
+              "catalog_id": "leg_extension_machine",
+              "name": "Разгибание ног сидя",
+              "body_part": "legs",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 0,
+                  "weight_kg": 45
+                },
+                {
+                  "type": "drop",
+                  "reps": 8,
+                  "weight_percent_drop": 0.3
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 0,
+                  "weight_kg": 45
+                },
+                {
+                  "type": "drop",
+                  "reps": 8,
+                  "weight_percent_drop": 0.3
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "drop_set",
+              "notes": "Изоляция квадрицепса. 45кг. Дроп -30% = 32кг без отдыха."
+            },
+            {
+              "id": "a3",
+              "catalog_id": "lying_leg_curl_machine",
+              "name": "Сгибание ног лежа",
+              "body_part": "legs",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 14,
+                  "rir": 1,
+                  "weight_kg": 18
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "myo_reps",
+              "max_mini_sets": 5,
+              "notes": "Myo-reps. 18кг. Если 4-й мини = 5 повторов -- увеличь до 20."
+            }
+          ]
+        },
+        {
+          "name": "Грудь + Спина (антагонисты)",
+          "exercises": [
+            {
+              "id": "a4",
+              "catalog_id": "chest_press_machine",
+              "name": "Жим от груди Matrix",
+              "body_part": "chest",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 18
+                },
+                {
+                  "type": "warmup",
+                  "reps": 12,
+                  "weight_kg": 25
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 39
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 39
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 39
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "a6",
+              "tempo": "2-1-1-0",
+              "notes": "СУПЕРСЕТ с a6. Жим -> сразу к тяге -> 90с после пары.",
+              "stretch_focus": true
+            },
+            {
+              "id": "a6",
+              "catalog_id": "lat_pulldown_cable_wide",
+              "name": "Тяга верхнего блока",
+              "body_part": "back",
+              "equipment": "cable",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 10
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 22
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 22
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 22
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "a4",
+              "notes": "СУПЕРСЕТ с a4. 22кг. Лопатки сводить, без рывков.",
+              "stretch_focus": true
+            },
+            {
+              "id": "a5",
+              "catalog_id": "pec_deck_fly_machine",
+              "name": "Fly на тренажере",
+              "body_part": "chest",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 32
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 32
+                }
+              ],
+              "rest_seconds": 60,
+              "technique": "superset",
+              "superset_with": "a9",
+              "notes": "СУПЕРСЕТ с a9. 32кг.",
+              "stretch_focus": true
+            },
+            {
+              "id": "a9",
+              "catalog_id": "dumbbell_row_one_arm",
+              "name": "Тяга гантели одной рукой в наклоне",
+              "body_part": "back",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 12
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 12
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 12
+                }
+              ],
+              "rest_seconds": 60,
+              "technique": "superset",
+              "superset_with": "a5",
+              "notes": "СУПЕРСЕТ с a5. 12кг одна гантель. ПРАВАЯ первая.",
+              "stretch_focus": true
+            }
+          ]
+        },
+        {
+          "name": "Плечи (изоляция)",
+          "exercises": [
+            {
+              "id": "a10",
+              "catalog_id": "lateral_raise_dumbbell",
+              "name": "Боковые подъемы",
+              "body_part": "shoulders",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                }
+              ],
+              "rest_seconds": 60,
+              "technique": "straight",
+              "notes": "Средняя дельта = ширина плеч. 3кг. Локти слегка согнуты, большой палец вниз. Не раскачиваться!"
+            },
+            {
+              "id": "a11",
+              "catalog_id": "rear_delt_raise_dumbbell",
+              "name": "Обратные разводки в наклоне",
+              "body_part": "shoulders",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 4
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 4
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 4
+                }
+              ],
+              "rest_seconds": 60,
+              "technique": "straight",
+              "notes": "Задний пучок + осанка. Корпус наклонен вперёд, поднимай лопатками. 4кг. Или pec deck в обратную сторону."
+            }
+          ]
+        },
+        {
+          "name": "Руки (суперсет)",
+          "exercises": [
+            {
+              "id": "a7",
+              "catalog_id": "incline_dumbbell_curl",
+              "name": "Бицепс наклонная скамья",
+              "body_part": "arms",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 4
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 6
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 6
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 6
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "a8",
+              "notes": "6кг. Когда 3x12 уверенно -- прыжок на 8.",
+              "stretch_focus": true
+            },
+            {
+              "id": "a8",
+              "catalog_id": "cable_triceps_pushdown_rope",
+              "name": "Трицепс pushdown с канатом",
+              "body_part": "arms",
+              "equipment": "cable",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 10
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 15
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 15
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 15
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "a7",
+              "notes": "15кг. 90с после пары."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "day-b",
+      "name": "День B",
+      "groups": [
+        {
+          "name": "Ноги (задняя цепь + квадрицепс)",
+          "exercises": [
+            {
+              "id": "b1",
+              "catalog_id": "hip_thrust_dumbbell",
+              "name": "Hip thrust",
+              "body_part": "legs",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 12,
+                  "weight_kg": 0
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 2,
+                  "weight_kg": 0
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 1,
+                  "weight_kg": 0
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 1,
+                  "weight_kg": 0
+                }
+              ],
+              "rest_seconds": 120,
+              "technique": "straight",
+              "notes": "НОВОЕ v15! ЗАМЕНЯЕТ узкий жим ногами. Безопасно для позвоночника -- нет осевой нагрузки. ТЕХНИКА: лопатки на скамье, ступни на полу, гантель на бёдрах (или без). Толкай таз вверх до горизонтали. ПАУЗА 1-2с наверху (критично!). Ягодицы сжимать в верхней точке. Начинаем с собственным весом -- освоить технику. Когда 3x12 легко -- добавь гантель 10-15кг на бёдра.",
+              "stretch_focus": false
+            },
+            {
+              "id": "b2",
+              "catalog_id": "bulgarian_split_squat_dumbbell",
+              "name": "Болгарские сплит-приседы",
+              "body_part": "legs",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 5
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 5
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 5
+                }
+              ],
+              "rest_seconds": 120,
+              "technique": "straight",
+              "notes": "5кг = одна гантель в каждой руке. Квадрицепс + ягодицы. Глубокий выпад.",
+              "stretch_focus": true
+            },
+            {
+              "id": "b3",
+              "catalog_id": "seated_leg_curl_machine",
+              "name": "Сгибание ног сидя",
+              "body_part": "legs",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 0,
+                  "weight_kg": 45
+                },
+                {
+                  "type": "drop",
+                  "reps": 8,
+                  "weight_percent_drop": 0.3
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 0,
+                  "weight_kg": 45
+                },
+                {
+                  "type": "drop",
+                  "reps": 8,
+                  "weight_percent_drop": 0.3
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "drop_set",
+              "notes": "45кг. Дроп -30% = 31-32кг.",
+              "stretch_focus": true
+            }
+          ]
+        },
+        {
+          "name": "Грудь + плечи",
+          "exercises": [
+            {
+              "id": "b4",
+              "catalog_id": "incline_bench_press_barbell",
+              "name": "Жим штанги на наклонной скамье",
+              "body_part": "chest",
+              "equipment": "barbell",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 15
+                },
+                {
+                  "type": "warmup",
+                  "reps": 12,
+                  "weight_kg": 22.5
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 2,
+                  "weight_kg": 32.5
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 1,
+                  "weight_kg": 32.5
+                },
+                {
+                  "type": "working",
+                  "reps": 10,
+                  "rir": 1,
+                  "weight_kg": 32.5
+                }
+              ],
+              "rest_seconds": 150,
+              "technique": "straight",
+              "tempo": "2-2-1-0",
+              "notes": "32.5кг. Отдых 150с.",
+              "stretch_focus": true
+            },
+            {
+              "id": "b5",
+              "catalog_id": "shoulder_press_machine",
+              "name": "Жим на плечи сидя",
+              "body_part": "shoulders",
+              "equipment": "machine",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 5
+                },
+                {
+                  "type": "working",
+                  "reps": 14,
+                  "rir": 1,
+                  "weight_kg": 7
+                }
+              ],
+              "rest_seconds": 120,
+              "technique": "myo_reps",
+              "max_mini_sets": 5,
+              "notes": "7кг. Передняя+средняя дельта."
+            },
+            {
+              "id": "b10",
+              "catalog_id": "lateral_raise_dumbbell",
+              "name": "Боковые подъемы",
+              "body_part": "shoulders",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                },
+                {
+                  "type": "working",
+                  "reps": 15,
+                  "rir": 1,
+                  "weight_kg": 3
+                }
+              ],
+              "rest_seconds": 60,
+              "technique": "straight",
+              "notes": "Средняя дельта. 3кг. Не раскачиваться."
+            }
+          ]
+        },
+        {
+          "name": "Спина",
+          "exercises": [
+            {
+              "id": "b7",
+              "catalog_id": "plate_loaded_row",
+              "name": "Рычажная тяга (поочередно)",
+              "body_part": "back",
+              "equipment": "plate_loaded",
+              "sets": [
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 25
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 25
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 25
+                }
+              ],
+              "rest_seconds": 150,
+              "technique": "straight",
+              "notes": "25кг на сторону. Правая первая. Свежая спина -- чистая техника. Когда 3x12 легко -- 27.5.",
+              "stretch_focus": true
+            },
+            {
+              "id": "b6",
+              "catalog_id": "lat_pulldown_cable_underhand",
+              "name": "Тяга верхнего блока обратным хватом",
+              "body_part": "back",
+              "equipment": "cable",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 12
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 2,
+                  "weight_kg": 26
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 26
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 26
+                }
+              ],
+              "rest_seconds": 150,
+              "technique": "straight",
+              "notes": "26кг. Обратный хват.",
+              "stretch_focus": true
+            }
+          ]
+        },
+        {
+          "name": "Руки (суперсет)",
+          "exercises": [
+            {
+              "id": "b8",
+              "catalog_id": "hammer_curl_dumbbell",
+              "name": "Молотки с гантелями",
+              "body_part": "arms",
+              "equipment": "dumbbell",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 4
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 8
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 8
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 8
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "b9",
+              "notes": "8кг. 3x12 чисто, потом снова пробуем 10."
+            },
+            {
+              "id": "b9",
+              "catalog_id": "lying_triceps_extension_ez_bar",
+              "name": "Французский жим (EZ-гриф)",
+              "body_part": "arms",
+              "equipment": "barbell",
+              "sets": [
+                {
+                  "type": "warmup",
+                  "reps": 15,
+                  "weight_kg": 8
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 13
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 13
+                },
+                {
+                  "type": "working",
+                  "reps": 12,
+                  "rir": 1,
+                  "weight_kg": 13
+                }
+              ],
+              "rest_seconds": 90,
+              "technique": "superset",
+              "superset_with": "b8",
+              "notes": "13кг. Когда 3x12 стабильно -- 14.",
+              "stretch_focus": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

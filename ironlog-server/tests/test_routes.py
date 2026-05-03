@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.auth import get_current_user
 from app.routes import analytics as analytics_route
+from app.routes import agent_instructions as agent_instructions_route
 from app.routes import log as log_route
 from app.routes import plan as plan_route
 
@@ -100,6 +101,7 @@ class FakeDB:
         self.plans = FakeCollection()
         self.exercises = FakeCollection()
         self.workout_logs = FakeCollection()
+        self.agent_instructions = FakeCollection()
 
 
 def make_client(monkeypatch, db, *modules):
@@ -143,6 +145,80 @@ def test_get_plans_returns_full_polymorphic_payload(monkeypatch):
     assert [p["plan_type"] for p in body] == ["cycling", "strength"]
     assert body[0]["templates"][0]["id"] == "w1"
     assert body[1]["plan_version"] == 3
+
+
+def test_agent_plan_import_instructions_available(monkeypatch):
+    db = FakeDB()
+    app = FastAPI()
+    app.include_router(agent_instructions_route.router)
+    monkeypatch.setattr(agent_instructions_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.get("/agent-instructions/plan-import")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/markdown")
+    assert "GET /exercises/catalog?plan_type=strength" in response.text
+    assert "Plan Version Rules" in response.text
+
+
+def test_agent_plan_import_json_includes_live_links(monkeypatch):
+    db = FakeDB()
+    app = FastAPI()
+    app.include_router(agent_instructions_route.router)
+    monkeypatch.setattr(agent_instructions_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.get("/agent-instructions/plan-import.json")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == "plan-import"
+    assert body["live_references"]["strength_schema"].endswith(
+        "/schema?type=strength"
+    )
+    assert "Required Live References" in body["content"]
+
+
+def test_agent_plan_import_prefers_database_content(monkeypatch):
+    db = FakeDB()
+    db.agent_instructions.docs = [{
+        "_id": "plan-import",
+        "title": "Custom Instructions",
+        "content": "# Custom\n\nGET /schema?type=strength",
+        "updated_at": "2026-05-03T00:00:00Z",
+    }]
+    app = FastAPI()
+    app.include_router(agent_instructions_route.router)
+    monkeypatch.setattr(agent_instructions_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.get("/agent-instructions/plan-import.json")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source"] == "database"
+    assert body["title"] == "Custom Instructions"
+    assert body["content"].startswith("# Custom")
+
+
+def test_agent_plan_import_can_be_updated(monkeypatch):
+    db = FakeDB()
+    app = FastAPI()
+    app.include_router(agent_instructions_route.router)
+    app.dependency_overrides[get_current_user] = lambda: {"_id": "user-1"}
+    monkeypatch.setattr(agent_instructions_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.put(
+        "/agent-instructions/plan-import",
+        json={"content": "# Updated\n\nUse live references."},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["content_length"] > 0
+    assert db.agent_instructions.upserts[0]["query"] == {"_id": "plan-import"}
+    assert db.agent_instructions.upserts[0]["doc"]["content"].startswith("# Updated")
 
 
 def test_post_log_denorms_body_part_from_catalog_id(monkeypatch):

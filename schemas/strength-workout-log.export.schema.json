@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "workout-log.schema.json",
-  "title": "WorkoutLog",
-  "description": "Лог тренировок для анализа (экспорт из приложения)",
+  "$id": "strength-workout-log.export.schema.json",
+  "title": "StrengthWorkoutLogExport",
+  "description": "Strength workout log for analysis (exported by the app)",
   "type": "object",
   "required": ["version", "exported_at", "user_profile", "workouts"],
   "properties": {

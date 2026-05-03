@@ -192,8 +192,11 @@ private struct PerformingPhaseView: View {
                         Button { weight = max(0, weight - 1) } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.system(size: 28))
+                                .frame(width: 44, height: 44)
                         }
                         .tint(.secondary)
+                        .accessibilityLabel("Decrease weight")
+                        .accessibilityValue("\(Int(weight)) kg")
 
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(Int(weight))")
@@ -207,8 +210,11 @@ private struct PerformingPhaseView: View {
                         Button { weight += 1 } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 28))
+                                .frame(width: 44, height: 44)
                         }
                         .tint(.secondary)
+                        .accessibilityLabel("Increase weight")
+                        .accessibilityValue("\(Int(weight)) kg")
                     }
                 }
 
@@ -222,8 +228,11 @@ private struct PerformingPhaseView: View {
                     Button { reps = max(1, reps - 1) } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(.system(size: 28))
+                            .frame(width: 44, height: 44)
                     }
                     .tint(.secondary)
+                    .accessibilityLabel("Decrease reps")
+                    .accessibilityValue("\(reps)")
 
                     VStack(spacing: 0) {
                         Text("\(reps)")
@@ -237,8 +246,11 @@ private struct PerformingPhaseView: View {
                     Button { reps += 1 } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
+                            .frame(width: 44, height: 44)
                     }
                     .tint(.secondary)
+                    .accessibilityLabel("Increase reps")
+                    .accessibilityValue("\(reps)")
                 }
             }
             .padding(.bottom, 32)

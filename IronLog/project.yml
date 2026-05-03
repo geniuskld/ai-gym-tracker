@@ -53,7 +53,9 @@ targets:
         UIBackgroundModes:
           - workout-processing
         NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: true
+          NSExceptionDomains:
+            v170184.hosted-by-vdsina.com:
+              NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.W88C7J82R5.ironlog

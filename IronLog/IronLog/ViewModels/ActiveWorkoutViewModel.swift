@@ -88,6 +88,7 @@ final class ActiveWorkoutViewModel {
     private(set) var workout: SDWorkout?
     private var modelContext: ModelContext?
     private var lastSetCompletedAt: Date?
+    private var stateBeforeFinishing: State?
 
     // MARK: - Computed
 
@@ -607,13 +608,16 @@ final class ActiveWorkoutViewModel {
     // MARK: - Finish
 
     func beginFinishing() {
-        restTimer.stop()
-        setStopwatch.stop()
+        if case .finishing = state {
+            return
+        }
+        stateBeforeFinishing = state
         state = .finishing
     }
 
     func cancelFinishing() {
-        state = .active
+        state = stateBeforeFinishing ?? .active
+        stateBeforeFinishing = nil
     }
 
     // MARK: - Incremental Persistence
@@ -704,6 +708,9 @@ final class ActiveWorkoutViewModel {
 
         guard saveContext(context, action: "save workout") else { return }
 
+        restTimer.stop()
+        setStopwatch.stop()
+
         // Stop Apple Watch mirroring
         WorkoutSessionManager.shared.stopMirroring()
 
@@ -739,6 +746,7 @@ final class ActiveWorkoutViewModel {
             }
         }
 
+        stateBeforeFinishing = nil
         state = .saved
     }
 
@@ -767,6 +775,7 @@ final class ActiveWorkoutViewModel {
         finishNotes = ""
         finishEffort = nil
         persistenceErrorMessage = nil
+        stateBeforeFinishing = nil
         currentFlow = nil
         flowInstruction = ""
         flowLockWeight = false

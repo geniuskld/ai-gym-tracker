@@ -6,6 +6,7 @@ struct PlansListView: View {
     @Query(sort: \SDPlan.importedAt, order: .reverse) private var strengthPlans: [SDPlan]
     @Query(sort: \SDCyclingPlan.importedAt, order: .reverse) private var cyclingPlans: [SDCyclingPlan]
     @State private var vm = PlansViewModel()
+    @State private var syncErrorMessage: String?
     @AppStorage(PlanSelectionKey.storageKey) private var selectedPlanKey: String = ""
     @AppStorage(PlanSelectionKey.legacyStorageKey) private var legacySelectedPlanId: String = ""
 
@@ -68,10 +69,11 @@ struct PlansListView: View {
                         }
                     }
                     .refreshable {
-                        await PlanSyncHelper.syncIfNeeded(
+                        let error = await PlanSyncHelper.syncIfNeeded(
                             context: context,
                             force: true
                         )
+                        syncErrorMessage = error?.localizedDescription
                     }
                 }
             }
@@ -93,6 +95,19 @@ struct PlansListView: View {
                 if let plan = vm.parsedPlan {
                     PlanPreviewView(vm: vm, parsed: plan)
                 }
+            }
+            .alert(
+                "Sync Failed",
+                isPresented: Binding(
+                    get: { syncErrorMessage != nil },
+                    set: { if !$0 { syncErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    syncErrorMessage = nil
+                }
+            } message: {
+                Text(syncErrorMessage ?? "")
             }
         }
     }

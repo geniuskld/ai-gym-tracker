@@ -68,6 +68,8 @@ iOS-приложение для трекинга силовых и кардио-
 
 #### Сервер
 - FastAPI + MongoDB + Docker
+- Production API: `https://v170184.hosted-by-vdsina.com`; Swagger: `https://v170184.hosted-by-vdsina.com/docs`
+- TLS terminates in Caddy (`443`) and proxies to the FastAPI container; `http://v170184.hosted-by-vdsina.com:8844` is temporary compatibility for old app builds.
 - JWT auth (регистрация, вход, sliding 90-day expiry)
 - Plan sync: `GET /plans` возвращает FULL контент (последняя версия каждого plan_id), polymorphic по plan_type
 - Plan upload: `PUT /plan` -- сервер peek'ает `plan_type` и роутит на base + соответствующий per-type валидатор (strength_v1 / cycling_v1). Soft-warnings (например отсутствие `catalog_id`) возвращаются в `_warnings: []` без 422.
@@ -236,9 +238,10 @@ iOS-приложение для трекинга силовых и кардио-
 - PlanType -- enum на обеих сторонах: `strength`, `cycling`
 
 ## 7. JSON-схемы
-- `schemas/workout-plan.schema.json` -- strength v1 (templates -> groups -> exercises -> sets, optional `catalog_id`), `x-schema-id: 2026-04-30T00:00:00Z`
-- `schemas/cycling-plan.schema.json` -- cycling v1 (templates -> segments, interval_block, target types), `x-schema-id: 2026-04-27T00:00:00Z`
-- `schemas/workout-log.schema.json` -- общая схема экспорта strength-логов
+- `schemas/strength-plan.import.schema.json` -- strength import v1 (templates -> groups -> exercises -> sets, optional `catalog_id`), `x-schema-id: 2026-04-30T00:00:00Z`
+- `schemas/cycling-plan.import.schema.json` -- cycling import v1 (templates -> segments, interval_block, target types), `x-schema-id: 2026-04-27T00:00:00Z`
+- `schemas/strength-workout-log.export.schema.json` -- схема экспорта strength-логов
+- `schemas/cycling-workout-log.export.schema.json` -- схема экспорта cycling-логов
 - `schemas/sample-plan.json` -- рабочий strength-пример
 
 ## 8. Catalog seed

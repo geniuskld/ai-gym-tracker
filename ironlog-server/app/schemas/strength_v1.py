@@ -11,8 +11,8 @@ VALID_BODY_PARTS = {
 }
 
 # Docker: /schemas (volume mount); local: ../../schemas relative to repo
-_DOCKER_PATH = Path("/schemas/workout-plan.schema.json")
-_LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "workout-plan.schema.json"
+_DOCKER_PATH = Path("/schemas/strength-plan.import.schema.json")
+_LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "strength-plan.import.schema.json"
 _SCHEMA_PATH = _DOCKER_PATH if _DOCKER_PATH.exists() else _LOCAL_PATH
 DESCRIPTION = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "cycling-plan.schema.json",
-  "title": "CyclingPlan",
+  "$id": "cycling-plan.import.schema.json",
+  "title": "CyclingPlanImport",
   "x-schema-id": "2026-04-27T00:00:00Z",
   "description": "Cardio/cycling training plan for the IronLog app. The plan contains workout templates; each template is a sequence of timed segments executed in order. Segments can be a leaf (warmup/work/recovery/cooldown/steady) or an interval_block that repeats N times over its children. The app guides the user through each segment with a timer, target heart-rate range, and (when an Apple Watch is available) live HR readings. Without HR source the app still runs the timer and assumes the user followed the plan. IMPORTANT: use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
   "type": "object",

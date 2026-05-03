@@ -172,6 +172,7 @@ final class CyclingWorkoutViewModel {
     private var modelContext: ModelContext?
     private var sourcePlan: SDCyclingPlan?
     private var sourceTemplate: SDCyclingTemplate?
+    private var stateBeforeFinishing: State?
 
     // MARK: - Wall-clock state
 
@@ -471,6 +472,10 @@ final class CyclingWorkoutViewModel {
     }
 
     func beginFinishing() {
+        if case .finishing = state {
+            return
+        }
+        stateBeforeFinishing = state
         state = .finishing
         CyclingNotificationScheduler.cancelAll()
         CyclingActivityManager.shared.end()
@@ -480,8 +485,15 @@ final class CyclingWorkoutViewModel {
 
     func cancelFinishing() {
         if currentStepIndex < steps.count {
-            state = .running
+            state = stateBeforeFinishing ?? .running
+            if state == .running {
+                tick()
+            }
+            if currentStepIndex < steps.count {
+                restoreCyclingActivityAfterFinishing()
+            }
         }
+        stateBeforeFinishing = nil
     }
 
     func saveWorkout(notes: String?, perceivedEffort: Int?) {
@@ -535,6 +547,7 @@ final class CyclingWorkoutViewModel {
             }
         }
 
+        stateBeforeFinishing = nil
         state = .saved
     }
 
@@ -567,6 +580,7 @@ final class CyclingWorkoutViewModel {
         modelContext = nil
         sourcePlan = nil
         sourceTemplate = nil
+        stateBeforeFinishing = nil
         workoutStartedAt = nil
         pausedAt = nil
         pausedDurationTotal = 0
@@ -598,5 +612,33 @@ final class CyclingWorkoutViewModel {
             skipCredit: skipCreditSeconds
         )
         CyclingActivityManager.shared.updateSchedule(schedule)
+    }
+
+    private func restoreCyclingActivityAfterFinishing() {
+        guard let started = workoutStartedAt else { return }
+        let schedule = CyclingExpander.makeSchedule(
+            steps: steps,
+            startedAt: started,
+            pausedTotal: pausedDurationTotal,
+            skipCredit: skipCreditSeconds
+        )
+        CyclingActivityManager.shared.start(
+            workoutName: sourceTemplate?.name ?? workout?.templateName ?? "Cycling",
+            totalSteps: steps.count,
+            schedule: schedule
+        )
+
+        switch state {
+        case .running:
+            CyclingNotificationScheduler.scheduleAll(
+                steps: steps,
+                fromIndex: currentStepIndex,
+                elapsedInCurrentStep: elapsedInStepSeconds
+            )
+        case .paused:
+            CyclingActivityManager.shared.setPaused(true)
+        default:
+            break
+        }
     }
 }

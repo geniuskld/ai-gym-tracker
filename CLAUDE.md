@@ -35,7 +35,9 @@ Claude generates plans, app executes, logs sync back for analysis.
 - Server: FastAPI + MongoDB + Docker (`ironlog-server/`)
 - Auth: email/password -> JWT (90-day sliding expiry, X-Refreshed-Token header)
 - Client stores JWT in Keychain, email in Keychain
-- Default server URL: `http://v170184.hosted-by-vdsina.com:8844`
+- Default server URL: `https://v170184.hosted-by-vdsina.com`
+- Swagger: `https://v170184.hosted-by-vdsina.com/docs`
+- Legacy direct HTTP URL: `http://v170184.hosted-by-vdsina.com:8844` (temporary compatibility only)
 - **Plan sync**: `GET /plans` returns FULL content of latest version of each plan_id
   (heterogeneous array). `PlanSyncHelper` peeks `plan_type` per item and dispatches
   to strength or cycling import.
@@ -88,14 +90,14 @@ Note: `GET /plan` and `GET /plan/versions` were removed -- `/plans` returns full
 
 ### Strength
 - Structure: `templates -> groups -> exercises -> sets`
-- Schema: `schemas/workout-plan.schema.json` (`x-schema-id`: `2026-04-30T00:00:00Z`)
+- Schema: `schemas/strength-plan.import.schema.json` (`x-schema-id`: `2026-04-30T00:00:00Z`)
 - Techniques: straight, drop_set, rest_pause, myo_reps, superset
 - Multiple superset pairs in one group are supported (verified by tests)
 - Each exercise SHOULD include `catalog_id` (slug from `/exercises/catalog`) for analytics continuity. Server emits a soft warning when missing or unknown.
 
 ### Cycling
 - Structure: `templates -> segments` (with optional `interval_block` containing children)
-- Schema: `schemas/cycling-plan.schema.json` (`x-schema-id`: `2026-04-27T00:00:00Z`)
+- Schema: `schemas/cycling-plan.import.schema.json` (`x-schema-id`: `2026-04-27T00:00:00Z`)
 - Segment kinds: warmup, work, recovery, cooldown, steady, interval_block
 - Targets: `hr_bpm_range`, `rpe`, `free`
 - `interval_block`: max nesting depth = 1 (block cannot contain block)
@@ -181,6 +183,9 @@ Test inventory:
 SSH access: `root@v170184.hosted-by-vdsina.com` (password in shared notes).
 - Server lives at `/opt/ironlog/`.
 - `docker compose up --build -d` rebuilds and restarts.
+- Caddy terminates TLS on `443` and reverse-proxies to the app container.
+- Keep port `443` open for Let's Encrypt TLS-ALPN certificate issue/renewal.
+- On VPS set `IRONLOG_SCHEMAS_DIR=./schemas` if using the repo compose from `/opt/ironlog`.
 - Schema files in `/opt/ironlog/schemas/` are mounted read-only into the container.
 
 ## User Context

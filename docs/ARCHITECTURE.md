@@ -4,7 +4,7 @@
 **Target:** iOS 17+, watchOS 10+, Swift, SwiftUI, SwiftData
 **Pattern:** MVVM + Services
 **Build:** XcodeGen (project.yml -> xcodeproj)
-**Server:** Python, FastAPI, MongoDB, Docker
+**Server:** Python, FastAPI, MongoDB, Docker, Caddy TLS proxy
 
 ---
 
@@ -142,9 +142,10 @@ ironlog-server/                           # Sync server
 └── requirements-dev.txt                  # pytest etc.
 
 schemas/                                  # JSON Schema docs (mounted into Docker as /schemas)
-├── workout-plan.schema.json              # Strength v1 (x-schema-id: 2026-04-30T00:00:00Z)
-├── cycling-plan.schema.json              # Cycling v1 (x-schema-id: 2026-04-27T00:00:00Z)
-├── workout-log.schema.json               # Strength export schema
+├── strength-plan.import.schema.json      # Strength import v1 (x-schema-id: 2026-04-30T00:00:00Z)
+├── cycling-plan.import.schema.json       # Cycling import v1 (x-schema-id: 2026-04-27T00:00:00Z)
+├── strength-workout-log.export.schema.json
+├── cycling-workout-log.export.schema.json
 └── sample-plan.json                      # Strength sample
 ```
 
@@ -156,7 +157,7 @@ schemas/                                  # JSON Schema docs (mounted into Docke
                 Claude (AI)
                     |
                     v
-           Sync Server (FastAPI + MongoDB)
+           Sync Server (Caddy TLS -> FastAPI + MongoDB)
                     |                              ^
                     | GET /plans                   | POST /log
                     | (full content per type)      | POST /crash

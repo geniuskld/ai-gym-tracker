@@ -20,7 +20,9 @@ iOS-приложение для трекинга силовых трениров
 ### Sync-сервер (`ironlog-server/`)
 - Python / FastAPI / MongoDB (motor async)
 - JWT auth (sliding 90-day expiry)
-- Docker Compose (app + mongo)
+- Docker Compose (Caddy TLS proxy + app + mongo)
+- Production API: `https://v170184.hosted-by-vdsina.com`
+- Swagger: `https://v170184.hosted-by-vdsina.com/docs`
 
 ## Возможности
 
@@ -74,6 +76,9 @@ iOS-приложение для трекинга силовых трениров
 |--------|------|------|----------|
 | GET | /health | нет | Healthcheck |
 | GET | /schema | нет | Описание схемы по plan_type |
+| GET | /agent-instructions/plan-import | нет | Markdown-инструкция для AI-агентов по генерации импортируемых планов |
+| GET | /agent-instructions/plan-import.json | нет | Та же инструкция с live-ссылками в JSON |
+| PUT | /agent-instructions/plan-import | JWT | Обновить инструкцию в БД без редеплоя контейнера |
 | POST | /register | нет | Регистрация -> JWT |
 | POST | /login | нет | Вход -> JWT |
 | GET | /plans | JWT | Последняя версия каждого plan_id, FULL content |
@@ -86,9 +91,12 @@ iOS-приложение для трекинга силовых трениров
 
 ## JSON-схемы
 
-- `schemas/workout-plan.schema.json` -- схема импорта плана (документирована для AI)
-- `schemas/workout-log.schema.json` -- схема экспорта лога
+- `schemas/strength-plan.import.schema.json` -- схема импорта силового плана (документирована для AI)
+- `schemas/cycling-plan.import.schema.json` -- схема импорта вело-плана
+- `schemas/strength-workout-log.export.schema.json` -- схема экспорта силового лога
+- `schemas/cycling-workout-log.export.schema.json` -- схема экспорта вело-лога
 - `schemas/sample-plan.json` -- пример плана с Shared Base Contract
+- `docs/AI_AGENT_PLAN_IMPORT.md` -- инструкция для AI-агентов по генерации и загрузке планов
 
 ## Сборка
 
@@ -99,6 +107,9 @@ cd IronLog && xcodegen generate && open IronLog.xcodeproj
 # Server
 cd ironlog-server && docker compose up --build -d
 ```
+
+Production compose exposes HTTPS through Caddy on `443`.
+The legacy direct HTTP port `8844` is kept temporarily for old app builds.
 
 ## Структура
 

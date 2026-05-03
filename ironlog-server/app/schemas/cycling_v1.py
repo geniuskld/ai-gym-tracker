@@ -13,8 +13,8 @@ VALID_TARGET_TYPES = {"hr_bpm_range", "rpe", "free"}
 VALID_PROGRESSION_AXIS = {"intervals", "work_duration", "intensity_hr", "manual"}
 
 # Docker: /schemas (volume mount); local: ../../schemas relative to repo
-_DOCKER_PATH = Path("/schemas/cycling-plan.schema.json")
-_LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "cycling-plan.schema.json"
+_DOCKER_PATH = Path("/schemas/cycling-plan.import.schema.json")
+_LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "cycling-plan.import.schema.json"
 _SCHEMA_PATH = _DOCKER_PATH if _DOCKER_PATH.exists() else _LOCAL_PATH
 DESCRIPTION = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
 

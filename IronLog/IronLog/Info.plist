@@ -20,8 +20,14 @@
 	<string>1</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>v170184.hosted-by-vdsina.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
 	<key>NSHealthShareUsageDescription</key>
 	<string>IronLog reads your heart rate during cycling workouts so you can see live BPM and time-in-zone.</string>

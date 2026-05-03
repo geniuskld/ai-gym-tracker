@@ -65,6 +65,7 @@ struct IronLogApp: App {
         UserDefaults.standard.register(defaults: [
             "syncServerURL": SyncService.defaultServerURL,
         ])
+        SyncService.migrateDefaultServerURLIfNeeded()
         RestTimerService.requestPermission()
         HealthKitManager.shared.requestAuthorization()
 

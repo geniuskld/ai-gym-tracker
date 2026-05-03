@@ -2,9 +2,14 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      # Temporary compatibility port for old app builds and direct health checks.
+      # Production HTTPS traffic should come through Caddy on 443.
+      - "${IRONLOG_HTTP_PORT:-8844}:8000"
+    expose:
+      - "8000"
     volumes:
-      - ../schemas:/schemas:ro
+      - ${IRONLOG_SCHEMAS_DIR:-../schemas}:/schemas:ro
+      - ${IRONLOG_DOCS_DIR:-../docs}:/docs:ro
     environment:
       - MONGODB_URL=mongodb://mongo:27017
       - MONGODB_DB=ironlog
@@ -13,13 +18,29 @@ services:
       - mongo
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2.8-alpine
+    depends_on:
+      - app
+    ports:
+      - "${IRONLOG_TLS_HTTPS_PORT:-443}:443"
+    environment:
+      - IRONLOG_DOMAIN=${IRONLOG_DOMAIN:-v170184.hosted-by-vdsina.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
   mongo:
     image: mongo:7
     ports:
-      - "27017:27017"
+      - "${IRONLOG_MONGO_BIND:-127.0.0.1}:${IRONLOG_MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
 
 volumes:
   mongo_data:
+  caddy_data:
+  caddy_config:
