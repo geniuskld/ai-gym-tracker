@@ -328,5 +328,16 @@
     "primary_muscles": ["triceps", "chest"],
     "secondary_muscles": ["front_delts"],
     "applies_to": ["strength"]
+  },
+  {
+    "slug": "hip_thrust_dumbbell",
+    "name": "Dumbbell Hip Thrust",
+    "aliases": ["hip thrust", "dumbbell glute bridge", "bench hip thrust"],
+    "body_part": "legs",
+    "equipment": "dumbbell",
+    "movement_pattern": "hip_dominant",
+    "primary_muscles": ["glutes"],
+    "secondary_muscles": ["hamstrings", "quadriceps"],
+    "applies_to": ["strength"]
   }
 ]

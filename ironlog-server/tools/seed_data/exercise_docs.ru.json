@@ -1,0 +1,593 @@
+[
+  {
+    "exercise_slug": "leg_press_machine",
+    "locale": "ru",
+    "title": "Жим ногами в тренажере",
+    "summary": "Поддерживаемое упражнение для квадрицепсов и ягодиц с меньшими требованиями к стабилизации корпуса, чем присед со штангой.",
+    "setup": ["Настройте сиденье так, чтобы таз и поясница оставались на опоре, стопы поставьте на платформу примерно на ширине плеч."],
+    "execution": ["Снимите стопоры, опустите платформу до комфортной глубины без отрыва таза и выжмите ее вверх подконтрольно."],
+    "breathing": "Вдох на опускании, выдох на усилии.",
+    "cues": ["Колени идут по линии стоп.", "Поясница остается прижатой к спинке."],
+    "common_mistakes": ["Слишком глубокая амплитуда с подкручиванием таза.", "Жесткая блокировка коленей в верхней точке."],
+    "safety_notes": ["Остановите подход при боли в колене, тазобедренном суставе или пояснице.", "Для пользователя с ограничениями по осевой нагрузке это обычно предпочтительнее приседаний со штангой, но глубина должна оставаться комфортной."],
+    "alternative_slugs": ["leg_extension_machine", "bulgarian_split_squat_dumbbell"],
+    "media": [],
+    "sources": [
+      {"title": "Physical Activity Guidelines", "publisher": "HHS ODPHP", "url": "https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines/about-physical-activity-guidelines", "type": "government_guideline", "notes": "General evidence-based activity guidance."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression and resistance training principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "leg_extension_machine",
+    "locale": "ru",
+    "title": "Разгибание ног в тренажере",
+    "summary": "Изолирующее упражнение для квадрицепсов, удобное для дозированной нагрузки без осевой компрессии позвоночника.",
+    "setup": ["Сядьте плотно к спинке, совместите ось колена с осью тренажера и расположите валик над голеностопом."],
+    "execution": ["Разогните колени до контролируемого верхнего положения, затем медленно верните вес вниз без броска плит."],
+    "breathing": "Выдох на разгибании, вдох на возврате.",
+    "cues": ["Таз остается на сиденье.", "Движение идет только в коленном суставе."],
+    "common_mistakes": ["Рывок корпусом.", "Слишком большой вес с неполной амплитудой."],
+    "safety_notes": ["Не используйте болезненную амплитуду при дискомфорте в передней части колена.", "Контролируйте нижнюю фазу, не позволяйте грузу падать."],
+    "alternative_slugs": ["leg_press_machine"],
+    "media": [],
+    "sources": [
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General strength exercise dose and gradual progression."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "lying_leg_curl_machine",
+    "locale": "ru",
+    "title": "Сгибание ног лежа в тренажере",
+    "summary": "Изолирующее упражнение для задней поверхности бедра с акцентом на контролируемое сгибание колена.",
+    "setup": ["Лягте на тренажер, зафиксируйте таз, расположите валик чуть выше пяток и возьмитесь за рукояти."],
+    "execution": ["Согните колени без отрыва таза от опоры, затем медленно верните вес вниз."],
+    "breathing": "Выдох на сгибании, вдох на опускании.",
+    "cues": ["Бедра остаются на подушке.", "Пауза в верхней точке короткая и контролируемая."],
+    "common_mistakes": ["Прогиб в пояснице для помощи движению.", "Бросание веса вниз."],
+    "safety_notes": ["Уменьшите амплитуду или вес при судорогах или боли в задней поверхности бедра.", "Не тяните носки агрессивно, если это провоцирует дискомфорт икроножных мышц."],
+    "alternative_slugs": ["seated_leg_curl_machine", "romanian_deadlift_barbell"],
+    "media": [],
+    "sources": [
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Controlled progression principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "seated_leg_curl_machine",
+    "locale": "ru",
+    "title": "Сгибание ног сидя в тренажере",
+    "summary": "Вариант сгибания ног для задней поверхности бедра с устойчивой сидячей позицией.",
+    "setup": ["Сядьте глубоко, зафиксируйте бедра верхним валиком и поставьте нижний валик чуть выше пяток."],
+    "execution": ["Согните колени вниз до комфортной амплитуды, затем верните вес вверх подконтрольно."],
+    "breathing": "Выдох на сгибании, вдох на возврате.",
+    "cues": ["Спина остается на спинке.", "Не отрывайте бедра от фиксатора."],
+    "common_mistakes": ["Слишком быстрый негатив.", "Смещение таза вперед в тяжелых повторах."],
+    "safety_notes": ["Начинайте с умеренного веса, если упражнение новое для коленей или подколенных сухожилий.", "Не доводите амплитуду до болезненного растяжения."],
+    "alternative_slugs": ["lying_leg_curl_machine", "romanian_deadlift_barbell"],
+    "media": [],
+    "sources": [
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General strength exercise dose and gradual progression."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "bulgarian_split_squat_dumbbell",
+    "locale": "ru",
+    "title": "Болгарский сплит-присед с гантелями",
+    "summary": "Одностороннее упражнение для ног и ягодиц, требующее контроля баланса и положения таза.",
+    "setup": ["Поставьте заднюю стопу на скамью, переднюю стопу вынесите так, чтобы внизу колено двигалось по линии стопы."],
+    "execution": ["Опуститесь вертикально вниз до комфортной глубины и поднимитесь через переднюю стопу без рывка."],
+    "breathing": "Вдох на опускании, выдох на подъеме.",
+    "cues": ["Корпус слегка наклонен, но спина нейтральна.", "Основной вес на передней ноге."],
+    "common_mistakes": ["Слишком короткая стойка с уходом колена внутрь.", "Потеря баланса из-за чрезмерного веса."],
+    "safety_notes": ["При ограничениях позвоночника используйте легкие гантели или замену на тренажер.", "Остановитесь при боли в колене или пояснице."],
+    "alternative_slugs": ["leg_press_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Physical Activity Guidelines", "publisher": "HHS ODPHP", "url": "https://odphp.health.gov/our-work/nutrition-physical-activity/physical-activity-guidelines/about-physical-activity-guidelines", "type": "government_guideline", "notes": "General evidence-based activity guidance."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "back_squat_barbell",
+    "locale": "ru",
+    "title": "Присед со штангой на спине",
+    "summary": "Базовое упражнение для ног с высокой осевой нагрузкой и высокими требованиями к технике.",
+    "setup": ["Поставьте штангу на верх спины, соберите корпус, сделайте устойчивую стойку и проверьте, что стопы стоят симметрично."],
+    "execution": ["Сядьте вниз с контролем коленей и таза, затем поднимитесь без потери нейтрального положения корпуса."],
+    "breathing": "Вдох и брейсинг перед опусканием, выдох после прохождения тяжелой части подъема.",
+    "cues": ["Колени следуют направлению носков.", "Гриф остается над серединой стопы."],
+    "common_mistakes": ["Потеря нейтрали спины.", "Колени заваливаются внутрь.", "Слишком большой вес до освоения техники."],
+    "safety_notes": ["При искривлении позвоночника или запрете осевой нагрузки используйте замену, например жим ногами.", "Нужны стойки безопасности или страховка при тяжелой работе."],
+    "alternative_slugs": ["leg_press_machine", "bulgarian_split_squat_dumbbell"],
+    "media": [],
+    "sources": [
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression and exercise order principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "front_squat_barbell",
+    "locale": "ru",
+    "title": "Фронтальный присед со штангой",
+    "summary": "Вариант приседа с грифом спереди, смещающий акцент к квадрицепсам и требующий мобильности плеч и корпуса.",
+    "setup": ["Расположите гриф на передних дельтах, поднимите локти и поставьте стопы в устойчивую стойку."],
+    "execution": ["Опуститесь с вертикальным корпусом и поднимитесь, сохраняя локти высоко и корпус собранным."],
+    "breathing": "Вдох и брейсинг перед повторением, выдох после сложной части подъема.",
+    "cues": ["Локти смотрят вперед.", "Гриф лежит на плечах, а не висит на кистях."],
+    "common_mistakes": ["Падение локтей и округление спины.", "Слишком большой вес при недостаточной мобильности."],
+    "safety_notes": ["Это упражнение также создает осевую нагрузку; при ограничениях позвоночника лучше выбрать тренажер.", "Не продолжайте подход, если гриф съезжает или больно кистям/плечам."],
+    "alternative_slugs": ["leg_press_machine", "leg_extension_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression and resistance training principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "romanian_deadlift_barbell",
+    "locale": "ru",
+    "title": "Румынская тяга со штангой",
+    "summary": "Тазодоминантное упражнение для задней поверхности бедра и ягодиц с высокой нагрузкой на контроль спины.",
+    "setup": ["Возьмите гриф перед бедрами, поставьте стопы на ширине таза и слегка согните колени."],
+    "execution": ["Отведите таз назад, опуская гриф вдоль бедер и голеней, затем вернитесь вверх за счет разгибания бедра."],
+    "breathing": "Вдох и брейсинг перед опусканием, выдох на подъеме.",
+    "cues": ["Спина нейтральна.", "Гриф движется близко к ногам.", "Натяжение ощущается в задней поверхности бедра."],
+    "common_mistakes": ["Округление поясницы.", "Превращение движения в присед.", "Опускание ниже контролируемой амплитуды."],
+    "safety_notes": ["При проблемах со спиной используйте очень умеренную нагрузку или замену на сгибание ног.", "Остановите подход при боли или потере нейтрали позвоночника."],
+    "alternative_slugs": ["seated_leg_curl_machine", "lying_leg_curl_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety and qualified instruction principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "conventional_deadlift_barbell",
+    "locale": "ru",
+    "title": "Классическая становая тяга",
+    "summary": "Тяжелое базовое упражнение для задней цепи и всего корпуса с высокой системной и осевой нагрузкой.",
+    "setup": ["Поставьте стопы под гриф, возьмите гриф снаружи ног, соберите корпус и подтяните гриф к голеням."],
+    "execution": ["Оттолкнитесь ногами от пола и разогните бедра, сохраняя гриф близко к телу; опустите вес с тем же контролем."],
+    "breathing": "Вдох и брейсинг до старта, выдох после фиксации или после прохождения тяжелой фазы.",
+    "cues": ["Гриф близко к ногам.", "Спина нейтральна.", "Плечи и таз поднимаются согласованно."],
+    "common_mistakes": ["Рывок с расслабленной спиной.", "Гриф уходит вперед.", "Слишком тяжелые попытки без техники."],
+    "safety_notes": ["При ограничениях позвоночника это упражнение обычно не является первым выбором.", "Используйте замену с поддержкой или изоляцией задней поверхности бедра, если есть боль/риск."],
+    "alternative_slugs": ["seated_leg_curl_machine", "lying_leg_curl_machine", "leg_press_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety and qualified instruction principles."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "chest_press_machine",
+    "locale": "ru",
+    "title": "Жим от груди в тренажере",
+    "summary": "Поддерживаемое горизонтальное жимовое упражнение для груди, передних дельт и трицепса.",
+    "setup": ["Настройте сиденье так, чтобы рукояти были примерно на уровне середины груди, а спина плотно касалась спинки."],
+    "execution": ["Выжмите рукояти вперед без отрыва плеч от опоры, затем верните их назад до комфортного растяжения."],
+    "breathing": "Выдох на жиме, вдох на возврате.",
+    "cues": ["Лопатки остаются стабильными.", "Запястья нейтральны.", "Локти движутся под контролем."],
+    "common_mistakes": ["Отрыв спины от спинки.", "Слишком глубокий возврат с болью в плечах.", "Полный бросок веса на стек."],
+    "safety_notes": ["Ограничьте амплитуду при дискомфорте в плечевом суставе.", "Тренажер предпочтителен, если нужна стабильная позиция корпуса."],
+    "alternative_slugs": ["bench_press_barbell_flat", "pec_deck_fly_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "pec_deck_fly_machine",
+    "locale": "ru",
+    "title": "Сведение рук в тренажере pec deck",
+    "summary": "Изолирующее упражнение для грудных мышц с фиксированной траекторией.",
+    "setup": ["Настройте сиденье так, чтобы плечи были расслаблены, а рукояти или подушки находились на уровне груди."],
+    "execution": ["Сведите руки перед собой, сохраняя легкий сгиб локтей, затем верните их назад до комфортного растяжения."],
+    "breathing": "Выдох на сведении, вдох на разведении.",
+    "cues": ["Грудь раскрыта.", "Плечи не поднимаются к ушам.", "Амплитуда без боли."],
+    "common_mistakes": ["Слишком глубокое растяжение плеч.", "Рывок руками вместо контроля грудными."],
+    "safety_notes": ["При передней боли в плече уменьшите амплитуду или замените упражнение.", "Не гонитесь за весом в изоляции."],
+    "alternative_slugs": ["chest_press_machine", "bench_press_barbell_flat"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "bench_press_barbell_flat",
+    "locale": "ru",
+    "title": "Жим штанги лежа",
+    "summary": "Базовое горизонтальное жимовое упражнение для груди, трицепса и передних дельт.",
+    "setup": ["Лягте на скамью, поставьте стопы устойчиво, сведите лопатки и возьмите гриф чуть шире плеч."],
+    "execution": ["Опустите гриф к нижней или средней части груди подконтрольно и выжмите вверх, сохраняя стабильные плечи."],
+    "breathing": "Вдох и брейсинг перед опусканием, выдох на жиме после старта усилия.",
+    "cues": ["Запястья над локтями.", "Лопатки стабильны.", "Гриф движется без отскока от груди."],
+    "common_mistakes": ["Слишком широкий локоть.", "Отбив грифа от груди.", "Чрезмерный прогиб ради веса."],
+    "safety_notes": ["Используйте страховку или ограничители при тяжелых подходах.", "При боли в плечах уменьшите амплитуду или выберите тренажер."],
+    "alternative_slugs": ["chest_press_machine", "incline_bench_press_barbell"],
+    "media": [],
+    "sources": [
+      {"title": "Barbell Bench Press", "publisher": "NASM", "url": "https://www.nasm.org/resource-center/exercise-library/barbell-bench-press", "type": "exercise_library", "notes": "Bench press muscles, mistakes, and form guidance."},
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "incline_bench_press_barbell",
+    "locale": "ru",
+    "title": "Жим штанги на наклонной скамье",
+    "summary": "Жимовой вариант с акцентом на верхнюю часть груди и передние дельты.",
+    "setup": ["Установите умеренный наклон скамьи, лягте с устойчивыми стопами и возьмите гриф чуть шире плеч."],
+    "execution": ["Опустите гриф к верхней части груди подконтрольно и выжмите вверх без потери положения лопаток."],
+    "breathing": "Вдох на опускании, выдох на жиме.",
+    "cues": ["Не задирайте плечи.", "Локти движутся под грифом.", "Темп остается контролируемым."],
+    "common_mistakes": ["Слишком высокий наклон, превращающий движение в жим плечами.", "Отрыв таза или плеч от скамьи."],
+    "safety_notes": ["При дискомфорте плеч снизьте наклон или выберите тренажер.", "Используйте страховку при тяжелых подходах."],
+    "alternative_slugs": ["chest_press_machine", "bench_press_barbell_flat"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "lat_pulldown_cable_wide",
+    "locale": "ru",
+    "title": "Тяга верхнего блока широким хватом",
+    "summary": "Вертикальная тяга для широчайших мышц и верхней части спины.",
+    "setup": ["Настройте валик для бедер, возьмите рукоять широким хватом и сядьте с устойчивым корпусом."],
+    "execution": ["Потяните рукоять к верхней части груди, опуская локти вниз и назад, затем верните вес вверх с контролем."],
+    "breathing": "Выдох на тяге вниз, вдох на возврате.",
+    "cues": ["Плечи вниз от ушей.", "Грудь направлена к рукояти.", "Не тяните за шею."],
+    "common_mistakes": ["Тяга за голову.", "Раскачка корпусом.", "Сгибание рук без работы спины."],
+    "safety_notes": ["Не выполняйте за голову при дискомфорте плеч/шеи.", "Сохраняйте контроль верхней фазы, не позволяйте грузу дергать плечи."],
+    "alternative_slugs": ["lat_pulldown_cable_underhand", "pull_up_bodyweight"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "lat_pulldown_cable_underhand",
+    "locale": "ru",
+    "title": "Тяга верхнего блока обратным хватом",
+    "summary": "Вертикальная тяга для широчайших с большей вовлеченностью бицепса.",
+    "setup": ["Возьмите рукоять обратным хватом примерно на ширине плеч и зафиксируйте бедра под валиком."],
+    "execution": ["Потяните рукоять к верхней части груди, ведя локти вниз, затем плавно верните вес."],
+    "breathing": "Выдох на тяге, вдох на возврате.",
+    "cues": ["Локти идут вниз к корпусу.", "Корпус устойчив.", "Плечи не поднимаются."],
+    "common_mistakes": ["Сильный отклон корпуса назад.", "Тяга только бицепсом.", "Рывок в нижней точке."],
+    "safety_notes": ["Следите за комфортом локтей и запястий при супинированном хвате.", "Уменьшите вес, если теряется контроль лопаток."],
+    "alternative_slugs": ["lat_pulldown_cable_wide", "pull_up_bodyweight"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "dumbbell_row_one_arm",
+    "locale": "ru",
+    "title": "Тяга гантели одной рукой",
+    "summary": "Горизонтальная тяга для широчайших и середины спины с односторонней нагрузкой.",
+    "setup": ["Упритесь свободной рукой и коленом или рукой в устойчивую опору, удерживайте спину нейтральной."],
+    "execution": ["Потяните гантель к тазу или нижним ребрам, затем опустите ее без разворота корпуса."],
+    "breathing": "Выдох на тяге, вдох на опускании.",
+    "cues": ["Лопатка движется назад и вниз.", "Корпус не вращается.", "Шея нейтральна."],
+    "common_mistakes": ["Разворот корпуса ради веса.", "Подтягивание плеча к уху.", "Круглая спина."],
+    "safety_notes": ["При дискомфорте поясницы выбирайте chest-supported или тренажерную тягу.", "Не используйте вес, который заставляет бросать гантель вниз."],
+    "alternative_slugs": ["plate_loaded_row", "seated_cable_row"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "plate_loaded_row",
+    "locale": "ru",
+    "title": "Тяга в рычажном тренажере",
+    "summary": "Поддерживаемая горизонтальная тяга для спины, часто удобная при необходимости разгрузить поясницу.",
+    "setup": ["Настройте сиденье и грудную опору так, чтобы рукояти были на удобной высоте, а грудь оставалась на подушке."],
+    "execution": ["Потяните рукояти к корпусу, сводя лопатки, затем плавно верните вес вперед."],
+    "breathing": "Выдох на тяге, вдох на возврате.",
+    "cues": ["Грудь остается на опоре.", "Локти идут назад.", "Плечи не поднимаются."],
+    "common_mistakes": ["Отрыв груди от подушки.", "Слишком короткая амплитуда.", "Рывок корпусом."],
+    "safety_notes": ["Настройте опору так, чтобы не сдавливать грудную клетку.", "Остановитесь при боли в плечах или локтях."],
+    "alternative_slugs": ["seated_cable_row", "dumbbell_row_one_arm"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "seated_cable_row",
+    "locale": "ru",
+    "title": "Горизонтальная тяга сидя в блоке",
+    "summary": "Кабельная тяга для середины спины и широчайших с контролируемой нагрузкой.",
+    "setup": ["Сядьте устойчиво, возьмите рукоять и выпрямите корпус без чрезмерного отклона назад."],
+    "execution": ["Потяните рукоять к корпусу, затем верните ее вперед, сохраняя контроль лопаток."],
+    "breathing": "Выдох на тяге, вдох на возврате.",
+    "cues": ["Движение начинается с лопаток.", "Корпус почти неподвижен.", "Запястья нейтральны."],
+    "common_mistakes": ["Раскачка корпусом.", "Округление поясницы в растянутой фазе.", "Тяга плечами к ушам."],
+    "safety_notes": ["Если поясница устает раньше спины, выберите тягу с грудной опорой.", "Не позволяйте весу резко вытягивать руки."],
+    "alternative_slugs": ["plate_loaded_row", "dumbbell_row_one_arm"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "pull_up_bodyweight",
+    "locale": "ru",
+    "title": "Подтягивание",
+    "summary": "Вертикальная тяга с собственным весом для широчайших, бицепса и верхней части спины.",
+    "setup": ["Возьмитесь за перекладину, повисните с контролем плеч и соберите корпус."],
+    "execution": ["Подтяните грудь к перекладине или подбородок выше уровня перекладины, затем опуститесь подконтрольно."],
+    "breathing": "Выдох на подъеме, вдох на опускании.",
+    "cues": ["Плечи вниз от ушей.", "Локти тянутся к ребрам.", "Без раскачки."],
+    "common_mistakes": ["Киппинг без цели.", "Неполная амплитуда из-за слишком высокой сложности.", "Боль в локтях от неподходящего хвата."],
+    "safety_notes": ["Используйте ассистирующий тренажер или блок, если техника теряется.", "Остановитесь при боли в плечах, локтях или кистях."],
+    "alternative_slugs": ["lat_pulldown_cable_wide", "lat_pulldown_cable_underhand"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "face_pull_cable",
+    "locale": "ru",
+    "title": "Тяга каната к лицу",
+    "summary": "Кабельное упражнение для задних дельт, верхней спины и контроля лопаток.",
+    "setup": ["Установите блок примерно на уровне лица, возьмите канат и отойдите так, чтобы трос был натянут."],
+    "execution": ["Потяните канат к лицу, разводя концы в стороны, затем верните руки вперед с контролем."],
+    "breathing": "Выдох на тяге, вдох на возврате.",
+    "cues": ["Локти высоко, но плечи расслаблены.", "Тяните к носу или верхней части лица.", "Движение без прогиба корпуса."],
+    "common_mistakes": ["Слишком большой вес с отклоном назад.", "Тяга вниз к груди.", "Подъем плеч к ушам."],
+    "safety_notes": ["Работайте с легким или умеренным весом.", "При боли в плече уменьшите амплитуду или замените упражнение."],
+    "alternative_slugs": ["rear_delt_raise_dumbbell", "plate_loaded_row"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "shoulder_press_machine",
+    "locale": "ru",
+    "title": "Жим плеч в тренажере",
+    "summary": "Поддерживаемый вертикальный жим для дельт и трицепса.",
+    "setup": ["Настройте сиденье так, чтобы рукояти начинались около уровня ушей или чуть ниже, спина на опоре."],
+    "execution": ["Выжмите рукояти вверх без жесткой блокировки локтей и верните их вниз до комфортной глубины."],
+    "breathing": "Выдох на жиме, вдох на возврате.",
+    "cues": ["Ребра не выпячиваются.", "Запястья над локтями.", "Плечи движутся без боли."],
+    "common_mistakes": ["Переразгибание поясницы.", "Слишком глубокое опускание при дискомфорте плеч.", "Жесткая блокировка локтей."],
+    "safety_notes": ["При ограничениях спины держите спинку и умеренный вес.", "При боли в плече используйте более нейтральный хват или замену."],
+    "alternative_slugs": ["shoulder_press_dumbbell", "lateral_raise_dumbbell"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "shoulder_press_dumbbell",
+    "locale": "ru",
+    "title": "Жим гантелей на плечи",
+    "summary": "Вертикальный жим с гантелями для дельт и трицепса, требующий контроля корпуса.",
+    "setup": ["Сядьте с опорой спины или встаньте устойчиво, поднимите гантели к уровню плеч."],
+    "execution": ["Выжмите гантели вверх по контролируемой траектории и верните их к плечам без провала локтей."],
+    "breathing": "Выдох на жиме, вдох на опускании.",
+    "cues": ["Корпус собран.", "Гантели не сталкиваются сверху.", "Локти под кистями."],
+    "common_mistakes": ["Сильный прогиб поясницы.", "Слишком большой вес с рывком.", "Опускание ниже комфортной амплитуды."],
+    "safety_notes": ["При ограничениях позвоночника предпочтительнее сидячий вариант со спинкой или тренажер.", "Остановитесь при боли в плече."],
+    "alternative_slugs": ["shoulder_press_machine", "lateral_raise_dumbbell"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "lateral_raise_dumbbell",
+    "locale": "ru",
+    "title": "Подъем гантелей в стороны",
+    "summary": "Изолирующее упражнение для средней дельты с низкой потребностью в больших весах.",
+    "setup": ["Встаньте или сядьте устойчиво, держите гантели по бокам с легким сгибом локтей."],
+    "execution": ["Поднимите руки в стороны до уровня плеч или комфортной высоты, затем медленно опустите."],
+    "breathing": "Выдох на подъеме, вдох на опускании.",
+    "cues": ["Локти чуть выше кистей.", "Плечи не поднимаются к ушам.", "Темп спокойный."],
+    "common_mistakes": ["Раскачка корпусом.", "Слишком тяжелые гантели.", "Подъем выше комфортной амплитуды с болью."],
+    "safety_notes": ["Выбирайте легкий вес и контролируйте плечевой сустав.", "При импинджмент-подобной боли уменьшите амплитуду или замените упражнение."],
+    "alternative_slugs": ["shoulder_press_machine", "rear_delt_raise_dumbbell"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "rear_delt_raise_dumbbell",
+    "locale": "ru",
+    "title": "Разведение гантелей на заднюю дельту",
+    "summary": "Изолирующее упражнение для задних дельт и верхней части спины.",
+    "setup": ["Наклонитесь с нейтральной спиной или лягте грудью на наклонную скамью, руки с гантелями направлены вниз."],
+    "execution": ["Разведите руки в стороны с легким сгибом локтей и верните их вниз подконтрольно."],
+    "breathing": "Выдох на разведении, вдох на опускании.",
+    "cues": ["Шея нейтральна.", "Лопатки работают спокойно.", "Вес легкий."],
+    "common_mistakes": ["Рывок корпусом.", "Перенос нагрузки в трапеции.", "Слишком тяжелые гантели."],
+    "safety_notes": ["При чувствительной пояснице используйте грудную опору.", "Остановитесь при боли в плече."],
+    "alternative_slugs": ["face_pull_cable", "plate_loaded_row"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "incline_dumbbell_curl",
+    "locale": "ru",
+    "title": "Сгибание рук с гантелями на наклонной скамье",
+    "summary": "Вариант сгибания на бицепс с растянутой стартовой позицией плеча.",
+    "setup": ["Сядьте на наклонную скамью, прижмите спину и дайте рукам свободно опуститься с гантелями."],
+    "execution": ["Согните локти без вывода плеч вперед, затем медленно опустите гантели."],
+    "breathing": "Выдох на сгибании, вдох на опускании.",
+    "cues": ["Плечо остается почти неподвижным.", "Локоть смотрит вниз.", "Негатив контролируемый."],
+    "common_mistakes": ["Размахивание гантелями.", "Слишком глубокое растяжение с болью в передней части плеча.", "Подъем локтей вперед."],
+    "safety_notes": ["Уменьшите угол растяжения или вес при дискомфорте плеча/локтя.", "Не используйте рывки в нижней позиции."],
+    "alternative_slugs": ["hammer_curl_dumbbell", "preacher_curl_ez_bar"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "preacher_curl_ez_bar",
+    "locale": "ru",
+    "title": "Сгибание рук на скамье Скотта с EZ-грифом",
+    "summary": "Изолирующее упражнение на бицепс с фиксированным положением плеча.",
+    "setup": ["Настройте высоту сиденья так, чтобы плечи лежали на подушке, возьмите EZ-гриф удобным хватом."],
+    "execution": ["Согните локти без отрыва плеч от подушки и медленно опустите гриф почти до полного разгибания."],
+    "breathing": "Выдох на сгибании, вдох на опускании.",
+    "cues": ["Плечи остаются на подушке.", "Запястья нейтральны.", "Нижняя фаза без провала."],
+    "common_mistakes": ["Полное расслабление внизу под нагрузкой.", "Отрыв плеч.", "Слишком большой вес."],
+    "safety_notes": ["Берегите локти в нижней амплитуде.", "При боли используйте меньший вес или гантели с нейтральным хватом."],
+    "alternative_slugs": ["hammer_curl_dumbbell", "incline_dumbbell_curl"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "hammer_curl_dumbbell",
+    "locale": "ru",
+    "title": "Молотковые сгибания с гантелями",
+    "summary": "Сгибание локтя нейтральным хватом для брахиалиса, бицепса и предплечья.",
+    "setup": ["Встаньте или сядьте устойчиво, держите гантели нейтральным хватом вдоль корпуса."],
+    "execution": ["Согните локти, сохраняя ладони направленными друг к другу, затем опустите гантели с контролем."],
+    "breathing": "Выдох на подъеме, вдох на опускании.",
+    "cues": ["Локти рядом с корпусом.", "Без раскачки.", "Запястья ровные."],
+    "common_mistakes": ["Помощь корпусом.", "Увод локтей вперед.", "Слишком быстрый негатив."],
+    "safety_notes": ["Уменьшите вес при дискомфорте локтя или предплечья.", "Не сжимайте гантели чрезмерно, если это провоцирует боль кисти."],
+    "alternative_slugs": ["incline_dumbbell_curl", "preacher_curl_ez_bar"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "cable_triceps_pushdown_rope",
+    "locale": "ru",
+    "title": "Разгибание рук на блоке с канатом",
+    "summary": "Изолирующее упражнение для трицепса с удобной настройкой нагрузки.",
+    "setup": ["Установите верхний блок, возьмите канат нейтральным хватом и поставьте локти рядом с корпусом."],
+    "execution": ["Разогните локти вниз, слегка разведя концы каната внизу, затем верните руки вверх без смещения локтей."],
+    "breathing": "Выдох на разгибании, вдох на возврате.",
+    "cues": ["Локти неподвижны.", "Плечи расслаблены.", "Вес не тянет корпус вверх."],
+    "common_mistakes": ["Наклон всем корпусом ради веса.", "Вынос локтей вперед.", "Слишком короткая амплитуда."],
+    "safety_notes": ["При боли в локте уменьшите вес или смените рукоять.", "Не блокируйте локти агрессивно."],
+    "alternative_slugs": ["lying_triceps_extension_ez_bar", "dip_parallel_bars"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "lying_triceps_extension_ez_bar",
+    "locale": "ru",
+    "title": "Французский жим лежа с EZ-грифом",
+    "summary": "Изолирующее разгибание локтя для трицепса с заметной нагрузкой на локтевой сустав.",
+    "setup": ["Лягте на скамью, возьмите EZ-гриф удобным хватом и удерживайте плечи почти вертикально."],
+    "execution": ["Согните локти, опуская гриф к области лба или за голову, затем разогните руки без смещения плеч."],
+    "breathing": "Вдох на опускании, выдох на разгибании.",
+    "cues": ["Локти смотрят вперед.", "Плечи стабильны.", "Амплитуда без боли."],
+    "common_mistakes": ["Разведение локтей в стороны.", "Слишком большой вес.", "Резкий нижний разворот."],
+    "safety_notes": ["При чувствительных локтях предпочтительнее канатный блок.", "Не выполняйте до болезненного растяжения."],
+    "alternative_slugs": ["cable_triceps_pushdown_rope", "dip_parallel_bars"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "dip_parallel_bars",
+    "locale": "ru",
+    "title": "Отжимания на параллельных брусьях",
+    "summary": "Вертикальное жимовое упражнение с собственным весом для трицепса, груди и передних дельт.",
+    "setup": ["Возьмитесь за брусья, зафиксируйте плечи вниз и поднимитесь в верхнюю позицию с контролем корпуса."],
+    "execution": ["Опуститесь до комфортной глубины и выжмите себя вверх без раскачки и провала плеч."],
+    "breathing": "Вдох на опускании, выдох на подъеме.",
+    "cues": ["Плечи не проваливаются к ушам.", "Локти движутся контролируемо.", "Корпус устойчив."],
+    "common_mistakes": ["Слишком глубокая амплитуда при боли в плечах.", "Рывок из нижней точки.", "Раскачка ногами."],
+    "safety_notes": ["При боли в плечах замените на жим в тренажере или разгибание на блоке.", "Используйте ассистирующий тренажер, если собственный вес слишком тяжел."],
+    "alternative_slugs": ["cable_triceps_pushdown_rope", "chest_press_machine"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "How to improve your strength and flexibility", "publisher": "NHS", "url": "https://www.nhs.uk/live-well/exercise/how-to-improve-strength-flexibility/", "type": "government_guideline", "notes": "General gradual progression guidance."}
+    ],
+    "status": "draft"
+  },
+  {
+    "exercise_slug": "hip_thrust_dumbbell",
+    "locale": "ru",
+    "title": "Ягодичный мост / hip thrust с гантелью",
+    "summary": "Тазодоминантное упражнение для ягодиц с нагрузкой через таз и умеренными требованиями к позвоночнику при правильной опоре.",
+    "setup": ["Расположите верх спины на скамье, поставьте стопы устойчиво, гантель положите на таз через мягкую прокладку."],
+    "execution": ["Опустите таз вниз до комфортного растяжения и поднимите его вверх за счет ягодиц, не переразгибая поясницу."],
+    "breathing": "Вдох на опускании, выдох на подъеме.",
+    "cues": ["Подбородок слегка к груди.", "Ребра не выпячиваются.", "Верхняя точка за счет ягодиц, а не прогиба поясницы."],
+    "common_mistakes": ["Слишком дальняя или близкая постановка стоп.", "Переразгибание поясницы в верхней точке.", "Гантель давит на таз без прокладки."],
+    "safety_notes": ["При дискомфорте поясницы уменьшите амплитуду и вес.", "Скамья должна быть устойчивой и не скользить."],
+    "alternative_slugs": ["leg_press_machine", "romanian_deadlift_barbell"],
+    "media": [],
+    "sources": [
+      {"title": "Exercise Library", "publisher": "ACE", "url": "https://www.acefitness.org/resources/everyone/exercise-library/", "type": "exercise_library", "notes": "Exercise-specific technique review source."},
+      {"title": "Progression Models in Resistance Training for Healthy Adults", "publisher": "ACSM", "url": "https://www.acsm.org/wp-content/uploads/2025/01/Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf", "type": "professional_guideline", "notes": "Progression principles."},
+      {"title": "Resistance Training and Injury Prevention", "publisher": "ACSM", "url": "https://www.acsm.org/docs/default-source/files-for-resource-library/smb-resistance-training-and-injury-prevention.pdf", "type": "professional_guideline", "notes": "Safety principles."}
+    ],
+    "status": "draft"
+  }
+]

@@ -79,6 +79,8 @@ Strength exercise catalog:
 ```text
 GET /exercises/catalog?plan_type=strength
 GET /exercises/{slug}
+GET /exercises/{slug}/docs?locale=ru
+GET /exercise-docs/missing?locale=ru&status=reviewed
 ```
 
 Production URLs:
@@ -86,6 +88,8 @@ Production URLs:
 ```text
 https://v170184.hosted-by-vdsina.com/exercises/catalog?plan_type=strength
 https://v170184.hosted-by-vdsina.com/exercises/{slug}
+https://v170184.hosted-by-vdsina.com/exercises/{slug}/docs?locale=ru
+https://v170184.hosted-by-vdsina.com/exercise-docs/missing?locale=ru&status=reviewed
 ```
 
 Muscle group reference:
@@ -236,6 +240,28 @@ When a catalog match is found:
 
 Do not invent `catalog_id`.
 
+### Exercise Documentation Reference
+
+After matching a strength exercise to `catalog_id`, fetch:
+
+```text
+GET /exercises/{catalog_id}/docs?locale=ru
+```
+
+Use this reference for execution notes, safety notes, common mistakes, and
+exercise-specific wording. If it returns 404, continue generating the plan from
+the catalog and schema, but do not invent a permanent documentation card. To
+find documentation gaps:
+
+```text
+GET /exercise-docs/missing?locale=ru&status=reviewed
+```
+
+Documentation records are a separate reference layer from the exercise catalog.
+They are not part of the plan JSON schema today. Do not embed long technique
+instructions into plan exercises unless the user explicitly asks for coaching
+notes in the plan.
+
 ### Missing Strength Exercises
 
 If the required exercise is not in the catalog:
@@ -356,13 +382,14 @@ Use `zone_label` only as display text.
 1. Determine `plan_type`.
 2. Fetch the matching schema from `/schema?type=<plan_type>`.
 3. If `strength`, fetch `/exercises/catalog?plan_type=strength` and `/muscle-groups`.
-4. Fetch existing versions with `/plans?type=<plan_type>`.
-5. Generate JSON with correct `plan_id` and `plan_version`.
-6. Validate JSON against the selected schema.
-7. Upload with `PUT /plan`.
-8. If response contains `_warnings`, show them to the user.
-9. If response returns `422`, fix the JSON structure.
-10. If response returns `409`, increment `plan_version` above the latest version and retry.
+4. If `strength`, optionally fetch `/exercises/{catalog_id}/docs?locale=ru` for matched exercises when coaching notes are needed.
+5. Fetch existing versions with `/plans?type=<plan_type>`.
+6. Generate JSON with correct `plan_id` and `plan_version`.
+7. Validate JSON against the selected schema.
+8. Upload with `PUT /plan`.
+9. If response contains `_warnings`, show them to the user.
+10. If response returns `422`, fix the JSON structure.
+11. If response returns `409`, increment `plan_version` above the latest version and retry.
 
 ## Output Requirement
 

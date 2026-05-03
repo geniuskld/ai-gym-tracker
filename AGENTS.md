@@ -115,7 +115,7 @@ Note: `GET /plan` and `GET /plan/versions` were removed -- `/plans` returns full
 ## Exercise Catalog (cross-plan analytics)
 - Server-side mongo collections: `exercises` + `muscle_groups` (normalized).
 - Seeded on every container start from `tools/seed_data/{exercises,muscle_groups}.json` (idempotent upsert by slug; user edits via API survive restarts).
-- Initial seed: 30 exercises + 20 muscle groups.
+- Initial seed: 31 exercises + 20 muscle groups.
 - **Slug = immutable language-neutral ID.** English snake_case is convention, but the slug is the primary key. Never renamed; if an exercise needs reinterpreting, deprecate + create new with optional `replaced_by`.
 - **Stability rules:**
   - `(plan_id, exercise_id)` is stable across versions of the same plan when it identifies the same physical exercise.

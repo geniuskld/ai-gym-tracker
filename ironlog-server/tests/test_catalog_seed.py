@@ -11,6 +11,7 @@ from pathlib import Path
 _TOOLS_DIR = Path(__file__).resolve().parents[1] / "tools" / "seed_data"
 SEED_MUSCLES = _TOOLS_DIR / "muscle_groups.json"
 SEED_EXERCISES = _TOOLS_DIR / "exercises.json"
+SEED_EXERCISE_DOCS_RU = _TOOLS_DIR / "exercise_docs.ru.json"
 
 
 def _load(path: Path):
@@ -67,7 +68,7 @@ def test_muscle_aliases_are_english():
 def test_exercises_seed_loads():
     docs = _load(SEED_EXERCISES)
     assert isinstance(docs, list)
-    assert len(docs) >= 25, "expected ~30 exercises"
+    assert len(docs) >= 25, "expected ~31 exercises"
 
 
 def test_exercises_slugs_unique():
@@ -162,3 +163,41 @@ def test_exercise_slug_snake_case():
         assert pattern.match(d["slug"]), (
             f"slug '{d['slug']}' violates snake_case convention"
         )
+
+
+# --- exercise docs ---------------------------------------------------------
+
+def test_exercise_docs_ru_seed_covers_current_catalog():
+    exercises = {d["slug"] for d in _load(SEED_EXERCISES)}
+    docs = _load(SEED_EXERCISE_DOCS_RU)
+    doc_slugs = {d["exercise_slug"] for d in docs}
+    assert exercises == doc_slugs
+
+
+def test_exercise_docs_ru_required_fields():
+    docs = _load(SEED_EXERCISE_DOCS_RU)
+    required = {
+        "exercise_slug", "locale", "title", "summary", "setup", "execution",
+        "breathing", "cues", "common_mistakes", "safety_notes", "sources",
+        "status",
+    }
+    for doc in docs:
+        missing = required - set(doc)
+        assert not missing, (
+            f"exercise doc '{doc.get('exercise_slug')}' missing {missing}"
+        )
+        assert doc["locale"] == "ru"
+        assert doc["status"] == "draft"
+        assert doc["sources"], (
+            f"exercise doc '{doc['exercise_slug']}' has no sources"
+        )
+
+
+def test_exercise_docs_ru_alternative_slugs_resolve():
+    exercises = {d["slug"] for d in _load(SEED_EXERCISES)}
+    for doc in _load(SEED_EXERCISE_DOCS_RU):
+        for slug in doc.get("alternative_slugs", []):
+            assert slug in exercises, (
+                f"exercise doc '{doc['exercise_slug']}' "
+                f"has unknown alternative '{slug}'"
+            )

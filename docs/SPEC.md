@@ -79,7 +79,7 @@ iOS-приложение для трекинга силовых и кардио-
 - Настройки: server URL, аккаунт, test connection
 
 #### Exercise Catalog (cross-plan analytics foundation)
-- Две Mongo-коллекции: `exercises` (30 seed-записей) + `muscle_groups` (20 seed-записей), нормализованные через `primary_muscles[]`/`secondary_muscles[]`/`antagonist_slugs[]`.
+- Две Mongo-коллекции: `exercises` (31 seed-запись) + `muscle_groups` (20 seed-записей), нормализованные через `primary_muscles[]`/`secondary_muscles[]`/`antagonist_slugs[]`.
 - Сидится на старте контейнера из `tools/seed_data/{exercises,muscle_groups}.json` (idempotent upsert по slug; ручные правки через API сохраняются между рестартами).
 - **Slug** -- immutable language-neutral ID. Английский snake_case -- convention для читаемости, но slug это primary key. Никогда не переименовывается; для смысловой замены -- `deprecated: true` + опциональный `replaced_by`.
 - **`name`** -- английская строка для display/AI. **`aliases[]`** -- английские синонимы для распознавания моделями (русские фразы пользователя модель сама переводит на английский перед матчем).
@@ -209,6 +209,9 @@ iOS-приложение для трекинга силовых и кардио-
 - FR-SRV-18: GET /analytics/strength/exercise-progress -- per-exercise volume + est_1rm series + 30/90-day relative deltas
 - FR-SRV-19: GET /analytics/strength/body-parts -- weekly volume + 30/90-day deltas per body_part
 - FR-SRV-20: GET /analytics/strength/overview -- top progressing exercises (volume_pct_30d), body_part summary, total workouts count
+- FR-SRV-21: GET /exercises/{slug}/docs -- localized exercise execution documentation (public)
+- FR-SRV-22: PUT /exercises/{slug}/docs -- upsert localized exercise documentation (JWT, server-managed content_version)
+- FR-SRV-23: GET /exercise-docs/missing -- catalog exercises without docs for a locale/status
 
 ## 4. Нефункциональные требования
 - NFR-01: Offline-first: полная функциональность без интернета, sync при наличии
@@ -245,6 +248,16 @@ iOS-приложение для трекинга силовых и кардио-
 - `schemas/sample-plan.json` -- рабочий strength-пример
 
 ## 8. Catalog seed
-- `ironlog-server/tools/seed_data/exercises.json` -- 30 упражнений в стартовом наборе. Все английские names + aliases. Slug-convention: `<movement>_<equipment>_<modifier?>`.
+- `ironlog-server/tools/seed_data/exercises.json` -- 31 упражнение в стартовом наборе. Все английские names + aliases. Slug-convention: `<movement>_<equipment>_<modifier?>`.
 - `ironlog-server/tools/seed_data/muscle_groups.json` -- 20 мышечных групп с антагонистами и регионом.
+- `ironlog-server/tools/seed_data/exercise_docs.ru.json` -- стартовые draft-карточки техники на русском для всех текущих упражнений.
 - Сидинг идемпотентный (`tools/bootstrap_catalog.py`); ручные правки через API сохраняются.
+
+## 9. Exercise documentation reference
+- Mongo-коллекция `exercise_docs`, отдельная от `exercises`: ключ `(exercise_slug, locale)`.
+- Public reads: `GET /exercise-docs`, `GET /exercise-docs/missing`, `GET /exercises/{slug}/docs`.
+- JWT write: `PUT /exercises/{slug}/docs?locale=ru`.
+- Сервер сам увеличивает `content_version` при каждом PUT.
+- `sources[]` обязателен; контент пишется оригинальным текстом, без копирования чужих инструкций.
+- `media[]` хранит только URL/метаданные; картинки должны быть owned/generated/licensed/reusable.
+- Статусы: `draft`, `reviewed`, `deprecated`. App-ready контент должен использовать `reviewed`.

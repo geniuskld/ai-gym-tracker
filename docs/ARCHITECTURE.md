@@ -126,6 +126,8 @@ ironlog-server/                           # Sync server
 │       ├── crash.py                      # POST /crash, GET /crashes
 │       ├── catalog.py                    # GET/POST/PUT/PATCH /exercises/* + /muscle-groups/*
 │       ├── _catalog_validators.py        # Pure-Python validators (testable without app stack)
+│       ├── exercise_docs.py              # GET/PUT exercise execution docs by slug + locale
+│       ├── _exercise_doc_validators.py   # Pure-Python exercise doc payload validators
 │       ├── analytics.py                  # GET /analytics/strength/{exercise-progress, body-parts, overview}
 │       ├── _analytics_helpers.py         # Pure-Python: Epley 1RM, deltas, window splits, week_start
 │       └── schema.py                     # GET /schema (public, per-type)
@@ -133,8 +135,9 @@ ironlog-server/                           # Sync server
 │   ├── bootstrap_catalog.py              # Idempotent seed of exercises + muscle_groups on startup
 │   ├── backfill_log_body_parts.py        # One-shot backfill for historical workout_logs
 │   └── seed_data/
-│       ├── exercises.json                # 30 strength exercises (English name + aliases)
-│       └── muscle_groups.json            # 20 muscle groups with antagonists + region
+│       ├── exercises.json                # 31 strength exercises (English name + aliases)
+│       ├── muscle_groups.json            # 20 muscle groups with antagonists + region
+│       └── exercise_docs.ru.json         # Draft execution docs for current strength catalog
 ├── tests/                                # pytest unit + route tests (103 tests, 8 suites)
 ├── Dockerfile
 ├── docker-compose.yml
@@ -215,6 +218,7 @@ schemas/                                  # JSON Schema docs (mounted into Docke
 
 ### Exercise Catalog (analytics foundation)
 - Two normalized Mongo collections: `exercises` + `muscle_groups`. Exercise documents reference muscles by slug; the catalog endpoint resolves them into embedded objects on read so consumers do not need a second hop.
+- Execution guidance lives in a separate `exercise_docs` collection keyed by `(exercise_slug, locale)`. This keeps identity/analytics stable while allowing localized instruction text, safety notes, sources, and media metadata to evolve independently.
 - Slugs are immutable language-neutral IDs. English snake_case is convention but the slug is the primary key.
 - Seeded from `tools/seed_data/{exercises,muscle_groups}.json` via `tools/bootstrap_catalog.py` on every container start (idempotent upsert by slug).
 - Read endpoints public (`GET /exercises/catalog`, etc.); write endpoints JWT-authed.
@@ -523,7 +527,7 @@ Run: `python -m pytest tests/` from `ironlog-server/` (with `requirements-dev.tx
 - Total server tests: 103 across 8 suites
 
 ### Sprint 5: Exercise catalog + analytics foundation
-- Mongo collections: `exercises` (30 seed) + `muscle_groups` (20 seed), normalized
+- Mongo collections: `exercises` (31 seed) + `muscle_groups` (20 seed), normalized
 - Slug as immutable language-neutral ID; English-only `name`/`aliases` (model translates user input)
 - `tools/bootstrap_catalog.py` -- idempotent seed on every container start
 - `app/routes/catalog.py` + `_catalog_validators.py` -- read + write endpoints with pure-Python validation layer

@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from app.auth import get_current_user
 from app.routes import analytics as analytics_route
 from app.routes import agent_instructions as agent_instructions_route
+from app.routes import exercise_docs as exercise_docs_route
 from app.routes import log as log_route
 from app.routes import plan as plan_route
 
@@ -65,7 +66,14 @@ class FakeCollection:
     async def update_one(self, query, update, upsert=False):
         doc = dict(update.get("$set", {}))
         self.upserts.append({"query": query, "doc": doc, "upsert": upsert})
-        self.docs.append(doc)
+        for index, existing in enumerate(self.docs):
+            if self._matches(existing, query):
+                merged = dict(existing)
+                merged.update(doc)
+                self.docs[index] = merged
+                return SimpleNamespace(upserted_id=None, modified_count=1)
+        if upsert:
+            self.docs.append(doc)
         return SimpleNamespace(upserted_id=doc.get("id"), modified_count=1)
 
     async def count_documents(self, query):
@@ -76,14 +84,18 @@ class FakeCollection:
             value = doc.get(key)
             if isinstance(expected, dict):
                 if "$in" in expected and value not in expected["$in"]:
-                    return False
+                    if not isinstance(value, list) or not any(
+                        item in expected["$in"] for item in value
+                    ):
+                        return False
                 if "$gte" in expected and value < expected["$gte"]:
                     return False
                 if "$ne" in expected and value == expected["$ne"]:
                     return False
                 continue
             if value != expected:
-                return False
+                if not isinstance(value, list) or expected not in value:
+                    return False
         return True
 
     def _project(self, doc, projection):
@@ -100,6 +112,7 @@ class FakeDB:
     def __init__(self):
         self.plans = FakeCollection()
         self.exercises = FakeCollection()
+        self.exercise_docs = FakeCollection()
         self.workout_logs = FakeCollection()
         self.agent_instructions = FakeCollection()
 
@@ -177,7 +190,114 @@ def test_agent_plan_import_json_includes_live_links(monkeypatch):
     assert body["live_references"]["strength_schema"].endswith(
         "/schema?type=strength"
     )
+    assert body["live_references"]["exercise_doc_by_slug"].endswith(
+        "/exercises/{slug}/docs?locale=ru"
+    )
     assert "Required Live References" in body["content"]
+
+
+def test_get_exercise_doc_by_slug(monkeypatch):
+    db = FakeDB()
+    db.exercises.docs = [{"slug": "leg_press_machine", "applies_to": ["strength"]}]
+    db.exercise_docs.docs = [{
+        "exercise_slug": "leg_press_machine",
+        "locale": "ru",
+        "title": "Жим ногами",
+        "status": "draft",
+        "content_version": 1,
+    }]
+    app = FastAPI()
+    app.include_router(exercise_docs_route.router)
+    monkeypatch.setattr(exercise_docs_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.get("/exercises/leg_press_machine/docs?locale=ru")
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Жим ногами"
+
+
+def test_exercise_doc_upsert_increments_content_version(monkeypatch):
+    db = FakeDB()
+    db.exercises.docs = [
+        {"slug": "leg_press_machine", "applies_to": ["strength"]},
+        {"slug": "leg_extension_machine", "applies_to": ["strength"]},
+    ]
+    db.exercise_docs.docs = [{
+        "exercise_slug": "leg_press_machine",
+        "locale": "ru",
+        "content_version": 2,
+        "created_at": datetime(2026, 5, 1, tzinfo=timezone.utc),
+    }]
+    app = FastAPI()
+    app.include_router(exercise_docs_route.router)
+    app.dependency_overrides[get_current_user] = lambda: {"_id": "user-1"}
+    monkeypatch.setattr(exercise_docs_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.put(
+        "/exercises/leg_press_machine/docs?locale=ru",
+        json={
+            "title": "Жим ногами",
+            "summary": "Безопасная машинная вариация жима ногами.",
+            "setup": ["Настройте сиденье и поставьте стопы на платформу."],
+            "execution": ["Согните колени подконтрольно и выжмите платформу."],
+            "breathing": "Вдох на опускании, выдох на усилии.",
+            "cues": ["Держите поясницу прижатой к спинке."],
+            "common_mistakes": ["Не отрывайте таз от сиденья."],
+            "safety_notes": ["Не блокируйте колени жестко в верхней точке."],
+            "alternative_slugs": ["leg_extension_machine"],
+            "sources": [{
+                "title": "Exercise Library",
+                "publisher": "ACE",
+                "url": "https://www.acefitness.org/resources/everyone/exercise-library/",
+                "type": "exercise_library",
+            }],
+            "status": "draft",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["content_version"] == 3
+    assert db.exercise_docs.upserts[0]["query"] == {
+        "exercise_slug": "leg_press_machine",
+        "locale": "ru",
+    }
+
+
+def test_missing_exercise_docs_can_filter_reviewed(monkeypatch):
+    db = FakeDB()
+    db.exercises.docs = [
+        {
+            "slug": "leg_press_machine",
+            "name": "Leg Press",
+            "applies_to": ["strength"],
+            "deprecated": False,
+        },
+        {
+            "slug": "bench_press_barbell_flat",
+            "name": "Flat Barbell Bench Press",
+            "applies_to": ["strength"],
+            "deprecated": False,
+        },
+    ]
+    db.exercise_docs.docs = [{
+        "exercise_slug": "leg_press_machine",
+        "locale": "ru",
+        "status": "draft",
+    }]
+    app = FastAPI()
+    app.include_router(exercise_docs_route.router)
+    monkeypatch.setattr(exercise_docs_route, "get_db", lambda: db)
+    client = TestClient(app)
+
+    response = client.get("/exercise-docs/missing?locale=ru&status=reviewed")
+
+    assert response.status_code == 200
+    assert {item["slug"] for item in response.json()} == {
+        "leg_press_machine",
+        "bench_press_barbell_flat",
+    }
 
 
 def test_agent_plan_import_prefers_database_content(monkeypatch):

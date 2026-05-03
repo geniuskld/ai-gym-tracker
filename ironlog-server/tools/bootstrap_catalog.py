@@ -24,6 +24,7 @@ logger = logging.getLogger("bootstrap_catalog")
 _THIS_DIR = Path(__file__).parent
 SEED_MUSCLES = _THIS_DIR / "seed_data" / "muscle_groups.json"
 SEED_EXERCISES = _THIS_DIR / "seed_data" / "exercises.json"
+SEED_EXERCISE_DOCS_RU = _THIS_DIR / "seed_data" / "exercise_docs.ru.json"
 
 
 def _load(path: Path) -> list[dict[str, Any]]:
@@ -67,6 +68,39 @@ async def _upsert_many(
     return inserted, updated
 
 
+async def _insert_missing_exercise_docs(
+    collection,
+    docs: list[dict[str, Any]],
+) -> tuple[int, int]:
+    """Insert exercise docs by (exercise_slug, locale), preserving DB edits."""
+    now = datetime.now(timezone.utc)
+    inserted = 0
+    skipped = 0
+
+    for doc in docs:
+        query = {
+            "exercise_slug": doc["exercise_slug"],
+            "locale": doc.get("locale", "ru"),
+        }
+        existing = await collection.find_one(query, projection={"_id": 1})
+        if existing:
+            skipped += 1
+            continue
+
+        doc = dict(doc)
+        doc.setdefault("content_version", 1)
+        doc.setdefault("status", "draft")
+        doc["created_at"] = now
+        doc["updated_at"] = now
+        await collection.insert_one(doc)
+        inserted += 1
+
+    logger.info(
+        "Bootstrapped exercise_docs: %d inserted, %d skipped", inserted, skipped
+    )
+    return inserted, skipped
+
+
 async def bootstrap(db: AsyncIOMotorDatabase) -> None:
     """Run muscle_groups + exercises seed against the given mongo DB."""
     muscles = _load(SEED_MUSCLES)
@@ -74,6 +108,11 @@ async def bootstrap(db: AsyncIOMotorDatabase) -> None:
 
     await _upsert_many(db.muscle_groups, muscles, "muscle_groups")
     await _upsert_many(db.exercises, exercises, "exercises")
+    if SEED_EXERCISE_DOCS_RU.exists():
+        await _insert_missing_exercise_docs(
+            db.exercise_docs,
+            _load(SEED_EXERCISE_DOCS_RU),
+        )
 
 
 # Allow `python -m tools.bootstrap_catalog` for ad-hoc invocation.

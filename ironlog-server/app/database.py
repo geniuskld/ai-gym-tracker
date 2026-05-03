@@ -96,3 +96,10 @@ async def _ensure_indexes() -> None:
         IndexModel([("applies_to", ASCENDING)]),
         IndexModel([("deprecated", ASCENDING)]),
     ])
+
+    # exercise documentation reference
+    await _db.exercise_docs.create_indexes([
+        IndexModel([("exercise_slug", ASCENDING), ("locale", ASCENDING)], unique=True),
+        IndexModel([("locale", ASCENDING), ("status", ASCENDING)]),
+        IndexModel([("exercise_slug", ASCENDING)]),
+    ])

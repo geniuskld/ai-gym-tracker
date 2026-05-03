@@ -42,6 +42,9 @@ async def list_agent_instructions(request: Request):
                     "strength_exercise_catalog": (
                         f"{base}/exercises/catalog?plan_type=strength"
                     ),
+                    "exercise_docs_missing": (
+                        f"{base}/exercise-docs/missing?locale=ru&status=reviewed"
+                    ),
                     "muscle_groups": f"{base}/muscle-groups",
                 },
             }
@@ -83,6 +86,11 @@ async def get_plan_import_instructions_json(request: Request):
             "strength_exercise_catalog": (
                 f"{base}/exercises/catalog?plan_type=strength"
             ),
+            "exercise_docs": f"{base}/exercise-docs?locale=ru",
+            "exercise_docs_missing_reviewed": (
+                f"{base}/exercise-docs/missing?locale=ru&status=reviewed"
+            ),
+            "exercise_doc_by_slug": f"{base}/exercises/{{slug}}/docs?locale=ru",
             "muscle_groups": f"{base}/muscle-groups",
             "plans": f"{base}/plans",
             "upload_plan": f"{base}/plan",

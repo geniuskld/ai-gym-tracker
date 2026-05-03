@@ -12,6 +12,7 @@ from app.routes.crash import router as crash_router
 from app.routes.catalog import router as catalog_router
 from app.routes.analytics import router as analytics_router
 from app.routes.agent_instructions import router as agent_instructions_router
+from app.routes.exercise_docs import router as exercise_docs_router
 from tools.bootstrap_catalog import bootstrap as bootstrap_catalog
 
 
@@ -46,6 +47,7 @@ app.include_router(plan_router)
 app.include_router(log_router)
 app.include_router(crash_router)
 app.include_router(catalog_router)
+app.include_router(exercise_docs_router)
 app.include_router(analytics_router)
 app.include_router(agent_instructions_router)
 
