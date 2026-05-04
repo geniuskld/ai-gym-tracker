@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -48,9 +49,16 @@ def maybe_refresh_token(payload: dict) -> str | None:
 
 async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
+    ) -> dict:
     payload = decode_token(creds.credentials)
-    user = await get_db().users.find_one({"_id": ObjectId(payload["user_id"])})
+    try:
+        user_id = ObjectId(payload["user_id"])
+    except (KeyError, TypeError, InvalidId):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    user = await get_db().users.find_one({"_id": user_id})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

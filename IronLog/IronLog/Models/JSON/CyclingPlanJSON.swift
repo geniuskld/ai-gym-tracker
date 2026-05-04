@@ -7,7 +7,7 @@ struct CyclingPlanJSON: Codable {
     let planId: String
     let planName: String
     let planVersion: Int
-    let schema: String?
+    let schema: String
     let createdAt: Date
     let author: String?
     let notes: String?

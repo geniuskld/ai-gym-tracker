@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pymongo.errors import DuplicateKeyError
 
 from app.auth import get_current_user, maybe_refresh_token
 from app.database import get_db
@@ -11,9 +12,9 @@ router = APIRouter(tags=["plan"])
 
 @router.get("/plans")
 async def list_plans(
+    response: Response,
     type: PlanType | None = None,
     user: dict = Depends(get_current_user),
-    response: Response = None,
 ):
     """Return the latest version of each plan (full content) for the user."""
     _attach_refreshed_token(user, response)
@@ -43,12 +44,23 @@ async def list_plans(
 @router.put("/plan")
 async def put_plan(
     request: Request,
+    response: Response,
     user: dict = Depends(get_current_user),
-    response: Response = None,
 ):
     _attach_refreshed_token(user, response)
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid JSON body",
+        )
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Plan body must be an object",
+        )
 
     # 1. Base field validation (plan_type, plan_id, plan_version, plan_name, created_at)
     validate_base(data)
@@ -94,7 +106,13 @@ async def put_plan(
 
     # 5. Store
     data["user_id"] = user["_id"]
-    await get_db().plans.insert_one(data)
+    try:
+        await get_db().plans.insert_one(data)
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Plan version already exists for {plan_type}/{plan_id} v{plan_version}",
+        )
     data.pop("_id", None)
     data.pop("user_id", None)
 

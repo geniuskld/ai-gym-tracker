@@ -9,8 +9,8 @@ private enum AnyPlanHandle: Identifiable, Hashable {
 
     var id: String {
         switch self {
-        case .strength(let p): return "s:\(p.persistentModelID.hashValue)"
-        case .cycling(let p):  return "c:\(p.persistentModelID.hashValue)"
+        case .strength(let p): return "s:\(p.persistentModelID)"
+        case .cycling(let p):  return "c:\(p.persistentModelID)"
         }
     }
 
@@ -572,6 +572,11 @@ struct TemplatePicker: View {
         }
         if let activeCyclingWorkout {
             context.delete(activeCyclingWorkout)
+        }
+        do {
+            try context.save()
+        } catch {
+            vm.persistenceErrorMessage = "Could not discard workout: \(error.localizedDescription)"
         }
     }
 

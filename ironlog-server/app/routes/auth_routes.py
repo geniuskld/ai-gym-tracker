@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
+from pymongo.errors import DuplicateKeyError
 
 from app.auth import hash_password, verify_password, create_token
 from app.database import get_db
@@ -19,17 +20,16 @@ class AuthResponse(BaseModel):
 
 @router.post("/register", response_model=AuthResponse)
 async def register(body: AuthRequest):
-    existing = await get_db().users.find_one({"email": body.email})
-    if existing:
+    try:
+        result = await get_db().users.insert_one({
+            "email": body.email,
+            "password_hash": hash_password(body.password),
+        })
+    except DuplicateKeyError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
         )
-
-    result = await get_db().users.insert_one({
-        "email": body.email,
-        "password_hash": hash_password(body.password),
-    })
     user_id = str(result.inserted_id)
     token = create_token(user_id, body.email)
     return AuthResponse(token=token, email=body.email)

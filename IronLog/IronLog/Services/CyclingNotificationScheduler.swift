@@ -11,6 +11,7 @@ enum CyclingNotificationScheduler {
 
     /// Identifier prefix so we can find/cancel only our requests.
     private static let prefix = "cycling-segment-"
+    private static var scheduleGeneration = UUID().uuidString
 
     /// Schedules notifications for every remaining segment boundary.
     /// - Parameters:
@@ -22,55 +23,65 @@ enum CyclingNotificationScheduler {
         fromIndex: Int,
         elapsedInCurrentStep: Int
     ) {
-        cancelAll()
+        let generation = UUID().uuidString
+        scheduleGeneration = generation
 
-        var cumulative: TimeInterval = 0
-        for i in fromIndex..<steps.count {
-            let step = steps[i]
-            let already = (i == fromIndex) ? elapsedInCurrentStep : 0
-            let remaining = max(0, step.durationSeconds - already)
-            cumulative += TimeInterval(remaining)
+        Task {
+            await cancelMatchingNotifications()
+            guard scheduleGeneration == generation else { return }
 
-            let nextStep = (i + 1) < steps.count ? steps[i + 1] : nil
+            var cumulative: TimeInterval = 0
+            for i in fromIndex..<steps.count {
+                let step = steps[i]
+                let already = (i == fromIndex) ? elapsedInCurrentStep : 0
+                let remaining = max(0, step.durationSeconds - already)
+                cumulative += TimeInterval(remaining)
 
-            let title: String
-            let body: String
-            if let next = nextStep {
-                title = "\(step.name) done"
-                body  = "Next: \(next.name) -- \(formatDuration(next.durationSeconds))"
-            } else {
-                title = "Workout complete"
-                body  = "Cooldown finished -- tap to save"
+                let nextStep = (i + 1) < steps.count ? steps[i + 1] : nil
+
+                let title: String
+                let body: String
+                if let next = nextStep {
+                    title = "\(step.name) done"
+                    body  = "Next: \(next.name) -- \(formatDuration(next.durationSeconds))"
+                } else {
+                    title = "\(step.name) done"
+                    body  = "Workout complete -- tap to save"
+                }
+
+                scheduleOne(
+                    identifier: "\(prefix)\(generation)-\(i)",
+                    fireIn: cumulative,
+                    title: title,
+                    body: body
+                )
             }
-
-            scheduleOne(
-                identifier: "\(prefix)\(i)",
-                fireIn: cumulative,
-                title: title,
-                body: body
-            )
         }
     }
 
     /// Cancels all pending cycling segment notifications.
     /// Idempotent and safe to call when none are scheduled.
     static func cancelAll() {
-        let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { requests in
-            let ids = requests
-                .map(\.identifier)
-                .filter { $0.hasPrefix(prefix) }
-            if !ids.isEmpty {
-                center.removePendingNotificationRequests(withIdentifiers: ids)
-            }
+        scheduleGeneration = UUID().uuidString
+        Task {
+            await cancelMatchingNotifications()
         }
-        center.getDeliveredNotifications { notifications in
-            let ids = notifications
-                .map(\.request.identifier)
-                .filter { $0.hasPrefix(prefix) }
-            if !ids.isEmpty {
-                center.removeDeliveredNotifications(withIdentifiers: ids)
-            }
+    }
+
+    private static func cancelMatchingNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let pendingIds = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(prefix) }
+        if !pendingIds.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: pendingIds)
+        }
+
+        let deliveredIds = await center.deliveredNotifications()
+            .map(\.request.identifier)
+            .filter { $0.hasPrefix(prefix) }
+        if !deliveredIds.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: deliveredIds)
         }
     }
 

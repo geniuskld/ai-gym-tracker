@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 
-REQUIRED_FIELDS = ["plan_type", "plan_id", "plan_version", "plan_name", "created_at"]
+REQUIRED_FIELDS = ["plan_type", "plan_id", "plan_version", "plan_name", "schema", "created_at"]
 
 
 def validate_base(data: dict) -> None:
@@ -24,8 +24,18 @@ def validate_base(data: dict) -> None:
             detail="plan_id must be a non-empty string",
         )
 
-    if not isinstance(data["plan_version"], int) or data["plan_version"] < 1:
+    if (
+        isinstance(data["plan_version"], bool)
+        or not isinstance(data["plan_version"], int)
+        or data["plan_version"] < 1
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="plan_version must be a positive integer",
+        )
+
+    if not isinstance(data["schema"], str) or not data["schema"].strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="schema must be a non-empty string",
         )

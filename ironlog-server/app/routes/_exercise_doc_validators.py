@@ -10,6 +10,7 @@ from app.routes._catalog_validators import SLUG_RE
 LOCALE_RE = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 VALID_DOC_STATUSES = {"draft", "reviewed", "deprecated"}
 VALID_MEDIA_KINDS = {"image", "video", "animation"}
+VALID_MEDIA_LICENSES = {"owned", "cc", "public_domain"}
 VALID_SOURCE_TYPES = {
     "government_guideline",
     "professional_guideline",
@@ -29,6 +30,11 @@ def validate_locale(locale: str) -> None:
 
 
 def validate_exercise_doc_payload_shape(payload: dict) -> None:
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="exercise doc payload must be an object",
+        )
     _require_str(payload, "title")
     _require_str(payload, "summary")
     _require_str(payload, "breathing")
@@ -39,6 +45,7 @@ def validate_exercise_doc_payload_shape(payload: dict) -> None:
     _require_string_list(payload, "safety_notes", min_items=1)
     _validate_status(payload.get("status", "draft"))
     _validate_alternative_slugs(payload.get("alternative_slugs", []))
+    _validate_replaced_by(payload.get("status", "draft"), payload.get("replaced_by"))
     _validate_media(payload.get("media", []))
     _validate_sources(payload.get("sources", []))
 
@@ -54,6 +61,7 @@ def normalize_exercise_doc(payload: dict) -> dict:
         "common_mistakes": _clean_string_list(payload.get("common_mistakes", [])),
         "safety_notes": _clean_string_list(payload.get("safety_notes", [])),
         "alternative_slugs": list(payload.get("alternative_slugs", [])),
+        "replaced_by": payload.get("replaced_by"),
         "media": [_normalize_media_item(item) for item in payload.get("media", [])],
         "sources": [_normalize_source_item(item) for item in payload.get("sources", [])],
         "status": payload.get("status", "draft"),
@@ -104,6 +112,21 @@ def _validate_alternative_slugs(values: list) -> None:
         )
 
 
+def _validate_replaced_by(status_value: str, value: object) -> None:
+    if value is None:
+        return
+    if status_value != "deprecated":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="replaced_by is allowed only when status is deprecated",
+        )
+    if not isinstance(value, str) or not SLUG_RE.match(value):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="replaced_by must be an exercise slug",
+        )
+
+
 def _validate_media(values: list) -> None:
     if not isinstance(values, list):
         raise HTTPException(
@@ -125,6 +148,11 @@ def _validate_media(values: list) -> None:
         _require_item_str(item, "alt", "media.alt")
         _require_item_str(item, "source", "media.source")
         _require_item_str(item, "license", "media.license")
+        if item["license"] not in VALID_MEDIA_LICENSES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"media.license must be one of {sorted(VALID_MEDIA_LICENSES)}",
+            )
 
 
 def _validate_sources(values: list) -> None:

@@ -5,7 +5,7 @@
   "x-schema-id": "2026-04-30T00:00:00Z",
   "description": "Training plan for the IronLog gym app. The plan contains templates (workout days), each template has exercise groups (muscle groups), each group has exercises with prescribed sets. The app guides the user through each exercise step by step, tracking weight, reps, and rest timers. IMPORTANT: Use this schema strictly -- unknown fields are ignored, wrong types cause import failure.",
   "type": "object",
-  "required": ["plan_type", "plan_id", "plan_version", "plan_name", "created_at", "templates"],
+  "required": ["plan_type", "plan_id", "plan_version", "plan_name", "schema", "created_at", "templates"],
   "properties": {
     "plan_type": { "type": "string", "enum": ["strength"], "description": "Plan type. Determines which validator is used on the server." },
     "plan_id": { "type": "string", "description": "Stable plan identifier (slug). Does not change when plan is renamed. Example: \"albatros-south-mass\"" },
@@ -33,6 +33,7 @@
         "notes": { "type": "string" },
         "groups": {
           "type": "array",
+          "minItems": 1,
           "description": "Exercise groups, typically organized by muscle group (e.g. \"Legs\", \"Chest\", \"Back\"). Exercises within a group are performed in order.",
           "items": { "$ref": "#/$defs/ExerciseGroup" }
         }
@@ -46,6 +47,7 @@
         "name": { "type": "string", "description": "Group name, e.g. \"Legs\", \"Chest + Shoulders\"" },
         "exercises": {
           "type": "array",
+          "minItems": 1,
           "items": { "$ref": "#/$defs/Exercise" }
         }
       }
@@ -79,6 +81,7 @@
         },
         "sets": {
           "type": "array",
+          "minItems": 1,
           "description": "Ordered list of prescribed sets. The app executes them in order. For drop_set technique: alternate working + drop sets. For myo_reps: provide only one activation set -- mini-sets are generated dynamically by the app.",
           "items": { "$ref": "#/$defs/PrescribedSet" }
         },
@@ -121,6 +124,7 @@
     "PrescribedSet": {
       "type": "object",
       "description": "One prescribed set within an exercise. For drop_set exercises: use alternating working + drop sets (e.g. working, drop, working, drop). For myo_reps: provide ONLY the activation set (type=working) -- the app generates mini-sets dynamically. For straight/rest_pause: just list working sets.",
+      "required": ["reps"],
       "properties": {
         "type": {
           "type": "string",

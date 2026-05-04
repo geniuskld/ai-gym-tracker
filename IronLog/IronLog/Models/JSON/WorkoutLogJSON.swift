@@ -45,7 +45,7 @@ struct WorkoutJSON: Codable {
     let id: String
     let templateId: String
     let templateName: String?
-    let planType: String?
+    let planType: PlanType?
     let planId: String?
     let planName: String?
     let planVersion: Int?

@@ -255,7 +255,11 @@ final class CyclingWorkoutViewModel {
             startedAt: now
         )
         context.insert(sd)
-        _ = saveContext(context, action: "start cycling workout")
+        guard saveContext(context, action: "start cycling workout") else {
+            context.delete(sd)
+            state = .idle
+            return
+        }
         workout = sd
 
         hrSource = HRSourceResolver.resolve()
@@ -538,7 +542,7 @@ final class CyclingWorkoutViewModel {
         if SyncService.isConfigured,
            SyncService.isAuthenticated,
            workout.syncedAt == nil {
-            Task {
+            Task { @MainActor in
                 await WorkoutSyncService.uploadCycling(
                     workout,
                     context: context,

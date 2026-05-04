@@ -117,9 +117,23 @@ async def upsert_exercise_doc(
     validate_locale(locale)
     await _ensure_exercise_exists(slug)
 
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON body",
+        )
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Exercise document body must be an object",
+        )
     validate_exercise_doc_payload_shape(payload)
     await _verify_alternative_slugs_exist(payload.get("alternative_slugs", []))
+    replaced_by = payload.get("replaced_by")
+    if replaced_by:
+        await _ensure_exercise_exists(replaced_by)
 
     existing = await get_db().exercise_docs.find_one(
         {"exercise_slug": slug, "locale": locale},

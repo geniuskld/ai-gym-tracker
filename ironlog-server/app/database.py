@@ -8,6 +8,8 @@ _db: AsyncIOMotorDatabase = None  # type: ignore[assignment]
 
 
 def get_db() -> AsyncIOMotorDatabase:
+    if _db is None:
+        raise RuntimeError("Database is not initialized; call connect() before get_db().")
     return _db
 
 

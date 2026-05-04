@@ -8,6 +8,10 @@ enum TechniqueFlowFactory {
         for exerciseIndex: Int,
         exercises: [ExerciseState]
     ) -> any TechniqueFlow {
+        guard exercises.indices.contains(exerciseIndex) else {
+            assertionFailure("Invalid exerciseIndex \(exerciseIndex) for exercises count \(exercises.count)")
+            return StraightFlow(exerciseIndex: exerciseIndex)
+        }
         let exercise = exercises[exerciseIndex]
 
         switch exercise.technique {
@@ -15,7 +19,9 @@ enum TechniqueFlowFactory {
             return DropSetFlow(exerciseIndex: exerciseIndex)
 
         case "superset":
-            if let partnerIdx = exercise.supersetPartnerIndex {
+            if let partnerIdx = exercise.supersetPartnerIndex,
+               exercises.indices.contains(partnerIdx),
+               partnerIdx != exerciseIndex {
                 // Always use the lower index as primary
                 let primary = min(exerciseIndex, partnerIdx)
                 let partner = max(exerciseIndex, partnerIdx)

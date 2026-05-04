@@ -69,7 +69,7 @@ iOS-приложение для трекинга силовых и кардио-
 #### Сервер
 - FastAPI + MongoDB + Docker
 - Production API: `https://v170184.hosted-by-vdsina.com`; Swagger: `https://v170184.hosted-by-vdsina.com/docs`
-- TLS terminates in Caddy (`443`) and proxies to the FastAPI container; `http://v170184.hosted-by-vdsina.com:8844` is temporary compatibility for old app builds.
+- TLS terminates in Caddy (`443`) and proxies to the FastAPI container; `http://v170184.hosted-by-vdsina.com:8844` is temporary compatibility for old app builds. Notice period starts 2026-05-05; direct HTTP should be removed after 2026-08-01 once active app builds use HTTPS.
 - JWT auth (регистрация, вход, sliding 90-day expiry)
 - Plan sync: `GET /plans` возвращает FULL контент (последняя версия каждого plan_id), polymorphic по plan_type
 - Plan upload: `PUT /plan` -- сервер peek'ает `plan_type` и роутит на base + соответствующий per-type валидатор (strength_v1 / cycling_v1). Soft-warnings (например отсутствие `catalog_id`) возвращаются в `_warnings: []` без 422.
@@ -85,7 +85,7 @@ iOS-приложение для трекинга силовых и кардио-
 - **`name`** -- английская строка для display/AI. **`aliases[]`** -- английские синонимы для распознавания моделями (русские фразы пользователя модель сама переводит на английский перед матчем).
 - **Convention `(plan_id, exercise_id)`** -- стабильно между версиями одного плана. **`catalog_id` (slug)** -- стабильно между разными планами; нужен чтобы аналитика трекала одно упражнение через смены плана.
 - **Read endpoints (public):** `GET /exercises/catalog`, `GET /exercises/{slug}`, `GET /muscle-groups`, `GET /muscle-groups/{slug}`. Catalog response embeds resolved muscle objects.
-- **Write endpoints (JWT):** POST/PUT/PATCH-deprecate для exercises и muscle_groups. Любой авторизованный пользователь может редактировать (когда появятся другие пользователи -- добавим `is_admin` флаг).
+- **Write endpoints (JWT):** POST/PUT/PATCH-deprecate для exercises и muscle_groups. Требование к следующей миграции: JWT/user record должен нести роль (`admin`, `editor`, `viewer`), write-доступ только `admin`/`editor`, иначе `403`.
 - **Field на plan exercise:** опциональный `catalog_id` -- ссылка на slug. Если отсутствует или указывает на несуществующий slug -- сервер возвращает warning, но принимает план. После того как все актуальные планы получат slug-и, переключим warning -> 422.
 - iOS сохраняет `catalog_id` в `SDExercise`, переносит его в `SDExerciseLog` и отправляет в strength workout log вместе с денормализованным `body_part`.
 - **Backfill** для исторических логов: `tools/backfill_log_body_parts.py` (one-shot, идемпотентный).
@@ -132,7 +132,7 @@ iOS-приложение для трекинга силовых и кардио-
 - FR-IMP-04: Поддержка нескольких импортированных планов одновременно (разные типы)
 - FR-IMP-05: Повторный импорт с тем же plan_id обновляет существующий
 - FR-IMP-06: Bundled sample-plan.json для первого запуска
-- FR-IMP-07: Если план не декодируется (неизвестный формат) -- сообщение "обнови приложение"
+- FR-IMP-07: Если план не декодируется при server sync -- skip silently (всплывет после обновления приложения); при ручном импорте -- сообщение "формат не поддерживается / обнови приложение"
 - FR-IMP-08: Структурная валидация при импорте: plan_type, body_part / segment.kind, technique / target.type, наличие templates
 - FR-IMP-09: Auto-dispatch по `plan_type` peek-у: одна точка входа `PlanImportService.parse` возвращает `ParsedPlan` enum
 
@@ -225,6 +225,11 @@ iOS-приложение для трекинга силовых и кардио-
 - NFR-09: JWT sliding expiry (90 дней), auto-refresh при активности
 - NFR-10: Sync-ошибки не блокируют UI (fire-and-forget)
 - NFR-11: Краш-репорт пишется атомарно в Application Support, безопасен к повторным сбоям
+- NFR-12: Security -- HTTPS/TLS for production API, no placeholder JWT secrets, validation on all JSON inputs, rate limiting/account lockout before public multi-user release
+- NFR-13: Privacy -- PII in logs is masked/redacted, crash/workout retention policy is documented, user consent required for HealthKit and sync
+- NFR-14: Observability -- structured server logs, health checks, basic metrics/alerts for auth, sync, crash ingest, and Mongo failures
+- NFR-15: Data Protection -- Mongo backups with documented retention, restore drill, RTO/RPO targets, and encryption-at-rest on production storage
+- NFR-16: API/schema versioning -- breaking changes require schema timestamp bump, compatibility window, and explicit client upgrade behavior
 
 ## 5. Ключевое ограничение
 - Никакого ручного создания планов в UI -- только импорт JSON или sync с сервера
@@ -237,8 +242,21 @@ iOS-приложение для трекинга силовых и кардио-
 - Приложение хранит `PlanSchema.id(for: type)` для каждого поддерживаемого типа
 - **Валидация структурная**: plan_type, segment kinds (cycling) / body_part+technique (strength), наличие обязательных полей
 - Загруженные планы не проходящие валидацию -> "not supported"
-- Ответ сервера не декодируется -> сообщение "обнови приложение"
+- Ответ сервера не декодируется при sync -> skip silently; при ручном импорте -> user-facing unsupported-format error
 - PlanType -- enum на обеих сторонах: `strength`, `cycling`
+
+### Schema Evolution & Negotiation
+
+- Additive compatible changes may keep the existing schema timestamp when old
+  clients safely ignore the new field. Required fields, enum changes, removed
+  fields, or semantic changes require a new schema timestamp.
+- iOS exposes supported schema IDs through `PlanSchema.id(for:)` for each
+  `PlanType` (`strength`, `cycling`). A future `/plans` negotiation should send
+  them in `X-Supported-Schemas`.
+- Server behavior after negotiation lands: return compatible plans, or `426
+  Upgrade Required` with `min_schema_ids` when no compatible version exists.
+- Compatibility window: server supports current + previous schema for at least
+  90 days after a breaking schema release.
 
 ## 7. JSON-схемы
 - `schemas/strength-plan.import.schema.json` -- strength import v1 (templates -> groups -> exercises -> sets, optional `catalog_id`), `x-schema-id: 2026-04-30T00:00:00Z`

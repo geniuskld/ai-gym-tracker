@@ -75,6 +75,12 @@ struct ImportView: View {
                 onCompletion: { result in
                     switch result {
                     case .success(let url):
+                        let didAccess = url.startAccessingSecurityScopedResource()
+                        defer {
+                            if didAccess {
+                                url.stopAccessingSecurityScopedResource()
+                            }
+                        }
                         vm.parseFromFile(url)
                     case .failure(let error):
                         vm.state = .error(error.localizedDescription)

@@ -1,12 +1,14 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("syncServerURL") private var serverURL = ""
+    @AppStorage("syncServerURL") private var serverURL = SyncService.defaultServerURL
     @State private var editingURL = ""
     @State private var email = ""
     @State private var password = ""
     @State private var isAuthLoading = false
+    @State private var isAuthenticated = SyncService.isAuthenticated
     @State private var authMessage: AuthMessage?
     @State private var testResult: TestResult?
     @State private var isTesting = false
@@ -79,7 +81,7 @@ struct SettingsView: View {
 
             // Account
             Section {
-                if SyncService.isAuthenticated {
+                if isAuthenticated {
                     HStack {
                         Label(
                             SyncService.savedEmail ?? "Signed in",
@@ -89,6 +91,7 @@ struct SettingsView: View {
                         Spacer()
                         Button("Sign Out") {
                             SyncService.logout()
+                            isAuthenticated = false
                             authMessage = AuthMessage(
                                 text: "Signed out",
                                 isError: false
@@ -155,6 +158,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             editingURL = serverURL
+            isAuthenticated = SyncService.isAuthenticated
         }
     }
 
@@ -218,6 +222,7 @@ struct SettingsView: View {
                     text: "Signed in as \(result.email)",
                     isError: false
                 )
+                isAuthenticated = true
                 password = ""
                 await WorkoutSyncService.retryPending(
                     context: modelContext,

@@ -193,6 +193,7 @@ async def body_parts(
     by_bp_workout_sets: dict[tuple, int] = defaultdict(int)
     workout_dates: dict[str, datetime] = {}
     bp_exercises: dict[str, set] = defaultdict(set)
+    cutoff_30d_for_exercises = now - timedelta(days=30)
 
     for r in raw:
         bp = r["body_part"]
@@ -207,7 +208,8 @@ async def body_parts(
             continue
         by_bp_workout[(bp, wid)] += weight * reps
         by_bp_workout_sets[(bp, wid)] += 1
-        bp_exercises[bp].add(r["group_key"])
+        if d >= cutoff_30d_for_exercises:
+            bp_exercises[bp].add(r["group_key"])
 
     # Aggregate to weekly bins per body_part
     weekly: dict[str, dict[str, dict]] = defaultdict(

@@ -39,6 +39,7 @@ struct WorkoutHistoryView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var syncingIds: Set<String> = []
+    @State private var errorMessage: String?
 
     private var allItems: [HistoryItem] {
         let s = strengthWorkouts.map(HistoryItem.strength)
@@ -74,6 +75,19 @@ struct WorkoutHistoryView: View {
             .navigationTitle("History")
             .toolbarBackground(CockpitPalette.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .alert(
+                "History Error",
+                isPresented: .init(
+                    get: { errorMessage != nil },
+                    set: { if !$0 { errorMessage = nil } }
+                )
+            ) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                if let errorMessage {
+                    Text(errorMessage)
+                }
+            }
         }
     }
 
@@ -177,7 +191,12 @@ struct WorkoutHistoryView: View {
         let workoutId = workout.workoutId
         let wasSynced = workout.syncedAt != nil
         modelContext.delete(workout)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = "Could not delete workout: \(error.localizedDescription)"
+            return
+        }
         if wasSynced, SyncService.isConfigured, SyncService.isAuthenticated {
             Task.detached {
                 try? await SyncService.deleteWorkout(workoutId)
@@ -189,7 +208,12 @@ struct WorkoutHistoryView: View {
         let workoutId = workout.workoutId
         let wasSynced = workout.syncedAt != nil
         modelContext.delete(workout)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = "Could not delete cycling workout: \(error.localizedDescription)"
+            return
+        }
         if wasSynced, SyncService.isConfigured, SyncService.isAuthenticated {
             Task.detached {
                 try? await SyncService.deleteWorkout(workoutId)
@@ -392,11 +416,13 @@ struct WorkoutDetailView: View {
             .padding(16)
             .padding(.bottom, 26)
         }
+        .scrollContentBackground(.hidden)
         .background(CockpitPalette.background.ignoresSafeArea())
         .navigationTitle(workout.templateName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CockpitPalette.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .bottomBar)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ShareLink(

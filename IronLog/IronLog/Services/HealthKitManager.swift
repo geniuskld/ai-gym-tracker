@@ -60,16 +60,24 @@ final class HealthKitManager {
             metadata["planName"] = planName
         }
 
-        let workout = HKWorkout(
-            activityType: .traditionalStrengthTraining,
-            start: startDate,
-            end: endDate,
-            duration: endDate.timeIntervalSince(startDate),
-            totalEnergyBurned: nil,
-            totalDistance: nil,
-            metadata: metadata
-        )
+        let config = HKWorkoutConfiguration()
+        config.activityType = .traditionalStrengthTraining
+        config.locationType = .indoor
 
-        store.save(workout) { _, _ in }
+        let builder = HKWorkoutBuilder(
+            healthStore: store,
+            configuration: config,
+            device: .local()
+        )
+        builder.addMetadata(metadata) { success, _ in
+            guard success else { return }
+            builder.beginCollection(withStart: startDate) { success, _ in
+                guard success else { return }
+                builder.endCollection(withEnd: endDate) { success, _ in
+                    guard success else { return }
+                    builder.finishWorkout { _, _ in }
+                }
+            }
+        }
     }
 }

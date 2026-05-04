@@ -18,7 +18,7 @@ def _ok_doc(**overrides):
         "cues": ["Колени движутся по линии стоп."],
         "common_mistakes": ["Слишком глубокое опускание с отрывом таза."],
         "safety_notes": ["Не блокируйте колени жестко в верхней точке."],
-        "alternative_slugs": ["leg_extension_machine"],
+        "alternative_slugs": ["horizontal_leg_press"],
         "media": [],
         "sources": [{
             "title": "Exercise Library",

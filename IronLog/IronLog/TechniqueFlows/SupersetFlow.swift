@@ -13,6 +13,13 @@ struct SupersetFlow: TechniqueFlow {
         completedSetIndex: Int?,
         completedReps: Int?
     ) -> TechniqueStep? {
+        guard exercises.indices.contains(primaryIndex),
+              exercises.indices.contains(partnerIndex),
+              primaryIndex != partnerIndex
+        else {
+            assertionFailure("Invalid superset indices \(primaryIndex), \(partnerIndex) for exercises count \(exercises.count)")
+            return nil
+        }
         let primary = exercises[primaryIndex]
         let partner = exercises[partnerIndex]
 

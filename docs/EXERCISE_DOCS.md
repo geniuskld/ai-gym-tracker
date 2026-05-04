@@ -24,6 +24,23 @@ PUT /exercises/{slug}/docs?locale=ru
 The server owns `content_version`. Every successful PUT increments it by one.
 Authors must not manually pick a version number.
 
+`PUT /exercises/{slug}/docs?locale=ru` accepts the full document JSON shown
+below. Clients omit `content_version`; if sent, it is ignored because the server
+is the version authority. A successful response returns the stored document with
+`exercise_slug`, `locale`, `content_version`, `created_at`, `updated_at`, and
+`updated_by`.
+
+Error responses:
+
+- `400 Invalid JSON body`: request body is not valid JSON.
+- `404 Exercise '<slug>' not found`: target or replacement exercise is missing.
+- `422 ...`: validation error for fields, source URLs, media, locale, or slugs.
+
+Repeated identical PUTs are idempotent in content but still create a new
+`content_version`. Current conflict policy is last-write-wins with monotonically
+increasing `content_version`; clients should refetch before editing if they need
+manual conflict resolution.
+
 ## Document Shape
 
 ```json
@@ -37,6 +54,7 @@ Authors must not manually pick a version number.
   "common_mistakes": ["Типичные ошибки."],
   "safety_notes": ["Ограничения и стоп-сигналы."],
   "alternative_slugs": ["leg_extension_machine"],
+  "replaced_by": null,
   "media": [{
     "kind": "image",
     "url": "https://example.com/owned-image.png",
@@ -59,6 +77,24 @@ Authors must not manually pick a version number.
 `sources` is required. `media` stores metadata and URLs only; do not store image
 binaries in Mongo. Use owned, generated, licensed, or explicitly reusable media.
 Do not scrape copyrighted exercise photos into the product.
+
+### Field Requirements
+
+Required fields: `title` (string), `summary` (string), `breathing` (string),
+`setup`, `execution`, `cues`, `common_mistakes`, `safety_notes` (non-empty
+arrays of strings), `sources` (non-empty array), and `status` (`draft`,
+`reviewed`, `deprecated`).
+
+Optional fields: `alternative_slugs` (array of valid exercise slugs), `media`
+(array), and `replaced_by` (replacement slug, only when `status=deprecated`).
+
+`media[]` items require `kind` (`image`, `video`, `animation`), absolute
+http(s) `url`, `alt`, `source`, and `license` (`owned`, `cc`,
+`public_domain`). `attribution` is optional.
+
+`sources[]` items require `title`, `publisher`, absolute http(s) `url`, and
+`type` (`government_guideline`, `professional_guideline`, `exercise_library`,
+`research`, `manufacturer`, `other`). `notes` is optional.
 
 ## Status Rules
 

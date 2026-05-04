@@ -16,7 +16,10 @@ VALID_PROGRESSION_AXIS = {"intervals", "work_duration", "intensity_hr", "manual"
 _DOCKER_PATH = Path("/schemas/cycling-plan.import.schema.json")
 _LOCAL_PATH = Path(__file__).parents[3] / "schemas" / "cycling-plan.import.schema.json"
 _SCHEMA_PATH = _DOCKER_PATH if _DOCKER_PATH.exists() else _LOCAL_PATH
-DESCRIPTION = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+try:
+    DESCRIPTION = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+except OSError as exc:
+    raise RuntimeError(f"Cycling schema file not found at {_SCHEMA_PATH}") from exc
 
 
 def validate(data: dict) -> None:
@@ -30,6 +33,7 @@ def validate(data: dict) -> None:
 
     for ti, tmpl in enumerate(templates):
         prefix = f"templates[{ti}]"
+        _require_dict(tmpl, prefix)
         _require_str(tmpl, "id", prefix)
         _require_str(tmpl, "name", prefix)
 
@@ -56,6 +60,7 @@ def validate(data: dict) -> None:
 
 
 def _validate_segment(seg: dict, prefix: str, allow_block: bool) -> None:
+    _require_dict(seg, prefix)
     _require_str(seg, "name", prefix)
     kind = seg.get("kind")
     if kind not in VALID_KINDS:
@@ -77,7 +82,7 @@ def _validate_segment(seg: dict, prefix: str, allow_block: bool) -> None:
                     detail=f"{prefix}.{forbidden} not allowed for kind=interval_block",
                 )
         repeats = seg.get("repeats")
-        if not isinstance(repeats, int) or repeats < 1:
+        if isinstance(repeats, bool) or not isinstance(repeats, int) or repeats < 1:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"{prefix}.repeats must be a positive integer",
@@ -100,21 +105,17 @@ def _validate_segment(seg: dict, prefix: str, allow_block: bool) -> None:
                 detail=f"{prefix}.{forbidden} not allowed for kind={kind}",
             )
     duration = seg.get("duration_seconds")
-    if not isinstance(duration, int) or duration < 1:
+    if isinstance(duration, bool) or not isinstance(duration, int) or duration < 1:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{prefix}.duration_seconds must be a positive integer",
         )
     target = seg.get("target")
-    if not isinstance(target, dict):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"{prefix}.target must be an object",
-        )
     _validate_target(target, f"{prefix}.target")
 
 
 def _validate_target(target: dict, prefix: str) -> None:
+    _require_dict(target, prefix)
     ttype = target.get("type")
     if ttype not in VALID_TARGET_TYPES:
         raise HTTPException(
@@ -124,7 +125,7 @@ def _validate_target(target: dict, prefix: str) -> None:
     if ttype in {"hr_bpm_range", "rpe"}:
         for field in ("min", "max"):
             v = target.get(field)
-            if not isinstance(v, int):
+            if isinstance(v, bool) or not isinstance(v, int):
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"{prefix}.{field} must be an integer for type={ttype}",
@@ -142,11 +143,7 @@ def _validate_target(target: dict, prefix: str) -> None:
 
 
 def _validate_progression(prog: dict, prefix: str) -> None:
-    if not isinstance(prog, dict):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"{prefix} must be an object",
-        )
+    _require_dict(prog, prefix)
     if "axis" in prog and prog["axis"] not in VALID_PROGRESSION_AXIS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -165,7 +162,9 @@ def _validate_progression(prog: dict, prefix: str) -> None:
                 detail=f"{prefix}.step must be an object",
             )
         for field in ("intervals_delta", "work_duration_seconds", "hr_bpm_delta"):
-            if field in step and not isinstance(step[field], int):
+            if field in step and (
+                isinstance(step[field], bool) or not isinstance(step[field], int)
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"{prefix}.step.{field} must be an integer",
@@ -178,4 +177,12 @@ def _require_str(obj: dict, field: str, prefix: str) -> None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{prefix}.{field} must be a non-empty string",
+        )
+
+
+def _require_dict(obj: object, prefix: str) -> None:
+    if not isinstance(obj, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{prefix} must be an object",
         )

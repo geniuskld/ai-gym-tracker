@@ -22,6 +22,14 @@ final class RestTimerService {
     var liveActivityNextLabel: String = ""
 
     func start(seconds: Int) {
+        guard seconds > 0 else {
+            stop()
+            secondsRemaining = 0
+            totalSeconds = 0
+            overtimeSeconds = 0
+            isOvertime = false
+            return
+        }
         stop()
         totalSeconds = seconds
         secondsRemaining = seconds
@@ -67,6 +75,7 @@ final class RestTimerService {
         timerCancellable?.cancel()
         timerCancellable = nil
         isRunning = false
+        startDate = nil
         Self.cancelPendingNotification()
         RestTimerActivityManager.shared.endIfNeeded()
     }

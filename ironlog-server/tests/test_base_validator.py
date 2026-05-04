@@ -12,6 +12,7 @@ def _ok_payload(**overrides):
         "plan_id": "p1",
         "plan_version": 1,
         "plan_name": "Test plan",
+        "schema": "2026-04-30T00:00:00Z",
         "created_at": "2026-04-27T00:00:00Z",
     }
     base.update(overrides)
@@ -57,3 +58,17 @@ def test_zero_plan_version_raises():
     with pytest.raises(HTTPException) as exc:
         validate_base(_ok_payload(plan_version=0))
     assert exc.value.status_code == 422
+
+
+def test_bool_plan_version_raises():
+    with pytest.raises(HTTPException) as exc:
+        validate_base(_ok_payload(plan_version=True))
+    assert exc.value.status_code == 422
+    assert "plan_version" in exc.value.detail
+
+
+def test_empty_schema_raises():
+    with pytest.raises(HTTPException) as exc:
+        validate_base(_ok_payload(schema=""))
+    assert exc.value.status_code == 422
+    assert "schema" in exc.value.detail

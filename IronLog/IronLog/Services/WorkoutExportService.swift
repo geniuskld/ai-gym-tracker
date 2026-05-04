@@ -125,7 +125,7 @@ enum WorkoutExportService {
             id: w.workoutId,
             templateId: w.templateId,
             templateName: w.templateName,
-            planType: w.planType,
+            planType: w.planType.flatMap(PlanType.init(rawValue:)),
             planId: w.planId,
             planName: w.planName,
             planVersion: w.planVersion,

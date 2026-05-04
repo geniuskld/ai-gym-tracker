@@ -156,14 +156,25 @@ final class PlanImportService {
         let jsonPlanId = json.planId
         let jsonPlanType = json.planType.rawValue
         let jsonPlanName = json.planName
-        let descriptor = FetchDescriptor<SDPlan>(
-            predicate: #Predicate {
-                $0.planType == jsonPlanType && (
-                    $0.planId == jsonPlanId
-                    || ($0.planId == "" && $0.planName == jsonPlanName)
-                )
-            }
-        )
+        let descriptor: FetchDescriptor<SDPlan>
+        if jsonPlanId.isEmpty {
+            descriptor = FetchDescriptor<SDPlan>(
+                predicate: #Predicate {
+                    $0.planType == jsonPlanType
+                    && $0.planId == ""
+                    && $0.planName == jsonPlanName
+                }
+            )
+        } else {
+            descriptor = FetchDescriptor<SDPlan>(
+                predicate: #Predicate {
+                    $0.planType == jsonPlanType && (
+                        $0.planId == jsonPlanId
+                        || ($0.planId == "" && $0.planName == jsonPlanName)
+                    )
+                }
+            )
+        }
         let existing = try context.fetch(descriptor)
 
         if let old = existing.first {
@@ -179,11 +190,11 @@ final class PlanImportService {
             planId: json.planId,
             planName: json.planName,
             planVersion: json.planVersion,
+            schema: json.schema,
             createdAt: json.createdAt,
             author: json.author,
             notes: json.notes
         )
-        plan.schema = json.schema ?? PlanSchema.strengthId
         context.insert(plan)
 
         for (tIdx, tJSON) in json.templates.enumerated() {
@@ -248,12 +259,21 @@ final class PlanImportService {
     ) throws -> SDCyclingPlan {
         let planId = json.planId
         let planName = json.planName
-        let descriptor = FetchDescriptor<SDCyclingPlan>(
-            predicate: #Predicate {
-                $0.planId == planId
-                || ($0.planId == "" && $0.planName == planName)
-            }
-        )
+        let descriptor: FetchDescriptor<SDCyclingPlan>
+        if planId.isEmpty {
+            descriptor = FetchDescriptor<SDCyclingPlan>(
+                predicate: #Predicate {
+                    $0.planId == "" && $0.planName == planName
+                }
+            )
+        } else {
+            descriptor = FetchDescriptor<SDCyclingPlan>(
+                predicate: #Predicate {
+                    $0.planId == planId
+                    || ($0.planId == "" && $0.planName == planName)
+                }
+            )
+        }
         let existing = try context.fetch(descriptor)
 
         if let old = existing.first {
@@ -268,12 +288,12 @@ final class PlanImportService {
             planId: json.planId,
             planName: json.planName,
             planVersion: json.planVersion,
+            schema: json.schema,
             createdAt: json.createdAt,
             author: json.author,
             notes: json.notes,
             maxHrBpm: json.maxHrBpm
         )
-        plan.schema = json.schema ?? PlanSchema.cyclingId
         context.insert(plan)
 
         for (tIdx, tJSON) in json.templates.enumerated() {

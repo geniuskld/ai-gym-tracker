@@ -1,7 +1,7 @@
 {
   "plan_type": "strength",
   "plan_id": "albatros-south-mass",
-  "schema": "2026-04-09T22:00:00Z",
+  "schema": "2026-04-30T00:00:00Z",
   "plan_name": "Альбатрос Юг -- Масса 2x/нед",
   "plan_version": 8,
   "created_at": "2026-04-08T21:30:00Z",
@@ -16,7 +16,7 @@
           "name": "Ноги",
           "exercises": [
             {
-              "id": "a1", "name": "Жим ногами", "body_part": "legs", "equipment": "machine",
+              "id": "a1", "name": "Жим ногами", "catalog_id": "leg_press_machine", "body_part": "legs", "equipment": "machine",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 40 },
                 { "type": "warmup", "reps": 12, "weight_kg": 65 },
@@ -29,7 +29,7 @@
               "stretch_focus": true
             },
             {
-              "id": "a2", "name": "Разгибание ног сидя", "body_part": "legs", "equipment": "machine",
+              "id": "a2", "name": "Разгибание ног сидя", "catalog_id": "leg_extension_machine", "body_part": "legs", "equipment": "machine",
               "sets": [
                 { "type": "working", "reps": 12, "rir": 0, "weight_kg": 40 },
                 { "type": "drop", "reps": 8, "weight_percent_drop": 0.3 },
@@ -40,7 +40,7 @@
               "notes": "Дроп = СРАЗУ сбрось 30% (40->28кг) и продолжай БЕЗ отдыха."
             },
             {
-              "id": "a3", "name": "Сгибание ног лежа", "body_part": "legs", "equipment": "machine",
+              "id": "a3", "name": "Сгибание ног лежа", "catalog_id": "lying_leg_curl_machine", "body_part": "legs", "equipment": "machine",
               "sets": [
                 { "type": "working", "reps": 14, "rir": 1, "weight_kg": 18 }
               ],
@@ -53,7 +53,7 @@
           "name": "Грудь",
           "exercises": [
             {
-              "id": "a4", "name": "Жим от груди Matrix", "body_part": "chest", "equipment": "machine",
+              "id": "a4", "name": "Жим от груди Matrix", "catalog_id": "chest_press_machine", "body_part": "chest", "equipment": "machine",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 15 },
                 { "type": "warmup", "reps": 12, "weight_kg": 25 },
@@ -66,7 +66,7 @@
               "stretch_focus": true
             },
             {
-              "id": "a5", "name": "Fly на тренажере", "body_part": "chest", "equipment": "machine",
+              "id": "a5", "name": "Fly на тренажере", "catalog_id": "pec_deck_fly_machine", "body_part": "chest", "equipment": "machine",
               "sets": [
                 { "type": "working", "reps": 15, "rir": 1, "weight_kg": 30 },
                 { "type": "working", "reps": 15, "rir": 1, "weight_kg": 30 }
@@ -81,7 +81,7 @@
           "name": "Спина",
           "exercises": [
             {
-              "id": "a6", "name": "Тяга верхнего блока", "body_part": "back", "equipment": "cable",
+              "id": "a6", "name": "Тяга верхнего блока", "catalog_id": "lat_pulldown_cable_wide", "body_part": "back", "equipment": "cable",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 10 },
                 { "type": "working", "reps": 12, "rir": 2, "weight_kg": 23 },
@@ -93,7 +93,7 @@
               "stretch_focus": true
             },
             {
-              "id": "a9", "name": "Тяга гантели одной рукой в наклоне", "body_part": "back", "equipment": "dumbbell",
+              "id": "a9", "name": "Тяга гантели одной рукой в наклоне", "catalog_id": "dumbbell_row_one_arm", "body_part": "back", "equipment": "dumbbell",
               "sets": [
                 { "type": "working", "reps": 12, "rir": 2, "weight_kg": 10 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 10 },
@@ -109,7 +109,7 @@
           "name": "Руки (суперсет)",
           "exercises": [
             {
-              "id": "a7", "name": "Бицепс наклонная скамья", "body_part": "arms", "equipment": "dumbbell",
+              "id": "a7", "name": "Бицепс наклонная скамья", "catalog_id": "incline_dumbbell_curl", "body_part": "arms", "equipment": "dumbbell",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 3 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 6 },
@@ -121,7 +121,7 @@
               "stretch_focus": true
             },
             {
-              "id": "a8", "name": "Трицепс pushdown с канатом", "body_part": "arms", "equipment": "cable",
+              "id": "a8", "name": "Трицепс pushdown с канатом", "catalog_id": "cable_triceps_pushdown_rope", "body_part": "arms", "equipment": "cable",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 8 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 13 },
@@ -143,7 +143,7 @@
           "name": "Ноги",
           "exercises": [
             {
-              "id": "b1", "name": "Жим ногами (узкая постановка)", "body_part": "legs", "equipment": "machine",
+              "id": "b1", "name": "Жим ногами (узкая постановка)", "catalog_id": "leg_press_machine", "body_part": "legs", "equipment": "machine",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 40 },
                 { "type": "warmup", "reps": 12, "weight_kg": 65 },
@@ -155,7 +155,7 @@
               "notes": "08.04: 93x10/10 стабильно. Оставляем 93. Целимся 3x12, потом +5кг."
             },
             {
-              "id": "b2", "name": "Болгарские сплит-приседы", "body_part": "legs", "equipment": "bodyweight",
+              "id": "b2", "name": "Болгарские сплит-приседы", "catalog_id": "bulgarian_split_squat_dumbbell", "body_part": "legs", "equipment": "bodyweight",
               "sets": [
                 { "type": "working", "reps": 12, "rir": 2, "weight_kg": 0 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 0 },
@@ -166,7 +166,7 @@
               "stretch_focus": true
             },
             {
-              "id": "b3", "name": "Сгибание ног сидя", "body_part": "legs", "equipment": "machine",
+              "id": "b3", "name": "Сгибание ног сидя", "catalog_id": "seated_leg_curl_machine", "body_part": "legs", "equipment": "machine",
               "sets": [
                 { "type": "working", "reps": 12, "rir": 0, "weight_kg": 45 },
                 { "type": "drop", "reps": 8, "weight_percent_drop": 0.3 },
@@ -183,7 +183,7 @@
           "name": "Грудь + плечи",
           "exercises": [
             {
-              "id": "b4", "name": "Жим груди наклонный Olimp", "body_part": "chest", "equipment": "plate_loaded",
+              "id": "b4", "name": "Жим груди наклонный Olimp", "catalog_id": "incline_bench_press_barbell", "body_part": "chest", "equipment": "plate_loaded",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 10 },
                 { "type": "warmup", "reps": 12, "weight_kg": 20 },
@@ -196,7 +196,7 @@
               "stretch_focus": true
             },
             {
-              "id": "b5", "name": "Жим на плечи сидя", "body_part": "shoulders", "equipment": "machine",
+              "id": "b5", "name": "Жим на плечи сидя", "catalog_id": "shoulder_press_machine", "body_part": "shoulders", "equipment": "machine",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 5 },
                 { "type": "working", "reps": 14, "rir": 1, "weight_kg": 7 }
@@ -210,7 +210,7 @@
           "name": "Спина",
           "exercises": [
             {
-              "id": "b6", "name": "Тяга верхнего блока обратным хватом", "body_part": "back", "equipment": "cable",
+              "id": "b6", "name": "Тяга верхнего блока обратным хватом", "catalog_id": "lat_pulldown_cable_underhand", "body_part": "back", "equipment": "cable",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 10 },
                 { "type": "working", "reps": 12, "rir": 2, "weight_kg": 25 },
@@ -222,7 +222,7 @@
               "stretch_focus": true
             },
             {
-              "id": "b7", "name": "Рычажная тяга Olimp (поочередно)", "body_part": "back", "equipment": "plate_loaded",
+              "id": "b7", "name": "Рычажная тяга Olimp (поочередно)", "catalog_id": "plate_loaded_row", "body_part": "back", "equipment": "plate_loaded",
               "sets": [
                 { "type": "working", "reps": 12, "rir": 2, "weight_kg": 20 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 20 },
@@ -238,7 +238,7 @@
           "name": "Руки (суперсет)",
           "exercises": [
             {
-              "id": "b8", "name": "Молотки с гантелями", "body_part": "arms", "equipment": "dumbbell",
+              "id": "b8", "name": "Молотки с гантелями", "catalog_id": "hammer_curl_dumbbell", "body_part": "arms", "equipment": "dumbbell",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 6 },
                 { "type": "working", "reps": 12, "rir": 0, "weight_kg": 14 },
@@ -250,7 +250,7 @@
               "notes": "14кг x12 -> СРАЗУ скинь до 10кг -> 6-8. 08.04: все подходы на 16 без снижения -- НЕПРАВИЛЬНО!"
             },
             {
-              "id": "b9", "name": "Французский жим лежа", "body_part": "arms", "equipment": "barbell",
+              "id": "b9", "name": "Французский жим лежа", "catalog_id": "lying_triceps_extension_ez_bar", "body_part": "arms", "equipment": "barbell",
               "sets": [
                 { "type": "warmup", "reps": 15, "weight_kg": 8 },
                 { "type": "working", "reps": 12, "rir": 1, "weight_kg": 14 },

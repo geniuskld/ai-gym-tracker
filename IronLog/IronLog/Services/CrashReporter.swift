@@ -21,7 +21,7 @@ enum CrashReporter {
     private static var previousExceptionHandler: (@convention(c) (NSException) -> Void)?
 
     private static let trappedSignals: [Int32] = [
-        SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGTRAP, SIGFPE, SIGPIPE,
+        SIGABRT, SIGSEGV, SIGBUS, SIGILL, SIGTRAP, SIGFPE,
     ]
 
     // MARK: - Install
@@ -31,6 +31,7 @@ enum CrashReporter {
         didInstall = true
 
         _ = ensureFolder()
+        signal(SIGPIPE, SIG_IGN)
 
         previousExceptionHandler = NSGetUncaughtExceptionHandler()
         NSSetUncaughtExceptionHandler { exception in

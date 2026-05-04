@@ -15,6 +15,7 @@ final class ParsedPlanDispatchTests: XCTestCase {
           "plan_id": "p1",
           "plan_version": 1,
           "plan_name": "Test",
+          "schema": "2026-04-30T00:00:00Z",
           "created_at": "2026-04-27T00:00:00Z",
           "templates": [{
             "id": "d1", "name": "Day 1",
@@ -53,6 +54,7 @@ final class ParsedPlanDispatchTests: XCTestCase {
           "plan_id": "p-catalog",
           "plan_version": 1,
           "plan_name": "Catalog Test",
+          "schema": "2026-04-30T00:00:00Z",
           "created_at": "2026-04-30T00:00:00Z",
           "templates": [{
             "id": "d1", "name": "Day 1",
@@ -125,6 +127,7 @@ final class ParsedPlanDispatchTests: XCTestCase {
           "plan_id": "c1",
           "plan_version": 1,
           "plan_name": "Test",
+          "schema": "2026-04-27T00:00:00Z",
           "created_at": "2026-04-27T00:00:00Z",
           "templates": [{
             "id": "w1", "name": "W1",
@@ -171,7 +174,8 @@ final class ParsedPlanDispatchTests: XCTestCase {
     func testParseEmptyTemplatesThrowsEmptyTemplates() {
         let json = """
         {"plan_type": "strength", "plan_id": "p", "plan_version": 1,
-         "plan_name": "x", "created_at": "2026-04-27T00:00:00Z", "templates": []}
+         "plan_name": "x", "schema": "2026-04-30T00:00:00Z",
+         "created_at": "2026-04-27T00:00:00Z", "templates": []}
         """
         XCTAssertThrowsError(try PlanImportService.parse(json)) { error in
             guard case PlanImportError.emptyTemplates = error else {
@@ -191,6 +195,7 @@ final class ParsedPlanDispatchTests: XCTestCase {
           "plan_id": "norwegian-test",
           "plan_version": 1,
           "plan_name": "Test 4x4",
+          "schema": "2026-04-27T00:00:00Z",
           "created_at": "2026-04-27T00:00:00Z",
           "templates": [{
             "id": "w1", "name": "Week 1",

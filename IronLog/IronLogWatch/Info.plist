@@ -19,9 +19,9 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Read health data during workouts</string>
+	<string>IronLog Watch reads heart rate and active energy during workouts to show live training metrics.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Record workout data</string>
+	<string>IronLog Watch saves completed workout sessions to Apple Health.</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKBackgroundModes</key>

@@ -17,4 +17,10 @@ async def get_schema(type: PlanType | None = None):
             detail=f"Unknown plan type '{type.value}'. Supported: {list(SCHEMA_REGISTRY.keys())}",
         )
 
-    return module.DESCRIPTION
+    description = getattr(module, "DESCRIPTION", None)
+    if description is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Schema module for '{type.value}' has no DESCRIPTION",
+        )
+    return description

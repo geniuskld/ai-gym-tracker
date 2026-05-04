@@ -445,7 +445,8 @@ private struct ExerciseHeader: View {
     var body: some View {
         if let ex = vm.currentExercise {
             CockpitPanel(spacing: 10) {
-                if let partnerIdx = ex.supersetPartnerIndex {
+                if let partnerIdx = ex.supersetPartnerIndex,
+                   vm.exercises.indices.contains(partnerIdx) {
                     CockpitChip(
                         text: "Superset",
                         color: CockpitPalette.purple,
@@ -459,6 +460,16 @@ private struct ExerciseHeader: View {
                     Text(vm.exercises[partnerIdx].name)
                         .font(.subheadline)
                         .foregroundStyle(CockpitPalette.muted)
+                } else if ex.supersetPartnerIndex != nil {
+                    Text(ex.name)
+                        .font(.title2.weight(.bold))
+                        .lineLimit(2)
+
+                    CockpitChip(
+                        text: "Superset link unavailable",
+                        color: CockpitPalette.amber,
+                        systemImage: "exclamationmark.triangle"
+                    )
                 } else {
                     Text(ex.name)
                         .font(.title2.weight(.bold))

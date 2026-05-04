@@ -48,11 +48,20 @@ final class PhoneWorkoutHRSource: NSObject, HRSource {
             session.delegate = self
             builder.delegate = self
 
-            session.startActivity(with: .now)
-            builder.beginCollection(withStart: .now) { _, _ in }
-
             self.session = session
             self.builder = builder
+            session.startActivity(with: .now)
+            builder.beginCollection(withStart: .now) { [weak self] _, error in
+                guard let error else { return }
+                Task { @MainActor in
+                    self?.session?.end()
+                    self?.session = nil
+                    self?.builder = nil
+                    self?.currentBpm = nil
+                    self?.lastSampleAt = nil
+                    print("PhoneWorkoutHRSource beginCollection failed: \(error.localizedDescription)")
+                }
+            }
         } catch {
             // Session creation failed (auth denied, simulator, etc.).
             // Resolver will not retry; UI shows "No heart-rate source".
@@ -94,8 +103,16 @@ extension PhoneWorkoutHRSource: HKWorkoutSessionDelegate {
 
     nonisolated func workoutSession(
         _: HKWorkoutSession,
-        didFailWithError _: Error
-    ) {}
+        didFailWithError error: Error
+    ) {
+        Task { @MainActor [weak self] in
+            self?.session = nil
+            self?.builder = nil
+            self?.currentBpm = nil
+            self?.lastSampleAt = nil
+            print("PhoneWorkoutHRSource session failed: \(error.localizedDescription)")
+        }
+    }
 }
 
 // MARK: - HKLiveWorkoutBuilderDelegate

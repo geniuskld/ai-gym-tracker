@@ -22,6 +22,7 @@ final class SDPlan {
         planId: String,
         planName: String,
         planVersion: Int = 1,
+        schema: String = PlanSchema.strengthId,
         createdAt: Date,
         importedAt: Date = .now,
         author: String? = nil,
@@ -31,6 +32,7 @@ final class SDPlan {
         self.planId = planId
         self.planName = planName
         self.planVersion = planVersion
+        self.schema = schema
         self.createdAt = createdAt
         self.importedAt = importedAt
         self.author = author

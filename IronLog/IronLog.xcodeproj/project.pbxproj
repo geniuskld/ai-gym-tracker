@@ -891,6 +891,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.W88C7J82R5.ironlog.widgets;
 				PRODUCT_NAME = IronLogWidgets;
 				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -988,6 +989,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.W88C7J82R5.ironlog.widgets;
 				PRODUCT_NAME = IronLogWidgets;
 				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

@@ -36,11 +36,17 @@ struct RestTimerLiveActivity: Widget {
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(.green)
                     } else {
-                        ProgressView(
-                            timerInterval: Date.now...context.state.timerDate,
-                            countsDown: true
-                        )
-                        .tint(context.state.isOvertime ? .yellow : .blue)
+                        if context.state.isOvertime {
+                            Text("GO!")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.yellow)
+                        } else {
+                            ProgressView(
+                                timerInterval: Date.now...max(Date.now, context.state.timerDate),
+                                countsDown: true
+                            )
+                            .tint(.blue)
+                        }
                     }
                 }
             } compactLeading: {

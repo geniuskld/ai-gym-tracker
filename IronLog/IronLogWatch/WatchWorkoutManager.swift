@@ -81,7 +81,11 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             isActive = true
             startTimer()
         } catch {
-            // session setup failed
+            self.session = nil
+            self.builder = nil
+            isActive = false
+            stopTimer()
+            sendStatusToiPhone("workout_start_failed")
         }
     }
 
@@ -140,6 +144,20 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             errorHandler: nil
         )
     }
+
+    private func sendStatusToiPhone(_ status: String) {
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(
+            [
+                "event": "workout_status",
+                "status": status,
+                "t": Date().timeIntervalSince1970,
+            ],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
 }
 
 // MARK: - WCSessionDelegate
@@ -162,16 +180,17 @@ extension WatchWorkoutManager: WCSessionDelegate {
             return
         }
         let activity = message["activity"] as? String ?? "strength"
+        replyHandler(["status": "acknowledged"])
         Task { @MainActor in
             switch command {
             case "startWorkout":
                 await startWorkout(activity: activity)
-                replyHandler(["status": "started"])
+                sendStatusToiPhone("started")
             case "stopWorkout":
                 endWorkout()
-                replyHandler(["status": "stopped"])
+                sendStatusToiPhone("stopped")
             default:
-                replyHandler(["status": "unknown"])
+                sendStatusToiPhone("unknown")
             }
         }
     }
@@ -205,6 +224,9 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
         Task { @MainActor in
             isActive = false
             stopTimer()
+            session = nil
+            builder = nil
+            startDate = nil
         }
     }
 }

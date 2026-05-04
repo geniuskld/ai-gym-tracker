@@ -12,12 +12,23 @@ router = APIRouter(tags=["log"])
 @router.post("/log")
 async def post_log(
     request: Request,
+    response: Response,
     user: dict = Depends(get_current_user),
-    response: Response = None,
 ):
     _attach_refreshed_token(user, response)
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid JSON body",
+        )
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Log body must be an object",
+        )
     workouts = data.get("workouts")
     if not isinstance(workouts, list) or len(workouts) == 0:
         raise HTTPException(
@@ -63,12 +74,12 @@ async def post_log(
 
 @router.get("/log")
 async def get_log(
+    response: Response,
     since: str | None = None,
     template_id: str | None = None,
     type: PlanType | None = None,
     limit: int = 50,
     user: dict = Depends(get_current_user),
-    response: Response = None,
 ):
     _attach_refreshed_token(user, response)
 
@@ -106,8 +117,8 @@ async def get_log(
 @router.delete("/log/{workout_id}")
 async def delete_log(
     workout_id: str,
+    response: Response,
     user: dict = Depends(get_current_user),
-    response: Response = None,
 ):
     _attach_refreshed_token(user, response)
 

@@ -52,10 +52,6 @@ targets:
         NSHealthShareUsageDescription: IronLog reads your heart rate during cycling workouts so you can see live BPM and time-in-zone.
         UIBackgroundModes:
           - workout-processing
-        NSAppTransportSecurity:
-          NSExceptionDomains:
-            v170184.hosted-by-vdsina.com:
-              NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.W88C7J82R5.ironlog
@@ -89,6 +85,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.W88C7J82R5.ironlog.widgets
         PRODUCT_NAME: IronLogWidgets
         SWIFT_EMIT_LOC_STRINGS: true
+        SKIP_INSTALL: true
 
   IronLogWatch:
     type: application
@@ -107,8 +104,8 @@ targets:
         # iOS uses this to surface "IronLog" in the Watch app's
         # "Available Apps" list and auto-install it on first iPhone run.
         WKCompanionAppBundleIdentifier: com.W88C7J82R5.ironlog
-        NSHealthShareUsageDescription: Read health data during workouts
-        NSHealthUpdateUsageDescription: Record workout data
+        NSHealthShareUsageDescription: IronLog Watch reads heart rate and active energy during workouts to show live training metrics.
+        NSHealthUpdateUsageDescription: IronLog Watch saves completed workout sessions to Apple Health.
         WKBackgroundModes:
           - workout-processing
     settings:

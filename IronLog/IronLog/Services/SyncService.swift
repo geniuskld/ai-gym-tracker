@@ -187,22 +187,37 @@ enum SyncService {
             throw SyncError.decodingError("Expected JSON array of plan objects")
         }
 
-        return arr.compactMap { dict -> PlanSummary? in
-            guard
-                let planType = dict["plan_type"] as? String,
-                let planId = dict["plan_id"] as? String,
-                let planName = dict["plan_name"] as? String,
-                let planVersion = dict["plan_version"] as? Int,
-                let rawJSON = try? JSONSerialization.data(withJSONObject: dict)
-            else { return nil }
-            return PlanSummary(
+        var summaries: [PlanSummary] = []
+        for dict in arr {
+            guard let planType = dict["plan_type"] as? String else {
+                print("SyncService.fetchPlans skipped plan without string plan_type: \(dict)")
+                continue
+            }
+            guard let planId = dict["plan_id"] as? String else {
+                print("SyncService.fetchPlans skipped \(planType) plan without string plan_id")
+                continue
+            }
+            guard let planName = dict["plan_name"] as? String else {
+                print("SyncService.fetchPlans skipped \(planType)/\(planId) without string plan_name")
+                continue
+            }
+            guard let planVersion = dict["plan_version"] as? Int else {
+                print("SyncService.fetchPlans skipped \(planType)/\(planId) without integer plan_version")
+                continue
+            }
+            guard let rawJSON = try? JSONSerialization.data(withJSONObject: dict) else {
+                print("SyncService.fetchPlans skipped \(planType)/\(planId) because raw JSON serialization failed")
+                continue
+            }
+            summaries.append(PlanSummary(
                 planType: planType,
                 planId: planId,
                 planName: planName,
                 planVersion: planVersion,
                 rawJSON: rawJSON
-            )
+            ))
         }
+        return summaries
     }
 
     // MARK: - Upload Log
@@ -353,7 +368,21 @@ enum SyncService {
 
     private static func isRetryableTransportError(_ error: Error) -> Bool {
         guard let urlError = error as? URLError else { return false }
-        return urlError.code != .cancelled
+        switch urlError.code {
+        case .timedOut,
+             .cannotFindHost,
+             .cannotConnectToHost,
+             .networkConnectionLost,
+             .dnsLookupFailed,
+             .notConnectedToInternet,
+             .internationalRoamingOff,
+             .callIsActive,
+             .dataNotAllowed,
+             .secureConnectionFailed:
+            return true
+        default:
+            return false
+        }
     }
 
     private static func attachAuth(_ request: inout URLRequest) throws {

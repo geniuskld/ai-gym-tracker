@@ -89,6 +89,7 @@ final class ActiveWorkoutViewModel {
     private var modelContext: ModelContext?
     private var lastSetCompletedAt: Date?
     private var stateBeforeFinishing: State?
+    private var pendingRatingExerciseIndex: Int?
 
     // MARK: - Computed
 
@@ -109,14 +110,21 @@ final class ActiveWorkoutViewModel {
 
     /// Weight for a specific exercise: last working weight, or prescribed, or nil
     func weightForExercise(at exerciseIdx: Int) -> Double? {
-        guard exerciseIdx < exercises.count else { return nil }
+        guard exercises.indices.contains(exerciseIdx) else { return nil }
         let ex = exercises[exerciseIdx]
         // 1. Last completed working weight (not from drop sets)
         if let w = lastWorkingWeight(ex) { return w }
         // 2. Any completed weight
         if let w = lastCompletedWeightAny(ex) { return w }
         // 3. Current set's pre-filled weight
-        let setIdx = currentSetIndex < ex.sets.count ? currentSetIndex : 0
+        guard !ex.sets.isEmpty else { return nil }
+        let setIdx: Int
+        if exerciseIdx == currentExerciseIndex,
+           ex.sets.indices.contains(currentSetIndex) {
+            setIdx = currentSetIndex
+        } else {
+            setIdx = ex.sets.firstIndex { !$0.isCompleted } ?? 0
+        }
         if let w = ex.sets[setIdx].weightKg { return w }
         // 4. Prescribed weight from plan
         if let pw = ex.sets[setIdx].prescribedWeightKg {
@@ -170,7 +178,10 @@ final class ActiveWorkoutViewModel {
             planVersion: template.plan?.planVersion
         )
         context.insert(sdWorkout)
-        _ = saveContext(context, action: "start workout")
+        guard saveContext(context, action: "start workout") else {
+            context.delete(sdWorkout)
+            return
+        }
         workout = sdWorkout
 
         buildExercises(from: template, loggedSets: [:])
@@ -394,6 +405,7 @@ final class ActiveWorkoutViewModel {
             flowLockWeight = false
             let restSeconds = exercises[completedExIdx].restSeconds
             pendingAdvanceToNextExercise = true
+            pendingRatingExerciseIndex = completedExIdx
             startRest(seconds: restSeconds)
             return
         }
@@ -475,6 +487,7 @@ final class ActiveWorkoutViewModel {
     func finishExercise() {
         // Trigger rest-before-next-exercise so the user can rate during rest
         pendingAdvanceToNextExercise = true
+        pendingRatingExerciseIndex = currentExerciseIndex
         let restSeconds = currentExercise?.restSeconds ?? 60
         startRest(seconds: restSeconds)
     }
@@ -492,8 +505,11 @@ final class ActiveWorkoutViewModel {
     }
 
     private func applyPendingRatingAndAdvance() {
-        if let rating = pendingRating, let workout {
-            let exId = exercises[currentExerciseIndex].exerciseId
+        let ratingIndex = pendingRatingExerciseIndex ?? currentExerciseIndex
+        if let rating = pendingRating,
+           let workout,
+           exercises.indices.contains(ratingIndex) {
+            let exId = exercises[ratingIndex].exerciseId
             if let exLog = workout.exercises.first(where: { $0.exerciseId == exId }) {
                 exLog.exerciseRating = rating
                 if let context = modelContext {
@@ -502,6 +518,7 @@ final class ActiveWorkoutViewModel {
             }
         }
         pendingRating = nil
+        pendingRatingExerciseIndex = nil
         advanceToNextExercise()
     }
 
@@ -737,7 +754,7 @@ final class ActiveWorkoutViewModel {
         if SyncService.isConfigured,
            SyncService.isAuthenticated,
            workout.syncedAt == nil {
-            Task {
+            Task { @MainActor in
                 await WorkoutSyncService.uploadStrength(
                     workout,
                     context: context,
@@ -780,6 +797,8 @@ final class ActiveWorkoutViewModel {
         flowInstruction = ""
         flowLockWeight = false
         pendingAdvanceToNextExercise = false
+        pendingRating = nil
+        pendingRatingExerciseIndex = nil
         restTimer.stop()
         setStopwatch.stop()
         WorkoutSessionManager.shared.stopMirroring()

@@ -27,6 +27,7 @@ def validate(data: dict) -> None:
         )
 
     for ti, tmpl in enumerate(templates):
+        _require_dict(tmpl, f"templates[{ti}]")
         _require_str(tmpl, "id", f"templates[{ti}]")
         _require_str(tmpl, "name", f"templates[{ti}]")
 
@@ -38,6 +39,7 @@ def validate(data: dict) -> None:
             )
 
         for gi, grp in enumerate(groups):
+            _require_dict(grp, f"templates[{ti}].groups[{gi}]")
             _require_str(grp, "name", f"templates[{ti}].groups[{gi}]")
 
             exercises = grp.get("exercises")
@@ -49,6 +51,7 @@ def validate(data: dict) -> None:
 
             for ei, ex in enumerate(exercises):
                 prefix = f"templates[{ti}].groups[{gi}].exercises[{ei}]"
+                _require_dict(ex, prefix)
                 _require_str(ex, "id", prefix)
                 _require_str(ex, "name", prefix)
 
@@ -74,10 +77,13 @@ def validate(data: dict) -> None:
                     )
 
                 for si, s in enumerate(sets):
-                    if not isinstance(s.get("reps"), int) or s["reps"] < 1:
+                    set_prefix = f"{prefix}.sets[{si}]"
+                    _require_dict(s, set_prefix)
+                    reps = s.get("reps")
+                    if isinstance(reps, bool) or not isinstance(reps, int) or reps < 1:
                         raise HTTPException(
                             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=f"{prefix}.sets[{si}].reps must be a positive integer",
+                            detail=f"{set_prefix}.reps must be a positive integer",
                         )
                     # weight_kg is optional; if present it must be a non-negative
                     # number (int or float -- fractional plates allowed).
@@ -98,6 +104,14 @@ def _require_str(obj: dict, field: str, prefix: str) -> None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"{prefix}.{field} must be a non-empty string",
+        )
+
+
+def _require_dict(obj: object, prefix: str) -> None:
+    if not isinstance(obj, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{prefix} must be an object",
         )
 
 
