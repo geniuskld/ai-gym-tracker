@@ -154,24 +154,10 @@ private struct ReadyPhaseView: View {
 
                 SetRoadmap(vm: vm)
 
-                if let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight, w > 0 {
-                    CockpitPanel(spacing: 4, padding: 12) {
-                        Text("Planned load")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(CockpitPalette.faint)
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(formatWeight(w))
-                                .font(.system(size: 34, weight: .bold, design: .rounded))
-                            Text("kg")
-                                .font(.callout)
-                                .foregroundStyle(CockpitPalette.muted)
-                        }
-                    }
-                }
-
                 Spacer(minLength: 8)
             }
             .padding(16)
+            .padding(.bottom, 120)
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
@@ -309,7 +295,7 @@ private struct RestingPhaseView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
 
-            NextSetPanel(title: "Next", value: nextLabel)
+            NextSetPanel(info: nextInfo)
                 .padding(.horizontal, 16)
 
             Spacer()
@@ -364,22 +350,91 @@ private struct RestingPhaseView: View {
         .background(CockpitPalette.background)
     }
 
-    private var nextLabel: String {
-        // Rest before next exercise
+    private var nextInfo: NextSetInfo {
         if vm.isRestBeforeNextExercise {
-            if let name = vm.nextExerciseName {
-                return name
+            let nextIdx = vm.currentExerciseIndex + 1
+            guard nextIdx < vm.exercises.count else {
+                return NextSetInfo(
+                    eyebrow: "NEXT",
+                    title: "Workout complete",
+                    subtitle: nil,
+                    badge: nil,
+                    metrics: [],
+                    tint: CockpitPalette.green
+                )
             }
-            return "NEXT EXERCISE"
+            let next = vm.exercises[nextIdx]
+            let firstSet = next.sets.first
+            return NextSetInfo(
+                eyebrow: "NEXT EXERCISE",
+                title: next.name,
+                subtitle: firstSet.map { _ in "Set 1" },
+                badge: firstSet.flatMap { setBadge(for: $0.type) },
+                metrics: firstSet.map(nextMetrics(for:)) ?? [],
+                tint: techniqueColor(for: next)
+            )
         }
-        // Flow instruction (e.g. "Drop to 70 kg")
-        if !vm.flowInstruction.isEmpty {
-            return vm.flowInstruction
+
+        if let set = vm.currentSet {
+            return NextSetInfo(
+                eyebrow: "NEXT",
+                title: "Set \(vm.currentSetIndex + 1)",
+                subtitle: vm.flowInstruction.isEmpty ? nil : vm.flowInstruction,
+                badge: setBadge(for: set.type),
+                metrics: nextMetrics(for: set),
+                tint: setBadge(for: set.type)?.color ?? CockpitPalette.blue
+            )
         }
-        // Next set within current exercise
-        let nextSetNum = vm.currentSetIndex + 1
-        let totalSets = vm.currentExercise?.sets.count ?? 0
-        return nextSetNum <= totalSets ? "SET \(nextSetNum)" : "DONE"
+
+        return NextSetInfo(
+            eyebrow: "NEXT",
+            title: "Done",
+            subtitle: nil,
+            badge: nil,
+            metrics: [],
+            tint: CockpitPalette.green
+        )
+    }
+
+    private func nextMetrics(for set: SetState) -> [NextSetMetric] {
+        var metrics: [NextSetMetric] = []
+        if let weight = set.weightKg ?? set.prescribedWeightKg {
+            metrics.append(
+                NextSetMetric(label: "Load", value: formatWeight(weight), unit: "kg", tint: .primary)
+            )
+        }
+        if let reps = set.prescribedReps ?? set.reps {
+            metrics.append(
+                NextSetMetric(label: "Reps", value: "\(reps)", unit: "reps", tint: .primary)
+            )
+        }
+        if let rir = set.prescribedRir {
+            metrics.append(
+                NextSetMetric(label: "RIR", value: "\(rir)", unit: "target", tint: CockpitPalette.faint)
+            )
+        }
+        return metrics
+    }
+
+    private func setBadge(for type: String) -> NextSetBadge? {
+        switch type {
+        case "warmup": return NextSetBadge(text: "Warmup", color: CockpitPalette.blue)
+        case "drop": return NextSetBadge(text: "Drop", color: CockpitPalette.amber)
+        case "myo_mini": return NextSetBadge(text: "Myo mini", color: CockpitPalette.magenta)
+        default: return nil
+        }
+    }
+
+    private func techniqueColor(for exercise: ExerciseState) -> Color {
+        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+            return CockpitPalette.purple
+        }
+        switch exercise.technique {
+        case "drop_set": return CockpitPalette.amber
+        case "rest_pause": return CockpitPalette.cyan
+        case "myo_reps": return CockpitPalette.magenta
+        default: return CockpitPalette.blue
+        }
     }
 }
 
@@ -438,8 +493,8 @@ private struct ExerciseHeader: View {
     private func techniqueBadgeColor(_ technique: String) -> Color {
         switch technique {
         case "drop_set":   return CockpitPalette.amber
-        case "rest_pause": return CockpitPalette.blue
-        case "myo_reps":   return CockpitPalette.purple
+        case "rest_pause": return CockpitPalette.cyan
+        case "myo_reps":   return CockpitPalette.magenta
         default:           return CockpitPalette.muted
         }
     }
@@ -552,7 +607,7 @@ private struct SetRoadmap: View {
         switch type {
         case "warmup": return CockpitPalette.blue
         case "drop": return CockpitPalette.amber
-        case "myo_mini": return CockpitPalette.purple
+        case "myo_mini": return CockpitPalette.magenta
         default: return CockpitPalette.muted
         }
     }
@@ -564,18 +619,80 @@ private struct ExerciseProgressCells: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
-                    progressCell(index: idx, exercise: ex)
+                ForEach(progressGroups) { group in
+                    if group.isSupersetPair {
+                        HStack(spacing: 6) {
+                            ForEach(group.indices, id: \.self) { idx in
+                                progressCell(
+                                    index: idx,
+                                    exercise: vm.exercises[idx],
+                                    suppressSupersetMarker: true
+                                )
+                            }
+                        }
+                        .frame(height: 34)
+                        .overlay {
+                            SupersetHorizontalBracket(color: CockpitPalette.purple)
+                        }
+                        .overlay(alignment: .bottom) {
+                            Capsule()
+                                .fill(CockpitPalette.purple)
+                                .frame(width: 28, height: 3)
+                                .offset(y: -2)
+                        }
+                    } else if let idx = group.indices.first {
+                        progressCell(
+                            index: idx,
+                            exercise: vm.exercises[idx],
+                            suppressSupersetMarker: false
+                        )
+                    }
                 }
             }
             .padding(.horizontal, 16)
         }
     }
 
-    private func progressCell(index: Int, exercise: ExerciseState) -> some View {
+    private var progressGroups: [ProgressCellGroup] {
+        var groups: [ProgressCellGroup] = []
+        var used = Set<Int>()
+
+        for idx in vm.exercises.indices {
+            guard !used.contains(idx) else { continue }
+
+            if let partner = supersetPartner(for: idx),
+               partner < vm.exercises.count,
+               abs(partner - idx) == 1 {
+                let indices = [idx, partner].sorted()
+                groups.append(ProgressCellGroup(indices: indices, isSupersetPair: true))
+                used.formUnion(indices)
+            } else {
+                groups.append(ProgressCellGroup(indices: [idx], isSupersetPair: false))
+                used.insert(idx)
+            }
+        }
+
+        return groups
+    }
+
+    private func supersetPartner(for index: Int) -> Int? {
+        if let partner = vm.exercises[index].supersetPartnerIndex {
+            return partner
+        }
+        return vm.exercises.firstIndex { $0.supersetPartnerIndex == index }
+    }
+
+    private func progressCell(
+        index: Int,
+        exercise: ExerciseState,
+        suppressSupersetMarker: Bool
+    ) -> some View {
         let completed = exercise.sets.allSatisfy(\.isCompleted)
         let current = index == vm.currentExerciseIndex
-        let special = specialColor(for: exercise)
+        let special = specialColor(
+            for: exercise,
+            suppressSuperset: suppressSupersetMarker
+        )
         let fill = statusFill(isCompleted: completed, isCurrent: current)
 
         return Text("\(index + 1)")
@@ -607,15 +724,28 @@ private struct ExerciseProgressCells: View {
         return CockpitPalette.panelElevated
     }
 
-    private func specialColor(for exercise: ExerciseState) -> Color? {
-        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+    private func specialColor(
+        for exercise: ExerciseState,
+        suppressSuperset: Bool
+    ) -> Color? {
+        if !suppressSuperset,
+           (exercise.supersetPartnerIndex != nil || exercise.technique == "superset") {
             return CockpitPalette.purple
         }
         switch exercise.technique {
         case "drop_set": return CockpitPalette.amber
-        case "rest_pause": return CockpitPalette.blue
-        case "myo_reps": return CockpitPalette.purple
+        case "rest_pause": return CockpitPalette.cyan
+        case "myo_reps": return CockpitPalette.magenta
         default: return nil
+        }
+    }
+
+    private struct ProgressCellGroup: Identifiable {
+        let indices: [Int]
+        let isSupersetPair: Bool
+
+        var id: String {
+            indices.map(String.init).joined(separator: "-")
         }
     }
 }
@@ -810,20 +940,229 @@ private struct EditableMetricPanel: View {
     }
 }
 
-private struct NextSetPanel: View {
+private struct NextSetInfo {
+    let eyebrow: String
     let title: String
+    let subtitle: String?
+    let badge: NextSetBadge?
+    let metrics: [NextSetMetric]
+    let tint: Color
+}
+
+private struct NextSetBadge {
+    let text: String
+    let color: Color
+}
+
+private struct NextSetMetric: Identifiable {
+    let label: String
     let value: String
+    let unit: String
+    let tint: Color
+
+    var id: String {
+        "\(label)-\(value)-\(unit)"
+    }
+}
+
+private struct NextSetPanel: View {
+    let info: NextSetInfo
 
     var body: some View {
-        CockpitPanel(spacing: 5, padding: 12) {
-            Text(title.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(CockpitPalette.faint)
-            Text(value)
-                .font(.headline.weight(.semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.78)
+        CockpitPanel(spacing: 12, padding: 14) {
+            HStack(spacing: 8) {
+                Text(info.eyebrow.uppercased())
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(info.tint)
+                Spacer()
+                if let badge = info.badge {
+                    Text(badge.text)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(badge.color)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(badge.color.opacity(0.14), in: Capsule())
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(info.title)
+                    .font(.title3.weight(.bold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+
+                if let subtitle = info.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(2)
+                }
+            }
+
+            if !info.metrics.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(info.metrics) { metric in
+                        NextMetricTile(metric: metric)
+                    }
+                }
+            }
         }
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(info.tint)
+                .frame(width: 4)
+                .padding(.vertical, 16)
+        }
+    }
+}
+
+private struct NextMetricTile: View {
+    let metric: NextSetMetric
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(metric.value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(metric.tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+            Text(metric.unit)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(CockpitPalette.muted)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(CockpitPalette.panelElevated.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(CockpitPalette.border)
+        }
+        .accessibilityLabel("\(metric.label) \(metric.value) \(metric.unit)")
+    }
+}
+
+private struct SupersetMapGroup<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            SupersetVerticalBracket(color: CockpitPalette.purple)
+                .frame(width: 18)
+                .padding(.vertical, 18)
+
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption.weight(.bold))
+                    Text("Superset pair")
+                        .font(.caption.weight(.bold))
+                    Spacer()
+                }
+                .foregroundStyle(CockpitPalette.purple)
+                .padding(.horizontal, 4)
+
+                content
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+private struct SupersetHorizontalBracket: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            bracketPath(in: proxy.size)
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
+                )
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func bracketPath(in size: CGSize) -> Path {
+        let inset: CGFloat = 1.5
+        let arm = min(size.width * 0.18, 13)
+        let radius: CGFloat = 5
+        let top = inset
+        let bottom = max(inset, size.height - inset)
+        let right = max(inset, size.width - inset)
+
+        var path = Path()
+
+        path.move(to: CGPoint(x: arm, y: top))
+        path.addLine(to: CGPoint(x: radius + inset, y: top))
+        path.addQuadCurve(
+            to: CGPoint(x: inset, y: top + radius),
+            control: CGPoint(x: inset, y: top)
+        )
+        path.addLine(to: CGPoint(x: inset, y: bottom - radius))
+        path.addQuadCurve(
+            to: CGPoint(x: radius + inset, y: bottom),
+            control: CGPoint(x: inset, y: bottom)
+        )
+        path.addLine(to: CGPoint(x: arm, y: bottom))
+
+        path.move(to: CGPoint(x: right - arm, y: top))
+        path.addLine(to: CGPoint(x: right - radius, y: top))
+        path.addQuadCurve(
+            to: CGPoint(x: right, y: top + radius),
+            control: CGPoint(x: right, y: top)
+        )
+        path.addLine(to: CGPoint(x: right, y: bottom - radius))
+        path.addQuadCurve(
+            to: CGPoint(x: right - radius, y: bottom),
+            control: CGPoint(x: right, y: bottom)
+        )
+        path.addLine(to: CGPoint(x: right - arm, y: bottom))
+
+        return path
+    }
+}
+
+private struct SupersetVerticalBracket: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            bracketPath(in: proxy.size)
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+                )
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func bracketPath(in size: CGSize) -> Path {
+        let inset: CGFloat = 1.5
+        let radius: CGFloat = 7
+        let top = inset
+        let bottom = max(inset, size.height - inset)
+        let right = max(inset, size.width - inset)
+
+        var path = Path()
+        path.move(to: CGPoint(x: right, y: top))
+        path.addLine(to: CGPoint(x: radius + inset, y: top))
+        path.addQuadCurve(
+            to: CGPoint(x: inset, y: top + radius),
+            control: CGPoint(x: inset, y: top)
+        )
+        path.addLine(to: CGPoint(x: inset, y: bottom - radius))
+        path.addQuadCurve(
+            to: CGPoint(x: radius + inset, y: bottom),
+            control: CGPoint(x: inset, y: bottom)
+        )
+        path.addLine(to: CGPoint(x: right, y: bottom))
+        return path
     }
 }
 
@@ -834,6 +1173,7 @@ private struct ExerciseMapRow: View {
     let totalSets: Int
     let isCurrent: Bool
     let isCompleted: Bool
+    let suppressSupersetBadge: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -844,7 +1184,10 @@ private struct ExerciseMapRow: View {
                 .background(statusColor, in: RoundedRectangle(cornerRadius: 9))
                 .overlay {
                     RoundedRectangle(cornerRadius: 9)
-                        .strokeBorder(specialColor ?? CockpitPalette.border, lineWidth: specialColor == nil ? 1 : 2)
+                        .strokeBorder(
+                            techniqueStripeColor ?? CockpitPalette.border,
+                            lineWidth: techniqueStripeColor == nil ? 1 : 2
+                        )
                 }
 
             VStack(alignment: .leading, spacing: 5) {
@@ -858,13 +1201,13 @@ private struct ExerciseMapRow: View {
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(CockpitPalette.faint)
 
-                    if exercise.technique != "straight" {
-                        Text(techniqueName(exercise.technique))
+                    if let technique = techniqueBadge {
+                        Text(technique.name)
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(specialColor ?? CockpitPalette.muted)
+                            .foregroundStyle(technique.color)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background((specialColor ?? CockpitPalette.muted).opacity(0.12), in: Capsule())
+                            .background(technique.color.opacity(0.12), in: Capsule())
                     }
                 }
             }
@@ -878,9 +1221,9 @@ private struct ExerciseMapRow: View {
         .padding(12)
         .background(rowFill, in: RoundedRectangle(cornerRadius: 14))
         .overlay(alignment: .leading) {
-            if specialColor != nil {
+            if techniqueStripeColor != nil {
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(specialColor ?? CockpitPalette.purple)
+                    .fill(techniqueStripeColor ?? CockpitPalette.purple)
                     .frame(width: 4)
                     .padding(.vertical, 10)
             }
@@ -903,14 +1246,28 @@ private struct ExerciseMapRow: View {
         return CockpitPalette.panelElevated
     }
 
-    private var specialColor: Color? {
-        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+    private var techniqueStripeColor: Color? {
+        if !suppressSupersetBadge,
+           (exercise.supersetPartnerIndex != nil || exercise.technique == "superset") {
             return CockpitPalette.purple
         }
         switch exercise.technique {
         case "drop_set": return CockpitPalette.amber
-        case "rest_pause": return CockpitPalette.blue
-        case "myo_reps": return CockpitPalette.purple
+        case "rest_pause": return CockpitPalette.cyan
+        case "myo_reps": return CockpitPalette.magenta
+        default: return nil
+        }
+    }
+
+    private var techniqueBadge: (name: String, color: Color)? {
+        if !suppressSupersetBadge,
+           (exercise.supersetPartnerIndex != nil || exercise.technique == "superset") {
+            return ("Superset", CockpitPalette.purple)
+        }
+        switch exercise.technique {
+        case "drop_set": return ("Drop", CockpitPalette.amber)
+        case "rest_pause": return ("Rest-Pause", CockpitPalette.cyan)
+        case "myo_reps": return ("Myo", CockpitPalette.magenta)
         default: return nil
         }
     }
@@ -1001,27 +1358,16 @@ private struct ExerciseListSheet: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
-                            let isCurrent = idx == vm.currentExerciseIndex
-                            let doneSets = ex.sets.filter(\.isCompleted).count
-                            let totalSets = ex.sets.count
-                            let allDone = doneSets == totalSets
-
-                            Button {
-                                vm.jumpToExercise(idx)
-                                isPresented = false
-                            } label: {
-                                ExerciseMapRow(
-                                    index: idx,
-                                    exercise: ex,
-                                    doneSets: doneSets,
-                                    totalSets: totalSets,
-                                    isCurrent: isCurrent,
-                                    isCompleted: allDone
-                                )
+                        ForEach(exerciseGroups) { group in
+                            if group.isSupersetPair {
+                                SupersetMapGroup {
+                                    ForEach(group.indices, id: \.self) { idx in
+                                        exerciseButton(index: idx, suppressSupersetBadge: true)
+                                    }
+                                }
+                            } else if let idx = group.indices.first {
+                                exerciseButton(index: idx, suppressSupersetBadge: false)
                             }
-                            .buttonStyle(.plain)
-                            .id(idx)
                         }
                     }
                     .padding(16)
@@ -1043,6 +1389,72 @@ private struct ExerciseListSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var exerciseGroups: [ExerciseMapGroup] {
+        var groups: [ExerciseMapGroup] = []
+        var used = Set<Int>()
+
+        for idx in vm.exercises.indices {
+            guard !used.contains(idx) else { continue }
+
+            if let partner = supersetPartner(for: idx),
+               partner < vm.exercises.count,
+               abs(partner - idx) == 1 {
+                let indices = [idx, partner].sorted()
+                groups.append(ExerciseMapGroup(indices: indices, isSupersetPair: true))
+                used.formUnion(indices)
+            } else {
+                groups.append(ExerciseMapGroup(indices: [idx], isSupersetPair: false))
+                used.insert(idx)
+            }
+        }
+
+        return groups
+    }
+
+    private func supersetPartner(for index: Int) -> Int? {
+        if let partner = vm.exercises[index].supersetPartnerIndex {
+            return partner
+        }
+        return vm.exercises.firstIndex { $0.supersetPartnerIndex == index }
+    }
+
+    private func exerciseButton(
+        index idx: Int,
+        suppressSupersetBadge: Bool
+    ) -> some View {
+        let ex = vm.exercises[idx]
+        let isCurrent = idx == vm.currentExerciseIndex
+        let doneSets = ex.sets.filter(\.isCompleted).count
+        let totalSets = ex.sets.count
+        let allDone = doneSets == totalSets
+
+        return Button {
+            vm.jumpToExercise(idx)
+            isPresented = false
+        } label: {
+            ExerciseMapRow(
+                index: idx,
+                exercise: ex,
+                doneSets: doneSets,
+                totalSets: totalSets,
+                isCurrent: isCurrent,
+                isCompleted: allDone,
+                suppressSupersetBadge: suppressSupersetBadge
+            )
+        }
+        .buttonStyle(.plain)
+        .id(idx)
+    }
+
+    private struct ExerciseMapGroup: Identifiable {
+        let indices: [Int]
+        let isSupersetPair: Bool
+
+        var id: String {
+            indices.map(String.init).joined(separator: "-")
+        }
     }
 }
 

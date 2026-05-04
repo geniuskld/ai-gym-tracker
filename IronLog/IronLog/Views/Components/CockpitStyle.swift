@@ -8,9 +8,11 @@ enum CockpitPalette {
     static let muted = Color.white.opacity(0.54)
     static let faint = Color.white.opacity(0.30)
     static let blue = Color(red: 0.22, green: 0.56, blue: 1.0)
+    static let cyan = Color(red: 0.22, green: 0.78, blue: 0.95)
     static let green = Color(red: 0.35, green: 0.80, blue: 0.38)
     static let amber = Color(red: 1.0, green: 0.62, blue: 0.22)
     static let purple = Color(red: 0.62, green: 0.42, blue: 1.0)
+    static let magenta = Color(red: 0.92, green: 0.36, blue: 0.88)
     static let red = Color(red: 1.0, green: 0.32, blue: 0.32)
 }
 

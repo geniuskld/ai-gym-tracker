@@ -381,72 +381,18 @@ struct WorkoutDetailView: View {
     @State private var showShareSheet = false
 
     var body: some View {
-        List {
-            Section("Summary") {
-                LabeledContent(
-                    "Date",
-                    value: workout.startedAt.formatted(
-                        .dateTime.day().month(.abbreviated).year().hour().minute()
-                    )
-                )
-                if let dur = workout.durationMinutes {
-                    LabeledContent("Duration", value: "\(Int(dur)) min")
-                }
-                if let effort = workout.perceivedEffort {
-                    let label = switch effort {
-                    case 1: "Easy"
-                    case 2: "Moderate"
-                    case 3: "Hard"
-                    default: "?"
-                    }
-                    LabeledContent("Effort", value: label)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                WorkoutDetailSummaryCard(workout: workout)
+
+                ForEach(sortedExercises) { exLog in
+                    StrengthExerciseDetailCard(exercise: exLog)
                 }
             }
-
-            let sortedExercises = workout.exercises.sorted { $0.order < $1.order }
-            ForEach(sortedExercises) { exLog in
-                Section(exLog.exerciseName) {
-                    let sortedSets = exLog.sets.sorted { $0.setNumber < $1.setNumber }
-                    ForEach(sortedSets) { setLog in
-                        HStack {
-                            Text("Set \(setLog.setNumber)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 50, alignment: .leading)
-
-                            if setLog.setType != "working" {
-                                Text(setLog.setType)
-                                    .font(.caption2)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 1)
-                                    .background(.quaternary)
-                                    .clipShape(Capsule())
-                            }
-
-                            Spacer()
-
-                            if let w = setLog.weightKg {
-                                Text("\(formatWeight(w)) kg")
-                                    .font(.subheadline.weight(.medium))
-                            }
-
-                            if let r = setLog.reps {
-                                Text("\(r) reps")
-                                    .font(.subheadline)
-                            }
-
-                            if setLog.failed {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.orange)
-                                    .font(.caption)
-                            }
-                        }
-                    }
-                }
-            }
+            .padding(16)
+            .padding(.bottom, 26)
         }
-        .scrollContentBackground(.hidden)
-        .background(CockpitPalette.background)
+        .background(CockpitPalette.background.ignoresSafeArea())
         .navigationTitle(workout.templateName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(CockpitPalette.background, for: .navigationBar)
@@ -463,6 +409,10 @@ struct WorkoutDetailView: View {
             }
         }
     }
+
+    private var sortedExercises: [SDExerciseLog] {
+        workout.exercises.sorted { $0.order < $1.order }
+    }
 }
 
 // MARK: - Cycling Detail
@@ -471,48 +421,29 @@ struct CyclingWorkoutDetailView: View {
     let workout: SDCyclingWorkout
 
     var body: some View {
-        List {
-            Section("Summary") {
-                LabeledContent(
-                    "Date",
-                    value: workout.startedAt.formatted(
-                        .dateTime.day().month(.abbreviated).year().hour().minute()
-                    )
-                )
-                LabeledContent(
-                    "Duration",
-                    value: formatDuration(workout.totalDurationSeconds)
-                )
-                if workout.hadHrSource {
-                    if let avg = workout.averageHr {
-                        LabeledContent("Average HR", value: "\(avg) bpm")
-                    }
-                    if let max = workout.maxHr {
-                        LabeledContent("Max HR", value: "\(max) bpm")
-                    }
-                } else {
-                    LabeledContent("Heart rate", value: "no source")
-                }
-                if let cal = workout.calories {
-                    LabeledContent("Calories", value: "\(cal) kcal")
-                }
-                if let effort = workout.perceivedEffort {
-                    LabeledContent("Effort", value: "\(effort) / 10")
-                }
-                if let notes = workout.workoutNotes, !notes.isEmpty {
-                    Text(notes).font(.caption).foregroundStyle(.secondary)
-                }
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                CyclingDetailSummaryCard(workout: workout)
 
-            Section("Segments") {
-                let sortedSegs = workout.segments.sorted { $0.sortOrder < $1.sortOrder }
-                ForEach(sortedSegs) { seg in
-                    cyclingSegmentRow(seg)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Segments")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(CockpitPalette.muted)
+                        .padding(.horizontal, 2)
+
+                    ForEach(sortedSegments) { seg in
+                        CyclingSegmentDetailCard(seg: seg)
+                    }
                 }
             }
+            .padding(16)
+            .padding(.bottom, 26)
         }
+        .background(CockpitPalette.background.ignoresSafeArea())
         .navigationTitle(workout.templateName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ShareLink(
@@ -526,45 +457,311 @@ struct CyclingWorkoutDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func cyclingSegmentRow(_ seg: SDCyclingSegmentLog) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Image(systemName: kindIcon(seg.kind))
-                    .foregroundStyle(kindColor(seg.kind))
-                    .font(.caption)
-                Text(seg.name).font(.subheadline)
-                Spacer()
-                Text(formatDuration(seg.durationSecondsActual))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if seg.skipped {
-                    Text("skipped")
-                        .font(.caption2)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(.orange.opacity(0.15))
-                        .foregroundStyle(.orange)
-                        .clipShape(Capsule())
+    private var sortedSegments: [SDCyclingSegmentLog] {
+        workout.segments.sorted { $0.sortOrder < $1.sortOrder }
+    }
+}
+
+private struct WorkoutDetailSummaryCard: View {
+    let workout: SDWorkout
+
+    var body: some View {
+        CockpitPanel(spacing: 14) {
+            DetailSectionHeader(title: "Summary", icon: "chart.bar.doc.horizontal")
+
+            DetailMetricGrid {
+                DetailMetricTile(
+                    label: "Date",
+                    value: workout.startedAt.formatted(.dateTime.day().month(.abbreviated).year()),
+                    footnote: workout.startedAt.formatted(.dateTime.hour().minute()),
+                    tint: CockpitPalette.blue
+                )
+
+                if let dur = workout.durationMinutes {
+                    DetailMetricTile(
+                        label: "Duration",
+                        value: "\(Int(dur))",
+                        footnote: "min",
+                        tint: .primary
+                    )
+                }
+
+                if let effort = workout.perceivedEffort {
+                    let info = strengthEffortInfo(effort)
+                    DetailMetricTile(
+                        label: "Effort",
+                        value: info.label,
+                        footnote: "session",
+                        tint: info.color
+                    )
+                }
+
+                DetailMetricTile(
+                    label: "Exercises",
+                    value: "\(workout.exercises.count)",
+                    footnote: "logged",
+                    tint: CockpitPalette.muted
+                )
+            }
+        }
+    }
+}
+
+private struct CyclingDetailSummaryCard: View {
+    let workout: SDCyclingWorkout
+
+    var body: some View {
+        CockpitPanel(spacing: 14) {
+            DetailSectionHeader(title: "Summary", icon: "chart.bar.doc.horizontal")
+
+            DetailMetricGrid {
+                DetailMetricTile(
+                    label: "Date",
+                    value: workout.startedAt.formatted(.dateTime.day().month(.abbreviated).year()),
+                    footnote: workout.startedAt.formatted(.dateTime.hour().minute()),
+                    tint: CockpitPalette.blue
+                )
+                DetailMetricTile(
+                    label: "Duration",
+                    value: formatDuration(workout.totalDurationSeconds),
+                    footnote: "total",
+                    tint: .primary
+                )
+                if workout.hadHrSource {
+                    DetailMetricTile(
+                        label: "Avg HR",
+                        value: workout.averageHr.map(String.init) ?? "-",
+                        footnote: "bpm",
+                        tint: CockpitPalette.green
+                    )
+                    DetailMetricTile(
+                        label: "Max HR",
+                        value: workout.maxHr.map(String.init) ?? "-",
+                        footnote: "bpm",
+                        tint: CockpitPalette.amber
+                    )
+                } else {
+                    DetailMetricTile(
+                        label: "Heart rate",
+                        value: "No",
+                        footnote: "source",
+                        tint: CockpitPalette.faint
+                    )
+                }
+                if let cal = workout.calories {
+                    DetailMetricTile(
+                        label: "Calories",
+                        value: "\(cal)",
+                        footnote: "kcal",
+                        tint: CockpitPalette.muted
+                    )
+                }
+                if let effort = workout.perceivedEffort {
+                    DetailMetricTile(
+                        label: "Effort",
+                        value: "\(effort)/10",
+                        footnote: "session",
+                        tint: cyclingEffortColor(effort)
+                    )
                 }
             }
+
+            if let notes = workout.workoutNotes, !notes.isEmpty {
+                Text(notes)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(CockpitPalette.muted)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(CockpitPalette.panelElevated.opacity(0.60), in: RoundedRectangle(cornerRadius: 10))
+            }
+        }
+    }
+}
+
+private struct StrengthExerciseDetailCard: View {
+    let exercise: SDExerciseLog
+
+    var body: some View {
+        CockpitPanel(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(exercise.exerciseName)
+                        .font(.title3.weight(.bold))
+                        .lineLimit(2)
+
+                    HStack(spacing: 7) {
+                        if let bodyPart = exercise.bodyPart, !bodyPart.isEmpty {
+                            CockpitChip(
+                                text: bodyPartLabel(bodyPart),
+                                color: CockpitPalette.muted,
+                                systemImage: "scope"
+                            )
+                        }
+                        if let rating = exercise.exerciseRating {
+                            CockpitChip(
+                                text: ratingLabel(rating),
+                                color: ratingColor(rating),
+                                systemImage: "dial.medium"
+                            )
+                        }
+                    }
+                }
+                Spacer()
+                Text("\(exercise.sets.count)")
+                    .font(.title3.weight(.bold).monospacedDigit())
+                    .foregroundStyle(CockpitPalette.muted)
+                    .accessibilityLabel("\(exercise.sets.count) sets")
+            }
+
+            VStack(spacing: 8) {
+                ForEach(sortedSets) { setLog in
+                    StrengthSetDetailRow(setLog: setLog)
+                }
+            }
+
+            if let notes = exercise.exerciseNotes, !notes.isEmpty {
+                Text(notes)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(CockpitPalette.muted)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(CockpitPalette.panelElevated.opacity(0.60), in: RoundedRectangle(cornerRadius: 10))
+            }
+        }
+    }
+
+    private var sortedSets: [SDSetLog] {
+        exercise.sets.sorted { $0.setNumber < $1.setNumber }
+    }
+}
+
+private struct StrengthSetDetailRow: View {
+    let setLog: SDSetLog
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Set \(setLog.setNumber)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(CockpitPalette.muted)
+                .frame(width: 52, alignment: .leading)
+
+            if let badge = setTypeBadge(setLog.setType) {
+                Text(badge.label)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(badge.color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(badge.color.opacity(0.14), in: Capsule())
+            }
+
+            Spacer(minLength: 8)
+
             HStack(spacing: 10) {
+                if let weight = setLog.weightKg {
+                    Text("\(formatWeight(weight)) kg")
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(1)
+                }
+                if let reps = setLog.reps {
+                    Text("\(reps) reps")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
+                }
+                if let rir = setLog.rir {
+                    Text("RIR \(rir)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(CockpitPalette.faint)
+                }
+                if setLog.failed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(CockpitPalette.amber)
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .background(CockpitPalette.panelElevated.opacity(0.60), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(alignment: .leading) {
+            if let badge = setTypeBadge(setLog.setType) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(badge.color)
+                    .frame(width: 3)
+                    .padding(.vertical, 9)
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(CockpitPalette.border)
+        }
+    }
+}
+
+private struct CyclingSegmentDetailCard: View {
+    let seg: SDCyclingSegmentLog
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: kindIcon(seg.kind))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(kindColor(seg.kind))
+                    .frame(width: 30, height: 30)
+                    .background(kindColor(seg.kind).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(seg.name)
+                        .font(.headline.weight(.semibold))
+                        .lineLimit(2)
+                    Text(kindName(seg.kind))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(kindColor(seg.kind))
+                }
+
+                Spacer()
+
+                Text(formatDuration(seg.durationSecondsActual))
+                    .font(.subheadline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.primary)
+
+                if seg.skipped {
+                    Text("Skipped")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(CockpitPalette.amber)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(CockpitPalette.amber.opacity(0.14), in: Capsule())
+                }
+            }
+
+            HStack(spacing: 8) {
                 if let lo = seg.targetMinBpm, let hi = seg.targetMaxBpm {
-                    Label("target \(lo)-\(hi)", systemImage: "scope")
+                    MiniMetricPill(label: "Target", value: "\(lo)-\(hi)", icon: "scope")
                 }
                 if let avg = seg.averageHr {
-                    Label("avg \(avg)", systemImage: "heart")
+                    MiniMetricPill(label: "Avg", value: "\(avg)", icon: "heart")
                 }
                 if let max = seg.maxHr {
-                    Label("max \(max)", systemImage: "arrow.up")
+                    MiniMetricPill(label: "Max", value: "\(max)", icon: "arrow.up")
                 }
                 if let pct = seg.inZonePct {
-                    Label("\(pct)% in zone", systemImage: "target")
+                    MiniMetricPill(label: "Zone", value: "\(pct)%", icon: "target")
                 }
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 2)
+        .padding(12)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(kindColor(seg.kind))
+                .frame(width: 4)
+                .padding(.vertical, 14)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(CockpitPalette.border)
+        }
     }
 
     private func kindIcon(_ kind: String) -> String {
@@ -589,11 +786,171 @@ struct CyclingWorkoutDetailView: View {
         }
     }
 
-    private func formatDuration(_ seconds: Int) -> String {
-        let m = seconds / 60
-        let s = seconds % 60
-        return s == 0 ? "\(m) min" : "\(m):\(String(format: "%02d", s))"
+    private func kindName(_ kind: String) -> String {
+        switch kind {
+        case "warmup": "Warmup"
+        case "work": "Work"
+        case "recovery": "Recovery"
+        case "cooldown": "Cooldown"
+        case "steady": "Steady"
+        default: kind.capitalized
+        }
     }
+}
+
+private struct DetailSectionHeader: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(CockpitPalette.blue)
+            Text(title)
+                .font(.headline.weight(.bold))
+            Spacer()
+        }
+    }
+}
+
+private struct DetailMetricGrid<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ],
+            spacing: 8
+        ) {
+            content
+        }
+    }
+}
+
+private struct DetailMetricTile: View {
+    let label: String
+    let value: String
+    let footnote: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label.uppercased())
+                .font(.caption2.weight(.heavy))
+                .foregroundStyle(CockpitPalette.faint)
+                .lineLimit(1)
+            Text(value)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
+            Text(footnote)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(CockpitPalette.muted)
+                .lineLimit(1)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CockpitPalette.panelElevated.opacity(0.70), in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(CockpitPalette.border)
+        }
+    }
+}
+
+private struct MiniMetricPill: View {
+    let label: String
+    let value: String
+    let icon: String
+
+    var body: some View {
+        Label {
+            Text("\(label) \(value)")
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        } icon: {
+            Image(systemName: icon)
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(CockpitPalette.muted)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(CockpitPalette.panelElevated.opacity(0.70), in: Capsule())
+    }
+}
+
+private func setTypeBadge(_ type: String) -> (label: String, color: Color)? {
+    switch type {
+    case "warmup": return ("Warmup", CockpitPalette.blue)
+    case "drop": return ("Drop", CockpitPalette.amber)
+    case "myo_mini": return ("Myo", CockpitPalette.magenta)
+    case "rest_pause": return ("Rest", CockpitPalette.cyan)
+    case "working": return nil
+    default: return (type.capitalized, CockpitPalette.muted)
+    }
+}
+
+private func strengthEffortInfo(_ effort: Int) -> (label: String, color: Color) {
+    switch effort {
+    case 1: return ("Easy", CockpitPalette.green)
+    case 2: return ("Moderate", CockpitPalette.amber)
+    case 3: return ("Hard", CockpitPalette.red)
+    default: return ("?", CockpitPalette.faint)
+    }
+}
+
+private func cyclingEffortColor(_ effort: Int) -> Color {
+    switch effort {
+    case 1...3: return CockpitPalette.green
+    case 4...6: return CockpitPalette.amber
+    case 7...10: return CockpitPalette.red
+    default: return CockpitPalette.faint
+    }
+}
+
+private func bodyPartLabel(_ part: String) -> String {
+    switch part {
+    case "legs": return "Legs"
+    case "chest": return "Chest"
+    case "back": return "Back"
+    case "shoulders": return "Shoulders"
+    case "biceps": return "Biceps"
+    case "triceps": return "Triceps"
+    case "core": return "Core"
+    default: return part.capitalized
+    }
+}
+
+private func ratingLabel(_ rating: Int) -> String {
+    switch rating {
+    case 1: return "Easy"
+    case 2: return "OK"
+    case 3: return "Heavy"
+    default: return "\(rating)"
+    }
+}
+
+private func ratingColor(_ rating: Int) -> Color {
+    switch rating {
+    case 1: return CockpitPalette.green
+    case 2: return CockpitPalette.blue
+    case 3: return CockpitPalette.red
+    default: return CockpitPalette.muted
+    }
+}
+
+private func formatDuration(_ seconds: Int) -> String {
+    let m = seconds / 60
+    let s = seconds % 60
+    return s == 0 ? "\(m) min" : "\(m):\(String(format: "%02d", s))"
 }
 
 // MARK: - Weight formatting
