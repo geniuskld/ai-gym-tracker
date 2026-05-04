@@ -76,6 +76,7 @@
 		E1640826D9A876D44B9F44B2 /* SDCyclingSegmentLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E289292E564DD3D3113C78A0 /* SDCyclingSegmentLog.swift */; };
 		E43F626CC232F119D785028C /* PlanPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3035AF16DE4D010D9C31C4E /* PlanPreviewView.swift */; };
 		EAACD7AF2DE110454146B34B /* DropSetFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184AEC4798A01217D8D2F3A9 /* DropSetFlow.swift */; };
+		ED712A9C132C9EEE69B6F979 /* CockpitStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2331C7D451D8A7DA1814F048 /* CockpitStyle.swift */; };
 		EDD30BF16657F5091FB3376F /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A8C2C14022779DBC148F74 /* SyncService.swift */; };
 		F56862CBBA3A450A3DA289C3 /* WorkoutSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93AE250CC54489209C476385 /* WorkoutSessionManager.swift */; };
 		F82480CA37A2D51DA8E18AB1 /* CyclingActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55A2A16AA4BFDBF6B4689243 /* CyclingActivity.swift */; };
@@ -142,6 +143,7 @@
 		16399A713C26691F71D422DB /* RestTimerLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerLiveActivity.swift; sourceTree = "<group>"; };
 		184AEC4798A01217D8D2F3A9 /* DropSetFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropSetFlow.swift; sourceTree = "<group>"; };
 		1F46E70311C07938FF5503EB /* WatchHRSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHRSource.swift; sourceTree = "<group>"; };
+		2331C7D451D8A7DA1814F048 /* CockpitStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CockpitStyle.swift; sourceTree = "<group>"; };
 		244B3A753BA03F21233D6AF0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		24A891923982896DEF5DFCF9 /* SDTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDTemplate.swift; sourceTree = "<group>"; };
 		32F525BCBC44EAA20594F626 /* IronLogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IronLogApp.swift; sourceTree = "<group>"; };
@@ -409,6 +411,7 @@
 		D87D2D361FBB02D81C551C56 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				2331C7D451D8A7DA1814F048 /* CockpitStyle.swift */,
 				0D15A951D7737F5ACA57183F /* SlideButton.swift */,
 			);
 			path = Components;
@@ -639,6 +642,7 @@
 			files = (
 				5583CCA0C1E27B0C78C7A170 /* ActiveWorkoutView.swift in Sources */,
 				5AF7E9804A9470BDF9CE2316 /* ActiveWorkoutViewModel.swift in Sources */,
+				ED712A9C132C9EEE69B6F979 /* CockpitStyle.swift in Sources */,
 				AA09D5E9DA193BDF2547268E /* ContentView.swift in Sources */,
 				C1FAA1D373A8236A51A5A342 /* CrashReporter.swift in Sources */,
 				B3F7104A1ACA09E52BCB1811 /* CyclingActivity.swift in Sources */,

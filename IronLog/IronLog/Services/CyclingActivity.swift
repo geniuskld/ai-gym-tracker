@@ -114,9 +114,16 @@ final class CyclingActivityManager {
     }
 
     func end() {
-        guard let activity = currentActivity else { return }
+        let activityToEnd = currentActivity
+        let currentId = activityToEnd?.id
+        let lingeringActivities = Activity<CyclingActivityAttributes>.activities
         Task {
-            await activity.end(nil, dismissalPolicy: .immediate)
+            if let activityToEnd {
+                await activityToEnd.end(nil, dismissalPolicy: .immediate)
+            }
+            for activity in lingeringActivities where activity.id != currentId {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
         }
         currentActivity = nil
     }

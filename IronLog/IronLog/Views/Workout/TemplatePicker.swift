@@ -204,6 +204,7 @@ struct TemplatePicker: View {
             }
             .onAppear {
                 migrateLegacySelectionIfNeeded()
+                cleanupOrphanWorkoutRuntimeIfNeeded()
                 if !didAutoResume {
                     // Cycling resume takes priority -- it's the case where
                     // the Live Activity sent the user back here. Strength
@@ -273,8 +274,13 @@ struct TemplatePicker: View {
                     TemplateRow(template: template) {
                         requestStartStrength(template)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(CockpitPalette.background)
         case .cycling(let sd):
             List {
                 activeWorkoutSections
@@ -283,8 +289,13 @@ struct TemplatePicker: View {
                     CyclingTemplateRow(template: template) {
                         requestStartCycling(plan: sd, template: template)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(CockpitPalette.background)
         }
     }
 
@@ -443,6 +454,7 @@ struct TemplatePicker: View {
         _ workout: SDWorkout,
         message: String = "Workout closed."
     ) {
+        cleanupStrengthWorkoutRuntime()
         let finishedAt = Date.now
         workout.finishedAt = finishedAt
         if workout.durationMinutes == nil {
@@ -455,6 +467,7 @@ struct TemplatePicker: View {
         _ workout: SDCyclingWorkout,
         message: String = "Cycling workout closed."
     ) {
+        cleanupCyclingWorkoutRuntime()
         let finishedAt = Date.now
         workout.finishedAt = finishedAt
         if workout.totalDurationSeconds == 0 {
@@ -467,11 +480,13 @@ struct TemplatePicker: View {
     }
 
     private func discardStrengthWorkout(_ workout: SDWorkout) {
+        cleanupStrengthWorkoutRuntime()
         context.delete(workout)
         saveRecoveryChange(successMessage: "Workout discarded.")
     }
 
     private func discardCyclingWorkout(_ workout: SDCyclingWorkout) {
+        cleanupCyclingWorkoutRuntime()
         context.delete(workout)
         saveRecoveryChange(successMessage: "Cycling workout discarded.")
     }
@@ -550,14 +565,36 @@ struct TemplatePicker: View {
     }
 
     private func discardActiveWorkouts() {
-        vm.reset()
-        cyclingVM.reset()
+        cleanupStrengthWorkoutRuntime()
+        cleanupCyclingWorkoutRuntime()
         if let activeWorkout {
             context.delete(activeWorkout)
         }
         if let activeCyclingWorkout {
             context.delete(activeCyclingWorkout)
         }
+    }
+
+    private func cleanupStrengthWorkoutRuntime() {
+        vm.reset()
+        RestTimerService.cancelPendingNotification()
+        RestTimerActivityManager.shared.endIfNeeded()
+        WorkoutSessionManager.shared.stopMirroring()
+    }
+
+    private func cleanupCyclingWorkoutRuntime() {
+        cyclingVM.reset()
+        CyclingNotificationScheduler.cancelAll()
+        CyclingActivityManager.shared.end()
+    }
+
+    private func cleanupOrphanWorkoutRuntimeIfNeeded() {
+        guard !hasActiveWorkout else { return }
+        RestTimerService.cancelPendingNotification()
+        RestTimerActivityManager.shared.endIfNeeded()
+        CyclingNotificationScheduler.cancelAll()
+        CyclingActivityManager.shared.end()
+        WorkoutSessionManager.shared.stopMirroring()
     }
 }
 
@@ -572,18 +609,22 @@ private struct ResumeRow: View {
 
     var body: some View {
         Button(action: onResume) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(
-                        title,
-                        systemImage: systemImage
-                    )
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
                     .font(.headline)
                     .foregroundStyle(tint)
+                    .frame(width: 36, height: 36)
+                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
 
                     Text(detail)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -592,8 +633,16 @@ private struct ResumeRow: View {
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(tint)
             }
-            .padding(.vertical, 4)
+            .padding(12)
+            .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(tint.opacity(0.28))
+            }
         }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 
@@ -605,29 +654,37 @@ private struct TemplateRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(template.name)
-                    .font(.headline)
-
+            CockpitPanel(spacing: 12) {
                 let groups = template.groups.sorted { $0.sortOrder < $1.sortOrder }
                 let exerciseCount = groups.reduce(0) { $0 + $1.exercises.count }
 
+                HStack(alignment: .firstTextBaseline) {
+                    Text(template.name)
+                        .font(.title3.weight(.bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Spacer()
+                    Image(systemName: "play.fill")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(CockpitPalette.blue)
+                }
+
                 HStack(spacing: 12) {
-                    Label(
-                        "\(exerciseCount) exercises",
+                    CockpitChip(
+                        text: "\(exerciseCount) exercises",
+                        color: CockpitPalette.blue,
                         systemImage: "figure.strengthtraining.traditional"
                     )
 
                     let groupNames = groups.map(\.name).joined(separator: " / ")
                     Text(groupNames)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(CockpitPalette.muted)
                         .lineLimit(1)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 4)
         }
-        .foregroundStyle(.primary)
+        .buttonStyle(.plain)
     }
 }
 
@@ -639,29 +696,36 @@ private struct CyclingTemplateRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(template.name)
-                    .font(.headline)
-
+            CockpitPanel(spacing: 12) {
                 let totalSec = CyclingExpander.totalDuration(for: template)
                 let stepCount = CyclingExpander.expand(template).count
 
-                HStack(spacing: 12) {
-                    Label(
-                        formatMinutes(totalSec),
+                HStack(alignment: .firstTextBaseline) {
+                    Text(template.name)
+                        .font(.title3.weight(.bold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                    Spacer()
+                    Image(systemName: "play.fill")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(CockpitPalette.blue)
+                }
+
+                HStack(spacing: 10) {
+                    CockpitChip(
+                        text: formatMinutes(totalSec),
+                        color: CockpitPalette.blue,
                         systemImage: "clock"
                     )
-                    Label(
-                        "\(stepCount) steps",
+                    CockpitChip(
+                        text: "\(stepCount) steps",
+                        color: CockpitPalette.muted,
                         systemImage: "list.number"
                     )
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 4)
         }
-        .foregroundStyle(.primary)
+        .buttonStyle(.plain)
     }
 
     private func formatMinutes(_ seconds: Int) -> String {

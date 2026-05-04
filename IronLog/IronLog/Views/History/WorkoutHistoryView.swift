@@ -66,9 +66,14 @@ struct WorkoutHistoryView: View {
                             }
                         }
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(CockpitPalette.background)
                 }
             }
             .navigationTitle("History")
+            .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -103,6 +108,8 @@ struct WorkoutHistoryView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     @ViewBuilder
@@ -134,6 +141,8 @@ struct WorkoutHistoryView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     // MARK: - Actions
@@ -196,15 +205,16 @@ private struct StrengthWorkoutRow: View {
     var isSyncing: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Image(systemName: "dumbbell.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(CockpitPalette.blue)
                             .font(.caption)
                         Text(workout.templateName)
-                            .font(.headline)
+                            .font(.headline.weight(.bold))
+                            .lineLimit(1)
                     }
                     if let plan = workout.planName {
                         HStack(spacing: 4) {
@@ -214,7 +224,8 @@ private struct StrengthWorkoutRow: View {
                             }
                         }
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
                     }
                 }
                 Spacer()
@@ -235,9 +246,14 @@ private struct StrengthWorkoutRow: View {
                 )
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(CockpitPalette.muted)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(CockpitPalette.border)
+        }
     }
 }
 
@@ -248,15 +264,16 @@ private struct CyclingWorkoutRow: View {
     var isSyncing: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Image(systemName: "bicycle")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(CockpitPalette.blue)
                             .font(.caption)
                         Text(workout.templateName)
-                            .font(.headline)
+                            .font(.headline.weight(.bold))
+                            .lineLimit(1)
                     }
                     if let plan = workout.planName {
                         HStack(spacing: 4) {
@@ -266,7 +283,8 @@ private struct CyclingWorkoutRow: View {
                             }
                         }
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
                     }
                 }
                 Spacer()
@@ -288,9 +306,14 @@ private struct CyclingWorkoutRow: View {
                 Label("\(workout.segments.count) segments", systemImage: "list.number")
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(CockpitPalette.muted)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(CockpitPalette.border)
+        }
     }
 }
 
@@ -422,8 +445,12 @@ struct WorkoutDetailView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(CockpitPalette.background)
         .navigationTitle(workout.templateName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ShareLink(

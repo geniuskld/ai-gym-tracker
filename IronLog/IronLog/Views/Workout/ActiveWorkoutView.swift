@@ -3,19 +3,15 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Bindable var vm: ActiveWorkoutViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showExerciseList = false
     @State private var showNoteSheet = false
     #if DEBUG
     @State private var showDebugLog = false
     #endif
 
     var body: some View {
-        VStack(spacing: 0) {
-            ProgressView(
-                value: Double(vm.completedSetsCount),
-                total: Double(max(vm.totalSetsCount, 1))
-            )
-            .tint(.green)
-
+        ZStack {
+            CockpitPalette.background.ignoresSafeArea()
             switch vm.setPhase {
             case .ready:
                 ReadyPhaseView(vm: vm)
@@ -26,10 +22,25 @@ struct ActiveWorkoutView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("\(vm.completedExercisesCount)/\(vm.exercises.count)")
-                    .font(.subheadline.weight(.medium))
+                Button {
+                    showExerciseList = true
+                } label: {
+                    Text(progressTitle)
+                        .font(.caption.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(CockpitPalette.panelElevated, in: Capsule())
+                        .overlay {
+                            Capsule().strokeBorder(CockpitPalette.border)
+                        }
+                }
+                .buttonStyle(.plain)
             }
             ToolbarItem(placement: .confirmationAction) {
                 HStack(spacing: 12) {
@@ -43,8 +54,15 @@ struct ActiveWorkoutView: View {
                 }
             }
             ToolbarItem(placement: .cancellationAction) {
-                ExerciseListButton(vm: vm)
+                Button {
+                    showExerciseList = true
+                } label: {
+                    Image(systemName: "list.bullet")
+                }
             }
+        }
+        .sheet(isPresented: $showExerciseList) {
+            ExerciseListSheet(vm: vm, isPresented: $showExerciseList)
         }
         .sheet(isPresented: $showNoteSheet) {
             ExerciseNoteSheet(vm: vm)
@@ -90,6 +108,12 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    private var progressTitle: String {
+        guard !vm.exercises.isEmpty else { return "Exercise 0/0" }
+        let current = min(vm.currentExerciseIndex + 1, vm.exercises.count)
+        return "Exercise \(current)/\(vm.exercises.count)"
+    }
+
     private var isFinishing: Binding<Bool> {
         Binding(
             get: {
@@ -105,56 +129,74 @@ struct ActiveWorkoutView: View {
 
 private struct ReadyPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
+    @State private var showFullHint = false
 
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 14) {
+                ExerciseProgressCells(vm: vm)
 
-            ExerciseHeader(vm: vm)
+                ExerciseHeader(vm: vm)
 
-            if !vm.flowInstruction.isEmpty {
-                let isDrop = vm.currentSet?.type == "drop"
-                Text(vm.flowInstruction)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(isDrop ? .orange : .primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-
-            SetRoadmap(vm: vm)
-
-            Spacer()
-
-            // Weight preview (will be adjustable on performing screen)
-            let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight ?? 0
-            if w > 0 {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(formatted(w))")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                    Text("kg")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
+                if let hint = vm.currentExercise?.notes, !hint.isEmpty {
+                    ExerciseHintPanel(
+                        hint: hint,
+                        isExpanded: $showFullHint
+                    )
                 }
-            }
 
-            Button {
-                vm.readySlideRight()
-            } label: {
-                Label("Start", systemImage: "play.fill")
-                    .font(.title3.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
-            .padding(.horizontal, 32)
+                if !vm.flowInstruction.isEmpty {
+                    FlowInstructionPanel(
+                        text: vm.flowInstruction,
+                        isDrop: vm.currentSet?.type == "drop"
+                    )
+                }
 
-            Button("Skip exercise") { vm.skipExercise() }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 16)
+                SetRoadmap(vm: vm)
+
+                if let w = vm.currentSet?.weightKg ?? vm.lastCompletedWeight, w > 0 {
+                    CockpitPanel(spacing: 4, padding: 12) {
+                        Text("Planned load")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(CockpitPalette.faint)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(formatWeight(w))
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                            Text("kg")
+                                .font(.callout)
+                                .foregroundStyle(CockpitPalette.muted)
+                        }
+                    }
+                }
+
+                Spacer(minLength: 8)
+            }
+            .padding(16)
         }
-        .padding()
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 10) {
+                Button {
+                    vm.readySlideRight()
+                } label: {
+                    Label("Start set", systemImage: "play.fill")
+                        .font(.title3.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(CockpitPrimaryButtonStyle(tint: CockpitPalette.blue))
+
+                Button("Skip exercise") { vm.skipExercise() }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(CockpitPalette.muted)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(CockpitPalette.background.opacity(0.96))
+        }
+        .onChange(of: vm.currentExerciseIndex) { _, _ in
+            showFullHint = false
+        }
     }
 }
 
@@ -164,98 +206,64 @@ private struct PerformingPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
     @State private var weight: Double = 0
     @State private var reps: Int = 10
+    @State private var showFullHint = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        VStack(spacing: 14) {
+            ExerciseProgressCells(vm: vm)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
 
-            // Timer -- hero element
-            Text(vm.setStopwatch.formattedTime)
-                .font(.system(size: 72, weight: .thin, design: .monospaced))
-                .monospacedDigit()
+            Spacer(minLength: 8)
 
-            Spacer()
+            VStack(spacing: 10) {
+                Text(vm.setStopwatch.formattedTime)
+                    .font(.system(size: 78, weight: .thin, design: .monospaced))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
 
-            // Weight + reps -- compact row
-            HStack(spacing: 24) {
-                // Weight
-                if vm.flowLockWeight {
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("\(Int(weight))")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                        Text("kg")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Button { weight = max(0, weight - 1) } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 28))
-                                .frame(width: 44, height: 44)
-                        }
-                        .tint(.secondary)
-                        .accessibilityLabel("Decrease weight")
-                        .accessibilityValue("\(Int(weight)) kg")
-
-                        HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text("\(Int(weight))")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                            Text("kg")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(minWidth: 64)
-
-                        Button { weight += 1 } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 28))
-                                .frame(width: 44, height: 44)
-                        }
-                        .tint(.secondary)
-                        .accessibilityLabel("Increase weight")
-                        .accessibilityValue("\(Int(weight)) kg")
-                    }
-                }
-
-                // Divider
-                Rectangle()
-                    .fill(.tertiary)
-                    .frame(width: 1, height: 32)
-
-                // Reps
-                HStack(spacing: 8) {
-                    Button { reps = max(1, reps - 1) } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.system(size: 28))
-                            .frame(width: 44, height: 44)
-                    }
-                    .tint(.secondary)
-                    .accessibilityLabel("Decrease reps")
-                    .accessibilityValue("\(reps)")
-
-                    VStack(spacing: 0) {
-                        Text("\(reps)")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                        Text("reps")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(minWidth: 44)
-
-                    Button { reps += 1 } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28))
-                            .frame(width: 44, height: 44)
-                    }
-                    .tint(.secondary)
-                    .accessibilityLabel("Increase reps")
-                    .accessibilityValue("\(reps)")
-                }
+                Text(motivationText)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(CockpitPalette.muted)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.bottom, 32)
+            .padding(.horizontal, 20)
 
-            // Done button
+            if let hint = vm.currentExercise?.notes, !hint.isEmpty {
+                CollapsedHintLine(
+                    hint: hint,
+                    isExpanded: $showFullHint
+                )
+                .padding(.horizontal, 16)
+            }
+
+            CurrentSetPanel(vm: vm)
+                .padding(.horizontal, 16)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 12) {
+                EditableMetricPanel(
+                    title: "Weight",
+                    value: formatWeight(weight),
+                    unit: "kg",
+                    isLocked: vm.flowLockWeight,
+                    decrement: { weight = max(0, weight - weightStep) },
+                    increment: { weight += weightStep }
+                )
+
+                EditableMetricPanel(
+                    title: "Reps",
+                    value: "\(reps)",
+                    unit: "reps",
+                    isLocked: false,
+                    decrement: { reps = max(1, reps - 1) },
+                    increment: { reps += 1 }
+                )
+            }
+            .padding(.horizontal, 16)
+
             Button {
                 vm.confirmPerforming(weight: weight, reps: reps)
             } label: {
@@ -264,16 +272,29 @@ private struct PerformingPhaseView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-            .padding(.horizontal, 32)
-            .padding(.bottom, 32)
+            .buttonStyle(CockpitPrimaryButtonStyle(tint: CockpitPalette.green))
+            .padding(.horizontal, 16)
+            .padding(.bottom, 14)
         }
-        .padding()
+        .background(CockpitPalette.background)
         .onAppear {
             weight = vm.currentSet?.weightKg ?? vm.lastCompletedWeight ?? 0
             reps = vm.currentSet?.prescribedReps ?? 10
         }
+        .onChange(of: vm.currentExerciseIndex) { _, _ in
+            showFullHint = false
+        }
+    }
+
+    private var weightStep: Double {
+        weight.truncatingRemainder(dividingBy: 1) == 0 ? 1 : 0.5
+    }
+
+    private var motivationText: String {
+        if let tempo = vm.currentExercise?.tempo, !tempo.isEmpty {
+            return "Tempo \(tempo). Smooth reps."
+        }
+        return "Hold top 1 sec. Smooth reps."
     }
 }
 
@@ -283,51 +304,51 @@ private struct RestingPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
-            ExerciseHeader(vm: vm)
-            SetRoadmap(vm: vm, condensed: true)
+        VStack(spacing: 16) {
+            ExerciseProgressCells(vm: vm)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+            NextSetPanel(title: "Next", value: nextLabel)
+                .padding(.horizontal, 16)
 
             Spacer()
 
-            // Circle timer button
             Button {
                 vm.onRestFinished()
             } label: {
                 let overtime = vm.restTimer.isOvertime
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Text(vm.restTimer.formattedTime)
-                        .font(.system(size: 44, weight: .light, design: .monospaced))
-                    Text(nextLabel)
-                        .font(.callout.weight(.semibold))
-                        .textCase(.uppercase)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 180)
+                        .font(.system(size: 58, weight: .light, design: .monospaced))
+                        .monospacedDigit()
+                    Text("Tap timer to start now")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.58))
                 }
                 .foregroundStyle(.white)
-                .frame(width: 220, height: 220)
+                .frame(width: 238, height: 238)
                 .background(
-                    Circle().fill(overtime ? .yellow.opacity(0.3) : .blue.opacity(0.25))
+                    Circle().fill(overtime ? CockpitPalette.amber.opacity(0.24) : CockpitPalette.blue.opacity(0.22))
                 )
                 .overlay {
                     Circle()
-                        .stroke(overtime ? .yellow.opacity(0.2) : .blue.opacity(0.2), lineWidth: 5)
+                        .stroke(overtime ? CockpitPalette.amber.opacity(0.20) : CockpitPalette.blue.opacity(0.22), lineWidth: 6)
                     Circle()
                         .trim(from: 0, to: 1.0 - vm.restTimer.progress)
                         .stroke(
-                            overtime ? .yellow : .blue,
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                            overtime ? CockpitPalette.amber : CockpitPalette.blue,
+                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
                         .animation(.linear(duration: 0.5), value: vm.restTimer.progress)
                 }
             }
             .buttonStyle(.plain)
-            .shadow(color: vm.restTimer.isOvertime ? .yellow.opacity(0.4) : .blue.opacity(0.4), radius: 12)
+            .shadow(color: vm.restTimer.isOvertime ? CockpitPalette.amber.opacity(0.32) : CockpitPalette.blue.opacity(0.30), radius: 14)
 
             Spacer()
 
-            // Show rating buttons during rest before next exercise
             if vm.isRestBeforeNextExercise {
                 InlineRatingBar(vm: vm)
                     .padding(.bottom, 16)
@@ -340,7 +361,7 @@ private struct RestingPhaseView: View {
                 Spacer()
             }
         }
-        .padding()
+        .background(CockpitPalette.background)
     }
 
     private var nextLabel: String {
@@ -368,53 +389,71 @@ private struct ExerciseHeader: View {
     let vm: ActiveWorkoutViewModel
     var body: some View {
         if let ex = vm.currentExercise {
-            VStack(spacing: 6) {
-                // Superset: prominent label + both exercises
+            CockpitPanel(spacing: 10) {
                 if let partnerIdx = ex.supersetPartnerIndex {
-                    Label("Superset", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(.purple)
+                    CockpitChip(
+                        text: "Superset",
+                        color: CockpitPalette.purple,
+                        systemImage: "arrow.triangle.2.circlepath"
+                    )
 
                     Text(ex.name)
                         .font(.title2.weight(.bold))
-                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
 
                     Text(vm.exercises[partnerIdx].name)
                         .font(.subheadline)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(CockpitPalette.muted)
                 } else {
                     Text(ex.name)
                         .font(.title2.weight(.bold))
-                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
 
-                    // Technique badge (non-superset) -- large so user notices the technique
-                    if let name = vm.currentFlow?.displayName {
-                        Text(name.uppercased())
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(techniqueBadgeColor(ex.technique))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                            .background(techniqueBadgeColor(ex.technique).opacity(0.15), in: Capsule())
+                    HStack(spacing: 8) {
+                        CockpitChip(
+                            text: bodyPartLabel(ex.bodyPart),
+                            color: CockpitPalette.muted,
+                            systemImage: "scope"
+                        )
+                        if let equipment = ex.equipment, !equipment.isEmpty {
+                            CockpitChip(
+                                text: equipment,
+                                color: CockpitPalette.faint,
+                                systemImage: "wrench.and.screwdriver"
+                            )
+                        }
+                        if let name = vm.currentFlow?.displayName {
+                            CockpitChip(
+                                text: name,
+                                color: techniqueBadgeColor(ex.technique)
+                            )
+                        }
                     }
                 }
-
-                if let notes = ex.notes, !notes.isEmpty {
-                    Text(notes)
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
             }
+            .padding(.horizontal, 16)
         }
     }
 
     private func techniqueBadgeColor(_ technique: String) -> Color {
         switch technique {
-        case "drop_set":   return .orange
-        case "rest_pause": return .blue
-        case "myo_reps":   return .purple
-        default:           return .secondary
+        case "drop_set":   return CockpitPalette.amber
+        case "rest_pause": return CockpitPalette.blue
+        case "myo_reps":   return CockpitPalette.purple
+        default:           return CockpitPalette.muted
+        }
+    }
+
+    private func bodyPartLabel(_ part: String) -> String {
+        switch part {
+        case "legs": return "Legs"
+        case "chest": return "Chest"
+        case "back": return "Back"
+        case "shoulders": return "Shoulders"
+        case "biceps": return "Biceps"
+        case "triceps": return "Triceps"
+        case "core": return "Core"
+        default: return part.capitalized
         }
     }
 }
@@ -424,39 +463,44 @@ private struct SetRoadmap: View {
     var condensed: Bool = false
 
     var body: some View {
-        guard let ex = vm.currentExercise else { return AnyView(EmptyView()) }
-        let sets = ex.sets
-        let activeIdx = vm.currentSetIndex
+        if let ex = vm.currentExercise {
+            CockpitPanel(spacing: 8) {
+                HStack {
+                    Text("Sets")
+                        .font(.headline.weight(.semibold))
+                    Spacer()
+                    Text("\(ex.sets.filter(\.isCompleted).count)/\(ex.sets.count)")
+                        .font(.caption.weight(.bold).monospacedDigit())
+                        .foregroundStyle(CockpitPalette.muted)
+                }
 
-        // For myo-reps with many sets, show condensed summary
-        if condensed && sets.count > 6 {
-            return AnyView(condensedView(sets: sets))
-        }
+                let completedCount = ex.sets.filter(\.isCompleted).count
+                if completedCount > 0 {
+                    CompletedSetsRow(count: completedCount)
+                }
 
-        return AnyView(
-            VStack(spacing: 2) {
-                ForEach(Array(sets.enumerated()), id: \.element.id) { idx, s in
-                    setRow(s, index: idx, isActive: idx == activeIdx)
+                let upcoming = Array(ex.sets.enumerated()).filter { !$0.element.isCompleted }
+                ForEach(upcoming.prefix(condensed ? 3 : 5), id: \.element.id) { idx, s in
+                    setRow(s, index: idx, isActive: idx == vm.currentSetIndex)
+                }
+
+                if upcoming.count > (condensed ? 3 : 5) {
+                    Text("+\(upcoming.count - (condensed ? 3 : 5)) upcoming")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(CockpitPalette.faint)
+                        .padding(.top, 2)
                 }
             }
-            .padding(.vertical, 8)
-        )
+            .padding(.horizontal, 16)
+        }
     }
 
     private func setRow(_ s: SetState, index: Int, isActive: Bool) -> some View {
-        HStack(spacing: 8) {
-            // Set number / checkmark
-            if s.isCompleted {
-                Image(systemName: "checkmark")
-                    .font(.caption2.weight(.bold))
-                    .frame(width: 20)
-            } else {
-                Text("\(index + 1).")
-                    .font(.caption.weight(isActive ? .bold : .regular))
-                    .frame(width: 20)
-            }
+        HStack(spacing: 10) {
+            Text("Set \(index + 1)")
+                .font(.subheadline.weight(isActive ? .bold : .semibold))
+                .frame(width: 52, alignment: .leading)
 
-            // Type label
             let typeLabel = setTypeLabel(s.type)
             if !typeLabel.isEmpty {
                 Text(typeLabel)
@@ -464,37 +508,35 @@ private struct SetRoadmap: View {
                     .foregroundStyle(setTypeColor(s.type))
             }
 
-            // Reps
             if let r = s.isCompleted ? s.reps : s.prescribedReps {
                 Text("\(r) reps")
-                    .font(.caption)
+                    .font(.subheadline.weight(isActive ? .semibold : .regular))
             }
 
-            // Weight
             if let w = s.isCompleted ? s.weightKg : (s.weightKg ?? s.prescribedWeightKg) {
-                Text("\(formatted(w)) kg")
-                    .font(.caption)
+                Text("\(formatWeight(w)) kg")
+                    .font(.subheadline.weight(isActive ? .semibold : .regular))
             }
 
-            // RIR
             if !s.isCompleted, let rir = s.prescribedRir {
                 Text("RIR \(rir)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(CockpitPalette.faint)
             }
 
             Spacer()
         }
-        .foregroundStyle(rowStyle(isCompleted: s.isCompleted, isActive: isActive))
-        .fontWeight(isActive ? .bold : .regular)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 4)
-    }
-
-    private func rowStyle(isCompleted: Bool, isActive: Bool) -> some ShapeStyle {
-        if isActive { return AnyShapeStyle(.primary) }
-        if isCompleted { return AnyShapeStyle(.tertiary) }
-        return AnyShapeStyle(.secondary)
+        .foregroundStyle(isActive ? .primary : CockpitPalette.muted)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            isActive ? CockpitPalette.blue.opacity(0.13) : CockpitPalette.panelElevated.opacity(0.55),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(isActive ? CockpitPalette.blue.opacity(0.45) : CockpitPalette.border)
+        }
     }
 
     private func setTypeLabel(_ type: String) -> String {
@@ -508,20 +550,392 @@ private struct SetRoadmap: View {
 
     private func setTypeColor(_ type: String) -> Color {
         switch type {
-        case "warmup": return .blue
-        case "drop": return .orange
-        case "myo_mini": return .purple
-        default: return .secondary
+        case "warmup": return CockpitPalette.blue
+        case "drop": return CockpitPalette.amber
+        case "myo_mini": return CockpitPalette.purple
+        default: return CockpitPalette.muted
+        }
+    }
+}
+
+private struct ExerciseProgressCells: View {
+    let vm: ActiveWorkoutViewModel
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
+                    progressCell(index: idx, exercise: ex)
+                }
+            }
+            .padding(.horizontal, 16)
         }
     }
 
-    private func condensedView(sets: [SetState]) -> some View {
-        let done = sets.filter(\.isCompleted)
-        let totalReps = done.compactMap(\.reps).reduce(0, +)
-        return Text("\(done.count) sets done / \(totalReps) total reps")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 8)
+    private func progressCell(index: Int, exercise: ExerciseState) -> some View {
+        let completed = exercise.sets.allSatisfy(\.isCompleted)
+        let current = index == vm.currentExerciseIndex
+        let special = specialColor(for: exercise)
+        let fill = statusFill(isCompleted: completed, isCurrent: current)
+
+        return Text("\(index + 1)")
+            .font(.caption.weight(.bold).monospacedDigit())
+            .foregroundStyle(current || completed ? .white : CockpitPalette.muted)
+            .frame(width: 30, height: 34)
+            .background(fill, in: RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        special ?? (current ? CockpitPalette.blue.opacity(0.75) : CockpitPalette.border),
+                        lineWidth: special == nil ? 1 : 2
+                    )
+            }
+            .overlay(alignment: .bottom) {
+                if let special {
+                    Capsule()
+                        .fill(special)
+                        .frame(width: 14, height: 3)
+                        .offset(y: -3)
+                }
+            }
+            .accessibilityLabel("Exercise \(index + 1), \(exercise.name)")
+    }
+
+    private func statusFill(isCompleted: Bool, isCurrent: Bool) -> Color {
+        if isCompleted { return CockpitPalette.green.opacity(0.95) }
+        if isCurrent { return CockpitPalette.blue.opacity(0.95) }
+        return CockpitPalette.panelElevated
+    }
+
+    private func specialColor(for exercise: ExerciseState) -> Color? {
+        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+            return CockpitPalette.purple
+        }
+        switch exercise.technique {
+        case "drop_set": return CockpitPalette.amber
+        case "rest_pause": return CockpitPalette.blue
+        case "myo_reps": return CockpitPalette.purple
+        default: return nil
+        }
+    }
+}
+
+private struct ExerciseHintPanel: View {
+    let hint: String
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        CockpitPanel(spacing: 8, padding: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "lightbulb")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(CockpitPalette.amber)
+                Text(hint)
+                    .font(.subheadline)
+                    .foregroundStyle(isExpanded ? .primary : CockpitPalette.muted)
+                    .lineLimit(isExpanded ? nil : 1)
+                Spacer(minLength: 8)
+                Button(isExpanded ? "Show less" : "Show more...") {
+                    isExpanded.toggle()
+                }
+                .font(.caption.weight(.bold))
+                .foregroundStyle(CockpitPalette.amber)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+private struct CollapsedHintLine: View {
+    let hint: String
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        Button {
+            isExpanded.toggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "lightbulb")
+                    .foregroundStyle(CockpitPalette.amber)
+                Text("Hint: \(hint)")
+                    .lineLimit(isExpanded ? 3 : 1)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.bold))
+            }
+            .font(.caption.weight(.medium))
+            .foregroundStyle(CockpitPalette.muted)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(CockpitPalette.border)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FlowInstructionPanel: View {
+    let text: String
+    let isDrop: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isDrop ? "arrow.down.circle.fill" : "info.circle.fill")
+            Text(text)
+                .lineLimit(2)
+            Spacer()
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(isDrop ? CockpitPalette.amber : CockpitPalette.blue)
+        .padding(12)
+        .background((isDrop ? CockpitPalette.amber : CockpitPalette.blue).opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+    }
+}
+
+private struct CompletedSetsRow: View {
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+            Text("\(count) done")
+            Spacer()
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(CockpitPalette.green)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(CockpitPalette.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+    }
+}
+
+private struct CurrentSetPanel: View {
+    let vm: ActiveWorkoutViewModel
+
+    var body: some View {
+        CockpitPanel(spacing: 6, padding: 12) {
+            Text("Current target")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(CockpitPalette.faint)
+
+            Text(summary)
+                .font(.headline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+    }
+
+    private var summary: String {
+        let setNumber = vm.currentSetIndex + 1
+        let total = vm.currentExercise?.sets.count ?? 0
+        var parts = ["Set \(setNumber) of \(total)"]
+        if let reps = vm.currentSet?.prescribedReps {
+            parts.append("\(reps) reps")
+        }
+        if let rir = vm.currentSet?.prescribedRir {
+            parts.append("RIR \(rir)")
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
+private struct EditableMetricPanel: View {
+    let title: String
+    let value: String
+    let unit: String
+    let isLocked: Bool
+    let decrement: () -> Void
+    let increment: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(CockpitPalette.faint)
+                Spacer()
+                if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.caption)
+                        .foregroundStyle(CockpitPalette.faint)
+                }
+            }
+
+            HStack(spacing: 8) {
+                if !isLocked {
+                    controlButton("minus", action: decrement)
+                }
+
+                VStack(spacing: 0) {
+                    Text(value)
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.62)
+                    Text(unit)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(minWidth: 58)
+
+                if !isLocked {
+                    controlButton("plus", action: increment)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(CockpitPalette.border)
+        }
+    }
+
+    private func controlButton(_ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.callout.weight(.bold))
+                .frame(width: 34, height: 34)
+                .background(CockpitPalette.panelElevated, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+    }
+}
+
+private struct NextSetPanel: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        CockpitPanel(spacing: 5, padding: 12) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(CockpitPalette.faint)
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+        }
+    }
+}
+
+private struct ExerciseMapRow: View {
+    let index: Int
+    let exercise: ExerciseState
+    let doneSets: Int
+    let totalSets: Int
+    let isCurrent: Bool
+    let isCompleted: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("\(index + 1)")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundStyle(isCurrent || isCompleted ? .white : CockpitPalette.muted)
+                .frame(width: 32, height: 32)
+                .background(statusColor, in: RoundedRectangle(cornerRadius: 9))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .strokeBorder(specialColor ?? CockpitPalette.border, lineWidth: specialColor == nil ? 1 : 2)
+                }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(exercise.name)
+                    .font(.subheadline.weight(isCurrent ? .bold : .semibold))
+                    .lineLimit(2)
+                    .foregroundStyle(isCompleted ? CockpitPalette.muted : .primary)
+
+                HStack(spacing: 7) {
+                    Text(bodyPartLabel(exercise.bodyPart))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(CockpitPalette.faint)
+
+                    if exercise.technique != "straight" {
+                        Text(techniqueName(exercise.technique))
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(specialColor ?? CockpitPalette.muted)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((specialColor ?? CockpitPalette.muted).opacity(0.12), in: Capsule())
+                    }
+                }
+            }
+
+            Spacer()
+
+            Text("\(doneSets)/\(totalSets)")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundStyle(isCompleted ? CockpitPalette.green : CockpitPalette.muted)
+        }
+        .padding(12)
+        .background(rowFill, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(alignment: .leading) {
+            if specialColor != nil {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(specialColor ?? CockpitPalette.purple)
+                    .frame(width: 4)
+                    .padding(.vertical, 10)
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(isCurrent ? CockpitPalette.blue.opacity(0.55) : CockpitPalette.border)
+        }
+    }
+
+    private var rowFill: Color {
+        if isCurrent { return CockpitPalette.blue.opacity(0.14) }
+        if isCompleted { return CockpitPalette.green.opacity(0.09) }
+        return CockpitPalette.panel
+    }
+
+    private var statusColor: Color {
+        if isCurrent { return CockpitPalette.blue }
+        if isCompleted { return CockpitPalette.green }
+        return CockpitPalette.panelElevated
+    }
+
+    private var specialColor: Color? {
+        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+            return CockpitPalette.purple
+        }
+        switch exercise.technique {
+        case "drop_set": return CockpitPalette.amber
+        case "rest_pause": return CockpitPalette.blue
+        case "myo_reps": return CockpitPalette.purple
+        default: return nil
+        }
+    }
+
+    private func bodyPartLabel(_ part: String) -> String {
+        switch part {
+        case "legs": return "Legs"
+        case "chest": return "Chest"
+        case "back": return "Back"
+        case "shoulders": return "Shoulders"
+        case "biceps": return "Biceps"
+        case "triceps": return "Triceps"
+        case "core": return "Core"
+        default: return part.capitalized
+        }
+    }
+
+    private func techniqueName(_ technique: String) -> String {
+        switch technique {
+        case "drop_set": return "Drop"
+        case "rest_pause": return "Rest-Pause"
+        case "myo_reps": return "Myo"
+        case "superset": return "Superset"
+        default: return technique
+        }
     }
 }
 
@@ -585,103 +999,38 @@ private struct ExerciseListSheet: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
-                List {
-                    ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
-                        let isCurrent = idx == vm.currentExerciseIndex
-                        let doneSets = ex.sets.filter(\.isCompleted).count
-                        let totalSets = ex.sets.count
-                        let allDone = doneSets == totalSets
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(Array(vm.exercises.enumerated()), id: \.element.id) { idx, ex in
+                            let isCurrent = idx == vm.currentExerciseIndex
+                            let doneSets = ex.sets.filter(\.isCompleted).count
+                            let totalSets = ex.sets.count
+                            let allDone = doneSets == totalSets
 
-                        Button {
-                            vm.jumpToExercise(idx)
-                            isPresented = false
-                        } label: {
-                            HStack(spacing: 12) {
-                                // Status icon
-                                ZStack {
-                                    Circle()
-                                        .fill(statusColor(
-                                            isCurrent: isCurrent,
-                                            allDone: allDone
-                                        ).opacity(0.15))
-                                        .frame(width: 36, height: 36)
-
-                                    if allDone {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption.weight(.bold))
-                                            .foregroundStyle(.green)
-                                    } else if isCurrent {
-                                        Image(systemName: "play.fill")
-                                            .font(.caption)
-                                            .foregroundStyle(.blue)
-                                    } else {
-                                        Text("\(idx + 1)")
-                                            .font(.caption.weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-
-                                // Exercise info
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(ex.name)
-                                        .font(.subheadline.weight(
-                                            isCurrent ? .bold : .regular
-                                        ))
-                                        .foregroundStyle(
-                                            allDone ? .secondary : .primary
-                                        )
-                                        .lineLimit(2)
-
-                                    HStack(spacing: 6) {
-                                        // Body part
-                                        Text(bodyPartLabel(ex.bodyPart))
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-
-                                        // Technique badge
-                                        if ex.technique != "straight" {
-                                            Text(techniqueName(ex.technique))
-                                                .font(.caption2.weight(.medium))
-                                                .foregroundStyle(
-                                                    techniqueColor(ex.technique)
-                                                )
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 1)
-                                                .background(
-                                                    techniqueColor(ex.technique)
-                                                        .opacity(0.12),
-                                                    in: Capsule()
-                                                )
-                                        }
-                                    }
-                                }
-
-                                Spacer()
-
-                                // Progress
-                                if allDone {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                        .font(.body)
-                                } else {
-                                    Text("\(doneSets)/\(totalSets)")
-                                        .font(.caption.weight(.medium).monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
+                            Button {
+                                vm.jumpToExercise(idx)
+                                isPresented = false
+                            } label: {
+                                ExerciseMapRow(
+                                    index: idx,
+                                    exercise: ex,
+                                    doneSets: doneSets,
+                                    totalSets: totalSets,
+                                    isCurrent: isCurrent,
+                                    isCompleted: allDone
+                                )
                             }
-                            .padding(.vertical, 4)
+                            .buttonStyle(.plain)
+                            .id(idx)
                         }
-                        .listRowBackground(
-                            isCurrent
-                                ? Color.blue.opacity(0.08)
-                                : Color.clear
-                        )
-                        .id(idx)
                     }
+                    .padding(16)
                 }
-                .listStyle(.plain)
+                .background(CockpitPalette.background)
                 .navigationTitle("Exercises")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { isPresented = false }
@@ -694,45 +1043,6 @@ private struct ExerciseListSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-    }
-
-    private func statusColor(isCurrent: Bool, allDone: Bool) -> Color {
-        if allDone { return .green }
-        if isCurrent { return .blue }
-        return .secondary
-    }
-
-    private func bodyPartLabel(_ part: String) -> String {
-        switch part {
-        case "legs": return "Legs"
-        case "chest": return "Chest"
-        case "back": return "Back"
-        case "shoulders": return "Shoulders"
-        case "biceps": return "Biceps"
-        case "triceps": return "Triceps"
-        case "core": return "Core"
-        default: return part.capitalized
-        }
-    }
-
-    private func techniqueName(_ technique: String) -> String {
-        switch technique {
-        case "drop_set": return "Drop"
-        case "rest_pause": return "Rest-Pause"
-        case "myo_reps": return "Myo"
-        case "superset": return "Superset"
-        default: return technique
-        }
-    }
-
-    private func techniqueColor(_ technique: String) -> Color {
-        switch technique {
-        case "drop_set": return .orange
-        case "rest_pause": return .blue
-        case "myo_reps": return .purple
-        case "superset": return .purple
-        default: return .secondary
-        }
     }
 }
 
@@ -790,6 +1100,17 @@ struct InlineRatingBar: View {
 
 private func formatted(_ value: Double) -> String {
     String(format: "%.0f", value)
+}
+
+private func formatWeight(_ kg: Double) -> String {
+    if kg.rounded() == kg {
+        return String(Int(kg))
+    }
+    let formatter = NumberFormatter()
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = 1
+    formatter.decimalSeparator = "."
+    return formatter.string(from: NSNumber(value: kg)) ?? "\(kg)"
 }
 
 // MARK: - Exercise Note Sheet

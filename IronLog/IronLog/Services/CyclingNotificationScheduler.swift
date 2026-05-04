@@ -64,6 +64,14 @@ enum CyclingNotificationScheduler {
                 center.removePendingNotificationRequests(withIdentifiers: ids)
             }
         }
+        center.getDeliveredNotifications { notifications in
+            let ids = notifications
+                .map(\.request.identifier)
+                .filter { $0.hasPrefix(prefix) }
+            if !ids.isEmpty {
+                center.removeDeliveredNotifications(withIdentifiers: ids)
+            }
+        }
     }
 
     // MARK: - Helpers

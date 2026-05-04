@@ -67,7 +67,7 @@ final class RestTimerService {
         timerCancellable?.cancel()
         timerCancellable = nil
         isRunning = false
-        cancelNotification()
+        Self.cancelPendingNotification()
         RestTimerActivityManager.shared.endIfNeeded()
     }
 
@@ -131,9 +131,13 @@ final class RestTimerService {
         center.add(request)
     }
 
-    private func cancelNotification() {
+    static func cancelPendingNotification() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(
+                withIdentifiers: [Self.notificationID]
+            )
+        UNUserNotificationCenter.current()
+            .removeDeliveredNotifications(
                 withIdentifiers: [Self.notificationID]
             )
     }

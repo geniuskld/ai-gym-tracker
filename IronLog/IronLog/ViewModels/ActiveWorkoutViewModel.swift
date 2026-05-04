@@ -782,5 +782,6 @@ final class ActiveWorkoutViewModel {
         pendingAdvanceToNextExercise = false
         restTimer.stop()
         setStopwatch.stop()
+        WorkoutSessionManager.shared.stopMirroring()
     }
 }

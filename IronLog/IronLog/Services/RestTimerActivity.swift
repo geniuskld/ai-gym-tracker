@@ -109,7 +109,6 @@ final class RestTimerActivityManager {
     }
 
     func endIfNeeded() {
-        guard let activity = currentActivity else { return }
         let state = RestTimerAttributes.ContentState(
             phase: "resting",
             timerDate: .now,
@@ -118,8 +117,22 @@ final class RestTimerActivityManager {
             exerciseName: "",
             nextSetLabel: ""
         )
+        let activityToEnd = currentActivity
+        let currentId = activityToEnd?.id
+        let lingeringActivities = Activity<RestTimerAttributes>.activities
         Task {
-            await activity.end(.init(state: state, staleDate: nil), dismissalPolicy: .immediate)
+            if let activityToEnd {
+                await activityToEnd.end(
+                    .init(state: state, staleDate: nil),
+                    dismissalPolicy: .immediate
+                )
+            }
+            for activity in lingeringActivities where activity.id != currentId {
+                await activity.end(
+                    .init(state: state, staleDate: nil),
+                    dismissalPolicy: .immediate
+                )
+            }
         }
         currentActivity = nil
     }
