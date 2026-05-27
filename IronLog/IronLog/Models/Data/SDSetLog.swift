@@ -9,6 +9,8 @@ final class SDSetLog {
     var reps: Int?
     var rpe: Double?
     var rir: Int?
+    var completedAt: Date?
+    var sequenceIndex: Int?
     var restSecondsAfter: Int?
     var setDurationSeconds: Int?
     var isPr: Bool
@@ -24,6 +26,8 @@ final class SDSetLog {
         reps: Int? = nil,
         rpe: Double? = nil,
         rir: Int? = nil,
+        completedAt: Date? = nil,
+        sequenceIndex: Int? = nil,
         restSecondsAfter: Int? = nil,
         setDurationSeconds: Int? = nil,
         isPr: Bool = false,
@@ -36,6 +40,8 @@ final class SDSetLog {
         self.reps = reps
         self.rpe = rpe
         self.rir = rir
+        self.completedAt = completedAt
+        self.sequenceIndex = sequenceIndex
         self.restSecondsAfter = restSecondsAfter
         self.setDurationSeconds = setDurationSeconds
         self.isPr = isPr

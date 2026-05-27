@@ -5,20 +5,19 @@ struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showExerciseList = false
     @State private var showNoteSheet = false
-    #if DEBUG
-    @State private var showDebugLog = false
-    #endif
 
     var body: some View {
         ZStack {
             CockpitPalette.background.ignoresSafeArea()
-            switch vm.setPhase {
-            case .ready:
-                ReadyPhaseView(vm: vm)
-            case .performing:
-                PerformingPhaseView(vm: vm)
-            case .resting:
-                RestingPhaseView(vm: vm)
+            if canRenderWorkout {
+                switch vm.setPhase {
+                case .ready:
+                    ReadyPhaseView(vm: vm)
+                case .performing:
+                    PerformingPhaseView(vm: vm)
+                case .resting:
+                    RestingPhaseView(vm: vm)
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -41,24 +40,56 @@ struct ActiveWorkoutView: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .disabled(!canRenderWorkout)
             }
             ToolbarItem(placement: .confirmationAction) {
-                HStack(spacing: 12) {
-                    Button { showNoteSheet = true } label: {
-                        let hasNote = !vm.exerciseNote(at: vm.currentExerciseIndex).isEmpty
-                        Image(systemName: hasNote ? "note.text" : "note.text.badge.plus")
-                            .font(.subheadline)
-                    }
-                    Button("Finish") { vm.beginFinishing() }
-                        .font(.subheadline)
+                Button { vm.beginFinishing() } label: {
+                    Image(systemName: "flag.checkered")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 42, height: 42)
+                        .background(CockpitPalette.panelElevated, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(CockpitPalette.border)
+                        }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Finish workout")
+                .disabled(!canRenderWorkout)
             }
-            ToolbarItem(placement: .cancellationAction) {
+            ToolbarItemGroup(placement: .cancellationAction) {
                 Button {
                     showExerciseList = true
                 } label: {
                     Image(systemName: "list.bullet")
+                        .frame(width: 42, height: 42)
+                        .background(CockpitPalette.panelElevated, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(CockpitPalette.border)
+                        }
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show exercises")
+                .disabled(!canRenderWorkout)
+
+                Button {
+                    showNoteSheet = true
+                } label: {
+                    Image(systemName: currentExerciseHasNote ? "note.text" : "note.text.badge.plus")
+                        .foregroundStyle(currentExerciseHasNote ? CockpitPalette.blue : .primary)
+                        .frame(width: 42, height: 42)
+                        .background(CockpitPalette.panelElevated, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(
+                                currentExerciseHasNote
+                                    ? CockpitPalette.blue.opacity(0.38)
+                                    : CockpitPalette.border
+                            )
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(currentExerciseHasNote ? "Edit exercise note" : "Add exercise note")
+                .disabled(!canEditCurrentExerciseNote)
             }
         }
         .sheet(isPresented: $showExerciseList) {
@@ -67,23 +98,6 @@ struct ActiveWorkoutView: View {
         .sheet(isPresented: $showNoteSheet) {
             ExerciseNoteSheet(vm: vm)
         }
-        #if DEBUG
-        .overlay(alignment: .bottomTrailing) {
-            Button {
-                showDebugLog = true
-            } label: {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.caption)
-                    .padding(10)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .padding(.trailing, 12)
-            .padding(.bottom, 12)
-        }
-        .sheet(isPresented: $showDebugLog) {
-            DebugLogView(vm: vm)
-        }
-        #endif
         .sheet(isPresented: isFinishing) {
             FinishWorkoutSheet(vm: vm)
         }
@@ -112,6 +126,25 @@ struct ActiveWorkoutView: View {
         guard !vm.exercises.isEmpty else { return "Exercise 0/0" }
         let current = min(vm.currentExerciseIndex + 1, vm.exercises.count)
         return "Exercise \(current)/\(vm.exercises.count)"
+    }
+
+    private var canRenderWorkout: Bool {
+        guard !vm.exercises.isEmpty else { return false }
+        switch vm.state {
+        case .idle, .saved:
+            return false
+        default:
+            return true
+        }
+    }
+
+    private var canEditCurrentExerciseNote: Bool {
+        canRenderWorkout && vm.currentExercise != nil
+    }
+
+    private var currentExerciseHasNote: Bool {
+        canEditCurrentExerciseNote
+            && !vm.exerciseNote(at: vm.currentExerciseIndex).isEmpty
     }
 
     private var isFinishing: Binding<Bool> {
@@ -145,9 +178,9 @@ private struct ReadyPhaseView: View {
                     )
                 }
 
-                if !vm.flowInstruction.isEmpty {
+                if let instruction = visibleFlowInstruction {
                     FlowInstructionPanel(
-                        text: vm.flowInstruction,
+                        text: instruction,
                         isDrop: vm.currentSet?.type == "drop"
                     )
                 }
@@ -184,6 +217,27 @@ private struct ReadyPhaseView: View {
             showFullHint = false
         }
     }
+
+    private var visibleFlowInstruction: String? {
+        let instruction = vm.flowInstruction
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !instruction.isEmpty else { return nil }
+
+        if let exercise = vm.currentExercise,
+           exercise.technique == "superset",
+           isRedundantSupersetInstruction(instruction, exerciseName: exercise.name) {
+            return nil
+        }
+        return instruction
+    }
+
+    private func isRedundantSupersetInstruction(
+        _ instruction: String,
+        exerciseName: String
+    ) -> Bool {
+        instruction.hasPrefix("\(exerciseName):")
+            || instruction == "Now: \(exerciseName)"
+    }
 }
 
 // MARK: - Performing Phase: weight + reps adjustable, Done to finish
@@ -199,6 +253,9 @@ private struct PerformingPhaseView: View {
             ExerciseProgressCells(vm: vm)
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
+
+            PerformingExerciseTitle(vm: vm)
+                .padding(.horizontal, 16)
 
             Spacer(minLength: 8)
 
@@ -284,70 +341,165 @@ private struct PerformingPhaseView: View {
     }
 }
 
+private struct PerformingExerciseTitle: View {
+    let vm: ActiveWorkoutViewModel
+
+    var body: some View {
+        if let exercise = vm.currentExercise {
+            CockpitPanel(spacing: 8, padding: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(exercise.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text("Set \(vm.currentSetIndex + 1) of \(exercise.sets.count)")
+                        .font(.caption.weight(.bold).monospacedDigit())
+                        .foregroundStyle(CockpitPalette.muted)
+                        .lineLimit(1)
+                    .layoutPriority(1)
+                }
+
+                HStack(spacing: 8) {
+                    if let technique = techniqueLabel(for: exercise) {
+                        CockpitChip(
+                            text: technique.text,
+                            color: technique.color,
+                            systemImage: technique.systemImage
+                        )
+                    }
+                    if let setType = setTypeLabel {
+                        CockpitChip(
+                            text: setType.text,
+                            color: setType.color
+                        )
+                    }
+                }
+
+                if let remaining = vm.remainingWorkoutMinutesText {
+                    HStack {
+                        Spacer()
+                        RemainingTimePill(text: remaining)
+                    }
+                }
+            }
+        }
+    }
+
+    private var setTypeLabel: (text: String, color: Color)? {
+        switch vm.currentSet?.type {
+        case "warmup": return ("Warmup", CockpitPalette.blue)
+        case "drop": return ("Drop", CockpitPalette.amber)
+        case "myo_mini": return ("Myo mini", CockpitPalette.magenta)
+        default: return nil
+        }
+    }
+
+    private func techniqueLabel(
+        for exercise: ExerciseState
+    ) -> (text: String, color: Color, systemImage: String?)? {
+        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+            return ("Superset", CockpitPalette.purple, "arrow.triangle.2.circlepath")
+        }
+        switch exercise.technique {
+        case "drop_set":
+            return ("Drop set", CockpitPalette.amber, nil)
+        case "rest_pause":
+            return ("Rest-pause", CockpitPalette.cyan, nil)
+        case "myo_reps":
+            return ("Myo-reps", CockpitPalette.magenta, nil)
+        default:
+            return nil
+        }
+    }
+}
+
 // MARK: - Resting Phase
 
 private struct RestingPhaseView: View {
     @Bindable var vm: ActiveWorkoutViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            ExerciseProgressCells(vm: vm)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-
-            NextSetPanel(info: nextInfo)
-                .padding(.horizontal, 16)
-
-            Spacer()
-
-            Button {
-                vm.onRestFinished()
-            } label: {
-                let overtime = vm.restTimer.isOvertime
-                VStack(spacing: 10) {
-                    Text(vm.restTimer.formattedTime)
-                        .font(.system(size: 58, weight: .light, design: .monospaced))
-                        .monospacedDigit()
-                    Text("Tap timer to start now")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.58))
-                }
-                .foregroundStyle(.white)
-                .frame(width: 238, height: 238)
-                .background(
-                    Circle().fill(overtime ? CockpitPalette.amber.opacity(0.24) : CockpitPalette.blue.opacity(0.22))
-                )
-                .overlay {
-                    Circle()
-                        .stroke(overtime ? CockpitPalette.amber.opacity(0.20) : CockpitPalette.blue.opacity(0.22), lineWidth: 6)
-                    Circle()
-                        .trim(from: 0, to: 1.0 - vm.restTimer.progress)
-                        .stroke(
-                            overtime ? CockpitPalette.amber : CockpitPalette.blue,
-                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.5), value: vm.restTimer.progress)
-                }
-            }
-            .buttonStyle(.plain)
-            .shadow(color: vm.restTimer.isOvertime ? CockpitPalette.amber.opacity(0.32) : CockpitPalette.blue.opacity(0.30), radius: 14)
-
-            Spacer()
-
+        Group {
             if vm.isRestBeforeNextExercise {
-                InlineRatingBar(vm: vm)
-                    .padding(.bottom, 16)
-            } else if vm.isDynamicFlow {
-                Button("Finish exercise") { vm.finishExercise() }
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.bottom, 16)
+                BetweenExercisesRestView(vm: vm, nextInfo: nextInfo)
             } else {
-                Spacer()
+                VStack(spacing: 16) {
+                    ExerciseProgressCells(vm: vm)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+
+                    NextSetPanel(
+                        info: nextInfo,
+                        remainingTimeText: vm.remainingWorkoutMinutesText
+                    )
+                        .padding(.horizontal, 16)
+
+                    Spacer()
+
+                    Button {
+                        vm.onRestFinished()
+                    } label: {
+                        let overtime = vm.restTimer.isOvertime
+                        VStack(spacing: 10) {
+                            Text(vm.restTimer.formattedTime)
+                                .font(.system(size: 58, weight: .light, design: .monospaced))
+                                .monospacedDigit()
+                            Text(restActionText)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.58))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(width: 238, height: 238)
+                        .background(
+                            Circle().fill(overtime ? CockpitPalette.amber.opacity(0.24) : CockpitPalette.blue.opacity(0.22))
+                        )
+                        .overlay {
+                            Circle()
+                                .stroke(overtime ? CockpitPalette.amber.opacity(0.20) : CockpitPalette.blue.opacity(0.22), lineWidth: 6)
+                            Circle()
+                                .trim(from: 0, to: 1.0 - vm.restTimer.progress)
+                                .stroke(
+                                    overtime ? CockpitPalette.amber : CockpitPalette.blue,
+                                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                )
+                                .rotationEffect(.degrees(-90))
+                                .animation(.linear(duration: 0.5), value: vm.restTimer.progress)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .shadow(color: vm.restTimer.isOvertime ? CockpitPalette.amber.opacity(0.32) : CockpitPalette.blue.opacity(0.30), radius: 14)
+                    .accessibilityLabel(restActionAccessibilityLabel)
+
+                    Spacer()
+
+                    if vm.isDynamicFlow {
+                        Button("Finish exercise") { vm.finishExercise() }
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .padding(.bottom, 16)
+                    } else {
+                        Spacer()
+                    }
+                }
             }
         }
         .background(CockpitPalette.background)
+    }
+
+    private var restActionText: String {
+        guard vm.restStartsNextSetImmediately else {
+            return "Start when ready"
+        }
+        return vm.currentSet?.type == "myo_mini"
+            ? "Start mini-set"
+            : "Start set"
+    }
+
+    private var restActionAccessibilityLabel: String {
+        restActionText
     }
 
     private var nextInfo: NextSetInfo {
@@ -365,21 +517,28 @@ private struct RestingPhaseView: View {
             }
             let next = vm.exercises[nextIdx]
             let firstSet = next.sets.first
+            let techniqueBadge = techniqueBadge(for: next)
             return NextSetInfo(
                 eyebrow: "NEXT EXERCISE",
                 title: next.name,
                 subtitle: firstSet.map { _ in "Set 1" },
-                badge: firstSet.flatMap { setBadge(for: $0.type) },
+                badge: techniqueBadge ?? firstSet.flatMap { setBadge(for: $0.type) },
+                secondaryBadge: techniqueBadge == nil ? nil : firstSet.flatMap { setBadge(for: $0.type) },
                 metrics: firstSet.map(nextMetrics(for:)) ?? [],
                 tint: techniqueColor(for: next)
             )
         }
 
         if let set = vm.currentSet {
+            let setTitle = "Set \(vm.currentSetIndex + 1)"
+            var subtitleParts = [setTitle]
+            if !vm.flowInstruction.isEmpty {
+                subtitleParts.append(vm.flowInstruction)
+            }
             return NextSetInfo(
                 eyebrow: "NEXT",
-                title: "Set \(vm.currentSetIndex + 1)",
-                subtitle: vm.flowInstruction.isEmpty ? nil : vm.flowInstruction,
+                title: vm.currentExercise?.name ?? setTitle,
+                subtitle: subtitleParts.joined(separator: " · "),
                 badge: setBadge(for: set.type),
                 metrics: nextMetrics(for: set),
                 tint: setBadge(for: set.type)?.color ?? CockpitPalette.blue
@@ -410,7 +569,7 @@ private struct RestingPhaseView: View {
         }
         if let rir = set.prescribedRir {
             metrics.append(
-                NextSetMetric(label: "RIR", value: "\(rir)", unit: "target", tint: CockpitPalette.faint)
+                NextSetMetric(label: "RIR", value: "\(rir)", unit: "reps left", tint: CockpitPalette.faint)
             )
         }
         return metrics
@@ -421,6 +580,18 @@ private struct RestingPhaseView: View {
         case "warmup": return NextSetBadge(text: "Warmup", color: CockpitPalette.blue)
         case "drop": return NextSetBadge(text: "Drop", color: CockpitPalette.amber)
         case "myo_mini": return NextSetBadge(text: "Myo mini", color: CockpitPalette.magenta)
+        default: return nil
+        }
+    }
+
+    private func techniqueBadge(for exercise: ExerciseState) -> NextSetBadge? {
+        if exercise.supersetPartnerIndex != nil || exercise.technique == "superset" {
+            return NextSetBadge(text: "Superset", color: CockpitPalette.purple)
+        }
+        switch exercise.technique {
+        case "drop_set": return NextSetBadge(text: "Drop set", color: CockpitPalette.amber)
+        case "rest_pause": return NextSetBadge(text: "Rest-pause", color: CockpitPalette.cyan)
+        case "myo_reps": return NextSetBadge(text: "Myo-reps", color: CockpitPalette.magenta)
         default: return nil
         }
     }
@@ -438,66 +609,188 @@ private struct RestingPhaseView: View {
     }
 }
 
+private struct BetweenExercisesRestView: View {
+    @Bindable var vm: ActiveWorkoutViewModel
+    let nextInfo: NextSetInfo
+
+    private var nextExerciseIndex: Int? {
+        let next = vm.currentExerciseIndex + 1
+        return vm.exercises.indices.contains(next) ? next : nil
+    }
+
+    private var scrollTargetIndex: Int? {
+        if let nextExerciseIndex { return nextExerciseIndex }
+        return vm.exercises.indices.contains(vm.currentExerciseIndex)
+            ? vm.currentExerciseIndex
+            : nil
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ExerciseProgressCells(vm: vm)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        NextSetPanel(
+                            info: nextInfo,
+                            remainingTimeText: vm.remainingWorkoutMinutesText
+                        )
+
+                        InlineRatingBar(vm: vm)
+
+                        WorkoutExerciseMap(
+                            vm: vm,
+                            highlightIndex: nextExerciseIndex ?? vm.currentExerciseIndex,
+                            onSelect: nil
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 112)
+                }
+                .onAppear {
+                    if let scrollTargetIndex {
+                        proxy.scrollTo(scrollTargetIndex, anchor: .center)
+                    }
+                }
+                .onChange(of: nextExerciseIndex) { _, newValue in
+                    if let target = newValue ?? scrollTargetIndex {
+                        proxy.scrollTo(target, anchor: .center)
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            RestCountdownStartButton(
+                timer: vm.restTimer,
+                title: nextExerciseIndex == nil ? "Finish workout" : "Start next exercise"
+            ) {
+                vm.onRestFinished()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+            .background(CockpitPalette.background.opacity(0.96))
+        }
+        .background(CockpitPalette.background)
+    }
+}
+
+private struct RestCountdownStartButton: View {
+    let timer: RestTimerService
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline.weight(.bold))
+                    Text(timer.isOvertime ? "Rest complete" : "Rest countdown")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.68))
+                }
+
+                Spacer()
+
+                Text(timer.isOvertime ? "Start" : timer.formattedTime)
+                    .font(.title3.weight(.bold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+            .background(
+                timer.isOvertime ? CockpitPalette.green : CockpitPalette.blue,
+                in: RoundedRectangle(cornerRadius: 16)
+            )
+            .overlay(alignment: .bottomLeading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(.white.opacity(0.38))
+                        .frame(width: proxy.size.width * min(max(timer.progress, 0), 1), height: 4)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .allowsHitTesting(false)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(timer.formattedTime)
+    }
+}
+
 // MARK: - Shared
 
 private struct ExerciseHeader: View {
     let vm: ActiveWorkoutViewModel
+
     var body: some View {
         if let ex = vm.currentExercise {
             CockpitPanel(spacing: 10) {
-                if let partnerIdx = ex.supersetPartnerIndex,
-                   vm.exercises.indices.contains(partnerIdx) {
-                    CockpitChip(
-                        text: "Superset",
-                        color: CockpitPalette.purple,
-                        systemImage: "arrow.triangle.2.circlepath"
-                    )
+                exerciseTitleContent(ex)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(ex.name)
-                        .font(.title2.weight(.bold))
-                        .lineLimit(2)
-
-                    Text(vm.exercises[partnerIdx].name)
-                        .font(.subheadline)
-                        .foregroundStyle(CockpitPalette.muted)
-                } else if ex.supersetPartnerIndex != nil {
-                    Text(ex.name)
-                        .font(.title2.weight(.bold))
-                        .lineLimit(2)
-
-                    CockpitChip(
-                        text: "Superset link unavailable",
-                        color: CockpitPalette.amber,
-                        systemImage: "exclamationmark.triangle"
-                    )
-                } else {
-                    Text(ex.name)
-                        .font(.title2.weight(.bold))
-                        .lineLimit(2)
-
-                    HStack(spacing: 8) {
-                        CockpitChip(
-                            text: bodyPartLabel(ex.bodyPart),
-                            color: CockpitPalette.muted,
-                            systemImage: "scope"
-                        )
-                        if let equipment = ex.equipment, !equipment.isEmpty {
-                            CockpitChip(
-                                text: equipment,
-                                color: CockpitPalette.faint,
-                                systemImage: "wrench.and.screwdriver"
-                            )
-                        }
-                        if let name = vm.currentFlow?.displayName {
-                            CockpitChip(
-                                text: name,
-                                color: techniqueBadgeColor(ex.technique)
-                            )
-                        }
+                if let remaining = vm.remainingWorkoutMinutesText {
+                    HStack {
+                        Spacer()
+                        RemainingTimePill(text: remaining)
                     }
                 }
             }
             .padding(.horizontal, 16)
+        }
+    }
+
+    @ViewBuilder
+    private func exerciseTitleContent(_ ex: ExerciseState) -> some View {
+        if let partnerIdx = ex.supersetPartnerIndex,
+           vm.exercises.indices.contains(partnerIdx) {
+            SupersetExercisePair(
+                firstName: ex.name,
+                secondName: vm.exercises[partnerIdx].name
+            )
+        } else if ex.supersetPartnerIndex != nil {
+            Text(ex.name)
+                .font(.title2.weight(.bold))
+                .lineLimit(2)
+
+            CockpitChip(
+                text: "Superset link unavailable",
+                color: CockpitPalette.amber,
+                systemImage: "exclamationmark.triangle"
+            )
+        } else {
+            Text(ex.name)
+                .font(.title2.weight(.bold))
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                CockpitChip(
+                    text: bodyPartLabel(ex.bodyPart),
+                    color: CockpitPalette.muted,
+                    systemImage: "scope"
+                )
+                if let equipment = ex.equipment, !equipment.isEmpty {
+                    CockpitChip(
+                        text: equipment,
+                        color: CockpitPalette.faint,
+                        systemImage: "wrench.and.screwdriver"
+                    )
+                }
+                if let name = vm.currentFlow?.displayName {
+                    CockpitChip(
+                        text: name,
+                        color: techniqueBadgeColor(ex.technique)
+                    )
+                }
+            }
         }
     }
 
@@ -520,6 +813,42 @@ private struct ExerciseHeader: View {
         case "triceps": return "Triceps"
         case "core": return "Core"
         default: return part.capitalized
+        }
+    }
+}
+
+private struct SupersetExercisePair: View {
+    let firstName: String
+    let secondName: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(firstName)
+                .font(.title2.weight(.bold))
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(CockpitPalette.purple.opacity(0.34))
+                    .frame(height: 1)
+
+                CockpitChip(
+                    text: "Superset",
+                    color: CockpitPalette.purple,
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
+                .fixedSize()
+
+                Rectangle()
+                    .fill(CockpitPalette.purple.opacity(0.34))
+                    .frame(height: 1)
+            }
+
+            Text(secondName)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
         }
     }
 }
@@ -609,7 +938,7 @@ private struct SetRoadmap: View {
         switch type {
         case "warmup": return "Warmup"
         case "drop": return "Drop"
-        case "myo_mini": return "Mini"
+        case "myo_mini": return "Myo mini"
         default: return ""
         }
     }
@@ -628,35 +957,50 @@ private struct ExerciseProgressCells: View {
     let vm: ActiveWorkoutViewModel
 
     var body: some View {
+        let exercises = vm.exercises
+
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(progressGroups) { group in
+                ForEach(progressGroups(for: exercises)) { group in
                     if group.isSupersetPair {
+                        let groupCompleted = group.indices.allSatisfy { idx in
+                            exercises.indices.contains(idx) && exercises[idx].sets.allSatisfy(\.isCompleted)
+                        }
+                        let groupCurrent = group.indices.contains(vm.currentExerciseIndex)
+
                         HStack(spacing: 6) {
                             ForEach(group.indices, id: \.self) { idx in
-                                progressCell(
-                                    index: idx,
-                                    exercise: vm.exercises[idx],
-                                    suppressSupersetMarker: true
-                                )
+                                if exercises.indices.contains(idx) {
+                                    progressCell(
+                                        index: idx,
+                                        exercise: exercises[idx],
+                                        suppressSupersetMarker: true
+                                    )
+                                }
                             }
                         }
                         .frame(height: 34)
                         .overlay {
-                            SupersetHorizontalBracket(color: CockpitPalette.purple)
+                            if !groupCompleted {
+                                SupersetHorizontalBracket(color: groupCurrent ? CockpitPalette.blue : CockpitPalette.purple)
+                            }
                         }
                         .overlay(alignment: .bottom) {
-                            Capsule()
-                                .fill(CockpitPalette.purple)
-                                .frame(width: 28, height: 3)
-                                .offset(y: -2)
+                            if !groupCompleted && !groupCurrent {
+                                Capsule()
+                                    .fill(CockpitPalette.purple)
+                                    .frame(width: 28, height: 3)
+                                    .offset(y: -2)
+                            }
                         }
                     } else if let idx = group.indices.first {
-                        progressCell(
-                            index: idx,
-                            exercise: vm.exercises[idx],
-                            suppressSupersetMarker: false
-                        )
+                        if exercises.indices.contains(idx) {
+                            progressCell(
+                                index: idx,
+                                exercise: exercises[idx],
+                                suppressSupersetMarker: false
+                            )
+                        }
                     }
                 }
             }
@@ -664,15 +1008,15 @@ private struct ExerciseProgressCells: View {
         }
     }
 
-    private var progressGroups: [ProgressCellGroup] {
+    private func progressGroups(for exercises: [ExerciseState]) -> [ProgressCellGroup] {
         var groups: [ProgressCellGroup] = []
         var used = Set<Int>()
 
-        for idx in vm.exercises.indices {
+        for idx in exercises.indices {
             guard !used.contains(idx) else { continue }
 
-            if let partner = supersetPartner(for: idx),
-               partner < vm.exercises.count,
+            if let partner = supersetPartner(for: idx, in: exercises),
+               exercises.indices.contains(partner),
                abs(partner - idx) == 1 {
                 let indices = [idx, partner].sorted()
                 groups.append(ProgressCellGroup(indices: indices, isSupersetPair: true))
@@ -686,11 +1030,13 @@ private struct ExerciseProgressCells: View {
         return groups
     }
 
-    private func supersetPartner(for index: Int) -> Int? {
-        if let partner = vm.exercises[index].supersetPartnerIndex {
+    private func supersetPartner(for index: Int, in exercises: [ExerciseState]) -> Int? {
+        guard exercises.indices.contains(index) else { return nil }
+
+        if let partner = exercises[index].supersetPartnerIndex {
             return partner
         }
-        return vm.exercises.firstIndex { $0.supersetPartnerIndex == index }
+        return exercises.firstIndex { $0.supersetPartnerIndex == index }
     }
 
     private func progressCell(
@@ -704,6 +1050,7 @@ private struct ExerciseProgressCells: View {
             for: exercise,
             suppressSuperset: suppressSupersetMarker
         )
+        let visibleSpecial = completed || current ? nil : special
         let fill = statusFill(isCompleted: completed, isCurrent: current)
 
         return Text("\(index + 1)")
@@ -712,16 +1059,18 @@ private struct ExerciseProgressCells: View {
             .frame(width: 30, height: 34)
             .background(fill, in: RoundedRectangle(cornerRadius: 8))
             .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(
-                        special ?? (current ? CockpitPalette.blue.opacity(0.75) : CockpitPalette.border),
-                        lineWidth: special == nil ? 1 : 2
-                    )
+                if !completed {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(
+                            current ? CockpitPalette.blue.opacity(0.75) : CockpitPalette.border,
+                            lineWidth: current ? 2 : 1
+                        )
+                }
             }
             .overlay(alignment: .bottom) {
-                if let special {
+                if let visibleSpecial {
                     Capsule()
-                        .fill(special)
+                        .fill(visibleSpecial)
                         .frame(width: 14, height: 3)
                         .offset(y: -3)
                 }
@@ -767,21 +1116,35 @@ private struct ExerciseHintPanel: View {
 
     var body: some View {
         CockpitPanel(spacing: 8, padding: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: "lightbulb")
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "lightbulb")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(CockpitPalette.amber)
+                    Text(hint)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "lightbulb")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(CockpitPalette.amber)
+                    Text(hint)
+                        .font(.subheadline)
+                        .foregroundStyle(isExpanded ? .primary : CockpitPalette.muted)
+                        .lineLimit(isExpanded ? nil : 1)
+                    Spacer(minLength: 8)
+                    Button(isExpanded ? "Show less" : "Show more...") {
+                        isExpanded.toggle()
+                    }
                     .font(.caption.weight(.bold))
                     .foregroundStyle(CockpitPalette.amber)
-                Text(hint)
-                    .font(.subheadline)
-                    .foregroundStyle(isExpanded ? .primary : CockpitPalette.muted)
-                    .lineLimit(isExpanded ? nil : 1)
-                Spacer(minLength: 8)
-                Button(isExpanded ? "Show less" : "Show more...") {
-                    isExpanded.toggle()
                 }
-                .font(.caption.weight(.bold))
-                .foregroundStyle(CockpitPalette.amber)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 16)
     }
@@ -792,18 +1155,14 @@ private struct CollapsedHintLine: View {
     @Binding var isExpanded: Bool
 
     var body: some View {
-        Button {
-            isExpanded.toggle()
-        } label: {
+        ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
                 Image(systemName: "lightbulb")
                     .foregroundStyle(CockpitPalette.amber)
                 Text("Hint: \(hint)")
-                    .lineLimit(isExpanded ? 3 : 1)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .multilineTextAlignment(.leading)
-                Spacer(minLength: 8)
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption.weight(.bold))
             }
             .font(.caption.weight(.medium))
             .foregroundStyle(CockpitPalette.muted)
@@ -814,8 +1173,33 @@ private struct CollapsedHintLine: View {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(CockpitPalette.border)
             }
+
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "lightbulb")
+                        .foregroundStyle(CockpitPalette.amber)
+                    Text("Hint: \(hint)")
+                        .lineLimit(isExpanded ? 3 : 1)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: 8)
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(CockpitPalette.muted)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(CockpitPalette.border)
+                }
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -859,29 +1243,26 @@ private struct CurrentSetPanel: View {
     let vm: ActiveWorkoutViewModel
 
     var body: some View {
-        CockpitPanel(spacing: 6, padding: 12) {
-            Text("Current target")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(CockpitPalette.faint)
+        if let targetDetail {
+            CockpitPanel(spacing: 6, padding: 12) {
+                Text("Target")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(CockpitPalette.faint)
 
-            Text(summary)
-                .font(.headline.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                Text(targetDetail)
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
         }
     }
 
-    private var summary: String {
-        let setNumber = vm.currentSetIndex + 1
-        let total = vm.currentExercise?.sets.count ?? 0
-        var parts = ["Set \(setNumber) of \(total)"]
-        if let reps = vm.currentSet?.prescribedReps {
-            parts.append("\(reps) reps")
-        }
+    private var targetDetail: String? {
+        var parts: [String] = []
         if let rir = vm.currentSet?.prescribedRir {
             parts.append("RIR \(rir)")
         }
-        return parts.joined(separator: " · ")
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
 
@@ -956,6 +1337,7 @@ private struct NextSetInfo {
     let title: String
     let subtitle: String?
     let badge: NextSetBadge?
+    var secondaryBadge: NextSetBadge? = nil
     let metrics: [NextSetMetric]
     let tint: Color
 }
@@ -978,6 +1360,7 @@ private struct NextSetMetric: Identifiable {
 
 private struct NextSetPanel: View {
     let info: NextSetInfo
+    let remainingTimeText: String?
 
     var body: some View {
         CockpitPanel(spacing: 12, padding: 14) {
@@ -987,20 +1370,19 @@ private struct NextSetPanel: View {
                     .foregroundStyle(info.tint)
                 Spacer()
                 if let badge = info.badge {
-                    Text(badge.text)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(badge.color)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(badge.color.opacity(0.14), in: Capsule())
+                    NextSetBadgeChip(badge: badge)
+                }
+                if let secondaryBadge = info.secondaryBadge {
+                    NextSetBadgeChip(badge: secondaryBadge)
                 }
             }
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(info.title)
-                    .font(.title3.weight(.bold))
+                    .font(.headline.weight(.bold))
                     .lineLimit(2)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.78)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle = info.subtitle, !subtitle.isEmpty {
                     Text(subtitle)
@@ -1017,6 +1399,13 @@ private struct NextSetPanel: View {
                     }
                 }
             }
+
+            if let remainingTimeText {
+                HStack {
+                    Spacer()
+                    RemainingTimePill(text: remainingTimeText)
+                }
+            }
         }
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2)
@@ -1027,13 +1416,52 @@ private struct NextSetPanel: View {
     }
 }
 
+private struct RemainingTimePill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.bold).monospacedDigit())
+            .foregroundStyle(CockpitPalette.muted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(CockpitPalette.panelElevated.opacity(0.72), in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(CockpitPalette.border)
+            }
+    }
+}
+
+private struct NextSetBadgeChip: View {
+    let badge: NextSetBadge
+
+    var body: some View {
+        Text(badge.text)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(badge.color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(badge.color.opacity(0.14), in: Capsule())
+    }
+}
+
 private struct NextMetricTile: View {
     let metric: NextSetMetric
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
+            Text(metric.label.uppercased())
+                .font(.caption2.weight(.heavy))
+                .foregroundStyle(CockpitPalette.faint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
             Text(metric.value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 23, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(metric.tint)
                 .lineLimit(1)
@@ -1042,9 +1470,10 @@ private struct NextMetricTile: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(CockpitPalette.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
+        .padding(.vertical, 8)
         .background(CockpitPalette.panelElevated.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
         .overlay {
             RoundedRectangle(cornerRadius: 10)
@@ -1276,9 +1705,9 @@ private struct ExerciseMapRow: View {
             return ("Superset", CockpitPalette.purple)
         }
         switch exercise.technique {
-        case "drop_set": return ("Drop", CockpitPalette.amber)
-        case "rest_pause": return ("Rest-Pause", CockpitPalette.cyan)
-        case "myo_reps": return ("Myo", CockpitPalette.magenta)
+        case "drop_set": return ("Drop set", CockpitPalette.amber)
+        case "rest_pause": return ("Rest-pause", CockpitPalette.cyan)
+        case "myo_reps": return ("Myo-reps", CockpitPalette.magenta)
         default: return nil
         }
     }
@@ -1303,6 +1732,113 @@ private struct ExerciseMapRow: View {
         case "myo_reps": return "Myo"
         case "superset": return "Superset"
         default: return technique
+        }
+    }
+}
+
+private struct WorkoutExerciseMap: View {
+    let vm: ActiveWorkoutViewModel
+    let highlightIndex: Int
+    let onSelect: ((Int) -> Void)?
+
+    var body: some View {
+        let exercises = vm.exercises
+
+        LazyVStack(spacing: 10) {
+            ForEach(exerciseGroups(for: exercises)) { group in
+                if group.isSupersetPair {
+                    SupersetMapGroup {
+                        ForEach(group.indices, id: \.self) { idx in
+                            exerciseRow(
+                                index: idx,
+                                in: exercises,
+                                suppressSupersetBadge: true
+                            )
+                        }
+                    }
+                } else if let idx = group.indices.first {
+                    exerciseRow(
+                        index: idx,
+                        in: exercises,
+                        suppressSupersetBadge: false
+                    )
+                }
+            }
+        }
+    }
+
+    private func exerciseGroups(for exercises: [ExerciseState]) -> [ExerciseMapGroup] {
+        var groups: [ExerciseMapGroup] = []
+        var used = Set<Int>()
+
+        for idx in exercises.indices {
+            guard !used.contains(idx) else { continue }
+
+            if let partner = supersetPartner(for: idx, in: exercises),
+               exercises.indices.contains(partner),
+               abs(partner - idx) == 1 {
+                let indices = [idx, partner].sorted()
+                groups.append(ExerciseMapGroup(indices: indices, isSupersetPair: true))
+                used.formUnion(indices)
+            } else {
+                groups.append(ExerciseMapGroup(indices: [idx], isSupersetPair: false))
+                used.insert(idx)
+            }
+        }
+
+        return groups
+    }
+
+    private func supersetPartner(for index: Int, in exercises: [ExerciseState]) -> Int? {
+        guard exercises.indices.contains(index) else { return nil }
+
+        if let partner = exercises[index].supersetPartnerIndex {
+            return partner
+        }
+        return exercises.firstIndex { $0.supersetPartnerIndex == index }
+    }
+
+    @ViewBuilder
+    private func exerciseRow(
+        index idx: Int,
+        in exercises: [ExerciseState],
+        suppressSupersetBadge: Bool
+    ) -> some View {
+        if exercises.indices.contains(idx) {
+            let ex = exercises[idx]
+            let doneSets = ex.sets.filter(\.isCompleted).count
+            let totalSets = ex.sets.count
+            let allDone = doneSets == totalSets
+            let row = ExerciseMapRow(
+                index: idx,
+                exercise: ex,
+                doneSets: doneSets,
+                totalSets: totalSets,
+                isCurrent: idx == highlightIndex,
+                isCompleted: allDone,
+                suppressSupersetBadge: suppressSupersetBadge
+            )
+
+            if let onSelect {
+                Button {
+                    onSelect(idx)
+                } label: {
+                    row
+                }
+                .buttonStyle(.plain)
+                .id(idx)
+            } else {
+                row.id(idx)
+            }
+        }
+    }
+
+    private struct ExerciseMapGroup: Identifiable {
+        let indices: [Int]
+        let isSupersetPair: Bool
+
+        var id: String {
+            indices.map(String.init).joined(separator: "-")
         }
     }
 }
@@ -1365,19 +1901,29 @@ private struct ExerciseListSheet: View {
     @Binding var isPresented: Bool
 
     var body: some View {
+        let exercises = vm.exercises
+
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        ForEach(exerciseGroups) { group in
+                        ForEach(exerciseGroups(for: exercises)) { group in
                             if group.isSupersetPair {
                                 SupersetMapGroup {
                                     ForEach(group.indices, id: \.self) { idx in
-                                        exerciseButton(index: idx, suppressSupersetBadge: true)
+                                        exerciseButton(
+                                            index: idx,
+                                            in: exercises,
+                                            suppressSupersetBadge: true
+                                        )
                                     }
                                 }
                             } else if let idx = group.indices.first {
-                                exerciseButton(index: idx, suppressSupersetBadge: false)
+                                exerciseButton(
+                                    index: idx,
+                                    in: exercises,
+                                    suppressSupersetBadge: false
+                                )
                             }
                         }
                     }
@@ -1394,7 +1940,9 @@ private struct ExerciseListSheet: View {
                     }
                 }
                 .onAppear {
-                    proxy.scrollTo(vm.currentExerciseIndex, anchor: .center)
+                    if exercises.indices.contains(vm.currentExerciseIndex) {
+                        proxy.scrollTo(vm.currentExerciseIndex, anchor: .center)
+                    }
                 }
             }
         }
@@ -1402,15 +1950,15 @@ private struct ExerciseListSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private var exerciseGroups: [ExerciseMapGroup] {
+    private func exerciseGroups(for exercises: [ExerciseState]) -> [ExerciseMapGroup] {
         var groups: [ExerciseMapGroup] = []
         var used = Set<Int>()
 
-        for idx in vm.exercises.indices {
+        for idx in exercises.indices {
             guard !used.contains(idx) else { continue }
 
-            if let partner = supersetPartner(for: idx),
-               partner < vm.exercises.count,
+            if let partner = supersetPartner(for: idx, in: exercises),
+               exercises.indices.contains(partner),
                abs(partner - idx) == 1 {
                 let indices = [idx, partner].sorted()
                 groups.append(ExerciseMapGroup(indices: indices, isSupersetPair: true))
@@ -1424,39 +1972,45 @@ private struct ExerciseListSheet: View {
         return groups
     }
 
-    private func supersetPartner(for index: Int) -> Int? {
-        if let partner = vm.exercises[index].supersetPartnerIndex {
+    private func supersetPartner(for index: Int, in exercises: [ExerciseState]) -> Int? {
+        guard exercises.indices.contains(index) else { return nil }
+
+        if let partner = exercises[index].supersetPartnerIndex {
             return partner
         }
-        return vm.exercises.firstIndex { $0.supersetPartnerIndex == index }
+        return exercises.firstIndex { $0.supersetPartnerIndex == index }
     }
 
+    @ViewBuilder
     private func exerciseButton(
         index idx: Int,
+        in exercises: [ExerciseState],
         suppressSupersetBadge: Bool
     ) -> some View {
-        let ex = vm.exercises[idx]
-        let isCurrent = idx == vm.currentExerciseIndex
-        let doneSets = ex.sets.filter(\.isCompleted).count
-        let totalSets = ex.sets.count
-        let allDone = doneSets == totalSets
+        if exercises.indices.contains(idx) {
+            let ex = exercises[idx]
+            let isCurrent = idx == vm.currentExerciseIndex
+            let doneSets = ex.sets.filter(\.isCompleted).count
+            let totalSets = ex.sets.count
+            let allDone = doneSets == totalSets
 
-        return Button {
-            vm.jumpToExercise(idx)
-            isPresented = false
-        } label: {
-            ExerciseMapRow(
-                index: idx,
-                exercise: ex,
-                doneSets: doneSets,
-                totalSets: totalSets,
-                isCurrent: isCurrent,
-                isCompleted: allDone,
-                suppressSupersetBadge: suppressSupersetBadge
-            )
+            Button {
+                vm.jumpToExercise(idx)
+                isPresented = false
+            } label: {
+                ExerciseMapRow(
+                    index: idx,
+                    exercise: ex,
+                    doneSets: doneSets,
+                    totalSets: totalSets,
+                    isCurrent: isCurrent,
+                    isCompleted: allDone,
+                    suppressSupersetBadge: suppressSupersetBadge
+                )
+            }
+            .buttonStyle(.plain)
+            .id(idx)
         }
-        .buttonStyle(.plain)
-        .id(idx)
     }
 
     private struct ExerciseMapGroup: Identifiable {

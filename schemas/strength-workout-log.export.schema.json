@@ -47,7 +47,13 @@
         "perceived_effort": { "type": "integer", "minimum": 1, "maximum": 3, "description": "1=easy, 2=moderate, 3=hard" },
         "exercises": {
           "type": "array",
+          "description": "Exercise-grouped log retained for compatibility with analytics consumers. For actual execution order, prefer set_events.",
           "items": { "$ref": "#/$defs/ExerciseLog" }
+        },
+        "set_events": {
+          "type": "array",
+          "description": "Canonical chronological sequence of performed sets. Use this for supersets and rest analysis because exercises[].sets[] is grouped by exercise_id.",
+          "items": { "$ref": "#/$defs/SetEventLog" }
         }
       }
     },
@@ -67,6 +73,18 @@
           "description": "Optional denormalized primary body part for analytics."
         },
         "order": { "type": "integer" },
+        "technique": {
+          "type": "string",
+          "enum": ["straight", "drop_set", "rest_pause", "myo_reps", "superset"]
+        },
+        "superset_with": {
+          "type": "string",
+          "description": "Partner exercise_id when technique=superset."
+        },
+        "superset_pair_id": {
+          "type": "string",
+          "description": "Stable pair id built from the two exercise ids in sorted order, e.g. a4+a6."
+        },
         "sets": {
           "type": "array",
           "items": { "$ref": "#/$defs/SetLog" }
@@ -89,7 +107,72 @@
         "reps": { "type": "integer" },
         "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
         "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "sequence_index": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based chronological order inside the workout."
+        },
         "rest_seconds_after": { "type": "integer" },
+        "set_duration_seconds": { "type": "integer", "description": "How long the set took in seconds" },
+        "is_pr": { "type": "boolean" },
+        "failed": { "type": "boolean", "default": false },
+        "notes": { "type": "string" }
+      }
+    },
+    "SetEventLog": {
+      "type": "object",
+      "required": ["exercise_id", "exercise_name", "set_number"],
+      "properties": {
+        "sequence_index": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based chronological order inside the workout."
+        },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "exercise_id": { "type": "string" },
+        "catalog_id": {
+          "type": "string",
+          "description": "Optional exercise catalog slug. When present, analytics groups this exercise across plan versions and plans."
+        },
+        "exercise_name": { "type": "string" },
+        "exercise_order": { "type": "integer" },
+        "technique": {
+          "type": "string",
+          "enum": ["straight", "drop_set", "rest_pause", "myo_reps", "superset"]
+        },
+        "superset_pair_id": {
+          "type": "string",
+          "description": "Stable pair id built from the two exercise ids in sorted order, e.g. a4+a6."
+        },
+        "superset_partner_exercise_id": {
+          "type": "string",
+          "description": "Partner exercise_id when this event belongs to a superset."
+        },
+        "superset_position": {
+          "type": "string",
+          "enum": ["first", "second"],
+          "description": "Stable position inside the superset pair."
+        },
+        "superset_round": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Superset round number, usually equal to set_number for this exercise."
+        },
+        "set_number": { "type": "integer", "minimum": 1 },
+        "set_type": {
+          "type": "string",
+          "enum": ["warmup", "working", "drop", "myo_activation", "myo_mini", "rp_initial", "rp_continuation", "backoff"],
+          "default": "working"
+        },
+        "weight_kg": { "type": "number" },
+        "reps": { "type": "integer" },
+        "rpe": { "type": "number", "minimum": 1, "maximum": 10 },
+        "rir": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "rest_seconds_after": {
+          "type": "integer",
+          "description": "Actual elapsed seconds until the next set started. In supersets, transition time after the first exercise and between-round rest after the second exercise are both represented chronologically."
+        },
         "set_duration_seconds": { "type": "integer", "description": "How long the set took in seconds" },
         "is_pr": { "type": "boolean" },
         "failed": { "type": "boolean", "default": false },

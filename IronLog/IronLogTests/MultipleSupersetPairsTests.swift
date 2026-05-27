@@ -39,6 +39,64 @@ final class MultipleSupersetPairsTests: XCTestCase {
             [.finishing, .saved].contains(vm.state),
             "VM should reach finishing or saved, was \(vm.state)"
         )
+
+        let workout = try XCTUnwrap(vm.workout)
+        let exported = WorkoutExportService.workoutToJSON(workout)
+        let pairEvents = (exported.setEvents ?? [])
+            .filter { ["a4", "a6"].contains($0.exerciseId) }
+
+        XCTAssertEqual(
+            pairEvents.map { "\($0.exerciseId)#\($0.setNumber)" },
+            ["a4#1", "a6#1", "a4#2", "a6#2", "a4#3", "a6#3"],
+            "Superset pair should be exported in actual A/B chronological order"
+        )
+        XCTAssertTrue(pairEvents.allSatisfy { $0.supersetPairId == "a4+a6" })
+    }
+
+    func testSupersetRestDurationAttachesToLastChronologicalSet() throws {
+        let container = try Self.makeContainer()
+        let context = container.mainContext
+        let template = Self.buildTwoExerciseSupersetTemplate(in: context)
+        try context.save()
+
+        let vm = ActiveWorkoutViewModel()
+        vm.startWorkout(template: template, context: context)
+
+        vm.readySlideRight()
+        vm.confirmPerforming(weight: 10, reps: 12)
+
+        vm.readySlideRight()
+        vm.confirmPerforming(weight: 10, reps: 12)
+
+        XCTAssertEqual(vm.state, .restTimer)
+        vm.skipRest()
+        XCTAssertEqual(vm.state, .active)
+        vm.readySlideRight()
+
+        let workout = try XCTUnwrap(vm.workout)
+        let press = try XCTUnwrap(
+            workout.exercises.first { $0.exerciseId == "press" }
+        )
+        let row = try XCTUnwrap(
+            workout.exercises.first { $0.exerciseId == "row" }
+        )
+        let pressSet1 = try XCTUnwrap(
+            press.sets.first { $0.setNumber == 1 }
+        )
+        let rowSet1 = try XCTUnwrap(
+            row.sets.first { $0.setNumber == 1 }
+        )
+
+        XCTAssertEqual(pressSet1.sequenceIndex, 1)
+        XCTAssertEqual(rowSet1.sequenceIndex, 2)
+        XCTAssertNotNil(
+            pressSet1.restSecondsAfter,
+            "Transition from first superset exercise should be stored on that set"
+        )
+        XCTAssertNotNil(
+            rowSet1.restSecondsAfter,
+            "Between-round rest should be stored on the second exercise's set"
+        )
     }
 
     // MARK: - Driver
@@ -136,6 +194,49 @@ final class MultipleSupersetPairsTests: XCTestCase {
         arms.template = template
         addSuperset(in: arms, id: "a7", with: "a8", name: "Бицепс",   bp: "arms", sortOrder: 0, sets: 3)
         addSuperset(in: arms, id: "a8", with: "a7", name: "Трицепс", bp: "arms", sortOrder: 1, sets: 3)
+
+        return template
+    }
+
+    private static func buildTwoExerciseSupersetTemplate(
+        in ctx: ModelContext
+    ) -> SDTemplate {
+        let plan = SDPlan(
+            planType: "strength",
+            planId: "test-rest-target",
+            planName: "Test Rest Target",
+            planVersion: 1,
+            createdAt: .now
+        )
+        ctx.insert(plan)
+
+        let template = SDTemplate(
+            templateId: "day-rest-target",
+            name: "Rest Target",
+            sortOrder: 0
+        )
+        template.plan = plan
+
+        let group = SDExerciseGroup(name: "Superset", sortOrder: 0)
+        group.template = template
+        addSuperset(
+            in: group,
+            id: "press",
+            with: "row",
+            name: "Press",
+            bp: "chest",
+            sortOrder: 0,
+            sets: 2
+        )
+        addSuperset(
+            in: group,
+            id: "row",
+            with: "press",
+            name: "Row",
+            bp: "back",
+            sortOrder: 1,
+            sets: 2
+        )
 
         return template
     }

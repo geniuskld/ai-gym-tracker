@@ -55,6 +55,7 @@ struct WorkoutJSON: Codable {
     let workoutNotes: String?
     let perceivedEffort: Int?
     let exercises: [ExerciseLogJSON]
+    let setEvents: [SetEventLogJSON]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -70,6 +71,7 @@ struct WorkoutJSON: Codable {
         case workoutNotes = "workout_notes"
         case perceivedEffort = "perceived_effort"
         case exercises
+        case setEvents = "set_events"
     }
 }
 
@@ -79,6 +81,9 @@ struct ExerciseLogJSON: Codable {
     let exerciseName: String
     let bodyPart: String?
     let order: Int?
+    let technique: String?
+    let supersetWith: String?
+    let supersetPairId: String?
     let sets: [SetLogJSON]
     let exerciseNotes: String?
     let exerciseRating: Int?
@@ -88,13 +93,55 @@ struct ExerciseLogJSON: Codable {
         case catalogId = "catalog_id"
         case exerciseName = "exercise_name"
         case bodyPart = "body_part"
-        case order, sets
+        case order, technique, sets
+        case supersetWith = "superset_with"
+        case supersetPairId = "superset_pair_id"
         case exerciseNotes = "exercise_notes"
         case exerciseRating = "exercise_rating"
     }
 }
 
 struct SetLogJSON: Codable {
+    let setNumber: Int
+    let setType: LogSetType?
+    let weightKg: Double?
+    let reps: Int?
+    let rpe: Double?
+    let rir: Int?
+    let completedAt: Date?
+    let sequenceIndex: Int?
+    let restSecondsAfter: Int?
+    let setDurationSeconds: Int?
+    let isPr: Bool?
+    let failed: Bool?
+    let notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case setNumber = "set_number"
+        case setType = "set_type"
+        case weightKg = "weight_kg"
+        case reps, rpe, rir
+        case completedAt = "completed_at"
+        case sequenceIndex = "sequence_index"
+        case restSecondsAfter = "rest_seconds_after"
+        case setDurationSeconds = "set_duration_seconds"
+        case isPr = "is_pr"
+        case failed, notes
+    }
+}
+
+struct SetEventLogJSON: Codable {
+    let sequenceIndex: Int?
+    let completedAt: Date?
+    let exerciseId: String
+    let catalogId: String?
+    let exerciseName: String
+    let exerciseOrder: Int?
+    let technique: String?
+    let supersetPairId: String?
+    let supersetPartnerExerciseId: String?
+    let supersetPosition: String?
+    let supersetRound: Int?
     let setNumber: Int
     let setType: LogSetType?
     let weightKg: Double?
@@ -108,6 +155,17 @@ struct SetLogJSON: Codable {
     let notes: String?
 
     enum CodingKeys: String, CodingKey {
+        case sequenceIndex = "sequence_index"
+        case completedAt = "completed_at"
+        case exerciseId = "exercise_id"
+        case catalogId = "catalog_id"
+        case exerciseName = "exercise_name"
+        case exerciseOrder = "exercise_order"
+        case technique
+        case supersetPairId = "superset_pair_id"
+        case supersetPartnerExerciseId = "superset_partner_exercise_id"
+        case supersetPosition = "superset_position"
+        case supersetRound = "superset_round"
         case setNumber = "set_number"
         case setType = "set_type"
         case weightKg = "weight_kg"

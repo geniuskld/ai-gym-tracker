@@ -8,6 +8,8 @@ final class SDExerciseLog {
     var exerciseName: String
     var bodyPart: String?
     var order: Int
+    var technique: String?
+    var supersetWith: String?
     var exerciseNotes: String?
     var exerciseRating: Int?
 
@@ -22,6 +24,8 @@ final class SDExerciseLog {
         exerciseName: String,
         bodyPart: String? = nil,
         order: Int = 0,
+        technique: String? = nil,
+        supersetWith: String? = nil,
         exerciseNotes: String? = nil
     ) {
         self.exerciseId = exerciseId
@@ -29,6 +33,8 @@ final class SDExerciseLog {
         self.exerciseName = exerciseName
         self.bodyPart = bodyPart
         self.order = order
+        self.technique = technique
+        self.supersetWith = supersetWith
         self.exerciseNotes = exerciseNotes
         self.sets = []
     }

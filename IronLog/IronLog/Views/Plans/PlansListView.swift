@@ -22,7 +22,7 @@ struct PlansListView: View {
                 } else {
                     List {
                         if !strengthPlans.isEmpty {
-                            Section("Strength") {
+                            Section {
                                 ForEach(strengthPlans) { plan in
                                     PlanRow(
                                         plan: plan,
@@ -33,6 +33,16 @@ struct PlansListView: View {
                                             planId: plan.planId
                                         )
                                     )
+                                    .listRowInsets(
+                                        EdgeInsets(
+                                            top: 6,
+                                            leading: 16,
+                                            bottom: 6,
+                                            trailing: 16
+                                        )
+                                    )
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
                                         selectedPlanKey = PlanSelectionKey.make(
@@ -42,10 +52,14 @@ struct PlansListView: View {
                                     }
                                 }
                                 .onDelete(perform: deleteStrength)
+                            } header: {
+                                Text("Strength")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(CockpitPalette.muted)
                             }
                         }
                         if !cyclingPlans.isEmpty {
-                            Section("Cycling") {
+                            Section {
                                 ForEach(cyclingPlans) { plan in
                                     CyclingPlanRow(
                                         plan: plan,
@@ -56,6 +70,16 @@ struct PlansListView: View {
                                             planId: plan.planId
                                         )
                                     )
+                                    .listRowInsets(
+                                        EdgeInsets(
+                                            top: 6,
+                                            leading: 16,
+                                            bottom: 6,
+                                            trailing: 16
+                                        )
+                                    )
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
                                         selectedPlanKey = PlanSelectionKey.make(
@@ -65,9 +89,16 @@ struct PlansListView: View {
                                     }
                                 }
                                 .onDelete(perform: deleteCycling)
+                            } header: {
+                                Text("Cycling")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(CockpitPalette.muted)
                             }
                         }
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(CockpitPalette.background)
                     .refreshable {
                         let error = await PlanSyncHelper.syncIfNeeded(
                             context: context,
@@ -78,6 +109,8 @@ struct PlansListView: View {
                 }
             }
             .navigationTitle("Plans")
+            .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .onAppear(perform: migrateLegacySelectionIfNeeded)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -126,27 +159,44 @@ struct PlansListView: View {
                         .font(.title3.weight(.semibold))
                     Text("Paste or pick a JSON training plan")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 32)
+                .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 18))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(CockpitPalette.border)
+                }
             }
-            .buttonStyle(.bordered)
-            .tint(.primary)
+            .buttonStyle(.plain)
+            .foregroundStyle(.primary)
 
             #if DEBUG
             Button {
                 loadSamplePlan()
             } label: {
                 Label("Load Sample Plan", systemImage: "doc.text")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        CockpitPalette.amber.opacity(0.16),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(CockpitPalette.amber.opacity(0.28))
+                    }
             }
-            .buttonStyle(.bordered)
-            .tint(.orange)
+            .buttonStyle(.plain)
+            .foregroundStyle(CockpitPalette.amber)
             #endif
 
             Spacer()
         }
         .padding()
+        .background(CockpitPalette.background.ignoresSafeArea())
     }
 
     private func deleteStrength(at offsets: IndexSet) {
@@ -196,41 +246,66 @@ private struct PlanRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            Image(systemName: "dumbbell.fill")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(CockpitPalette.blue)
+                .frame(width: 38, height: 38)
+                .background(
+                    CockpitPalette.blue.opacity(0.14),
+                    in: RoundedRectangle(cornerRadius: 10)
+                )
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(plan.planName)
-                        .font(.headline)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
                     Text("v\(plan.planVersion)")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
                 }
 
-                HStack {
+                HStack(spacing: 8) {
                     if let author = plan.author {
-                        Label(author, systemImage: "person")
+                        CockpitChip(
+                            text: author,
+                            color: CockpitPalette.muted,
+                            systemImage: "person"
+                        )
                     }
-                    Label(
-                        "\(plan.templates.count) templates",
+                    CockpitChip(
+                        text: "\(plan.templates.count) templates",
+                        color: CockpitPalette.blue,
                         systemImage: "calendar"
                     )
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
                 Text(plan.importedAt, style: .date)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(CockpitPalette.faint)
             }
 
             Spacer()
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .font(.title3)
+                    .foregroundStyle(CockpitPalette.green)
             }
         }
-        .padding(.vertical, 2)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isSelected
+                        ? CockpitPalette.green.opacity(0.45)
+                        : CockpitPalette.border
+                )
+        }
     }
 }
 
@@ -241,45 +316,72 @@ private struct CyclingPlanRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            Image(systemName: "bicycle")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(CockpitPalette.cyan)
+                .frame(width: 38, height: 38)
+                .background(
+                    CockpitPalette.cyan.opacity(0.14),
+                    in: RoundedRectangle(cornerRadius: 10)
+                )
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
-                    Image(systemName: "bicycle")
-                        .foregroundStyle(.secondary)
                     Text(plan.planName)
-                        .font(.headline)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
                     Text("v\(plan.planVersion)")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CockpitPalette.muted)
                 }
 
-                HStack {
+                HStack(spacing: 8) {
                     if let author = plan.author {
-                        Label(author, systemImage: "person")
+                        CockpitChip(
+                            text: author,
+                            color: CockpitPalette.muted,
+                            systemImage: "person"
+                        )
                     }
-                    Label(
-                        "\(plan.templates.count) workouts",
+                    CockpitChip(
+                        text: "\(plan.templates.count) workouts",
+                        color: CockpitPalette.cyan,
                         systemImage: "calendar"
                     )
                     if let mhr = plan.maxHrBpm {
-                        Label("max \(mhr)", systemImage: "heart")
+                        CockpitChip(
+                            text: "max \(mhr)",
+                            color: CockpitPalette.red,
+                            systemImage: "heart"
+                        )
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
                 Text(plan.importedAt, style: .date)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(CockpitPalette.faint)
             }
 
             Spacer()
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                    .font(.title3)
+                    .foregroundStyle(CockpitPalette.green)
             }
         }
-        .padding(.vertical, 2)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CockpitPalette.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isSelected
+                        ? CockpitPalette.green.opacity(0.45)
+                        : CockpitPalette.border
+                )
+        }
     }
 }

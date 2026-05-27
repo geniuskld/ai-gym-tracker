@@ -69,12 +69,16 @@ struct WorkoutHistoryView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    .contentMargins(.top, 10, for: .scrollContent)
+                    .contentMargins(.bottom, 112, for: .scrollContent)
                     .background(CockpitPalette.background)
                 }
             }
             .navigationTitle("History")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(CockpitPalette.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .alert(
                 "History Error",
                 isPresented: .init(

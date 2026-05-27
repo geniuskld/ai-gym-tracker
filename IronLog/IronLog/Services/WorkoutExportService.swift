@@ -90,8 +90,10 @@ enum WorkoutExportService {
     }
 
     static func workoutToJSON(_ w: SDWorkout) -> WorkoutJSON {
-        let exerciseLogs = w.exercises
+        let sortedExercises = w.exercises
             .sorted { $0.order < $1.order }
+
+        let exerciseLogs = sortedExercises
             .map { ex in
                 ExerciseLogJSON(
                     exerciseId: ex.exerciseId,
@@ -99,27 +101,20 @@ enum WorkoutExportService {
                     exerciseName: ex.exerciseName,
                     bodyPart: ex.bodyPart,
                     order: ex.order,
+                    technique: ex.technique,
+                    supersetWith: ex.supersetWith,
+                    supersetPairId: supersetPairId(for: ex),
                     sets: ex.sets
                         .sorted { $0.setNumber < $1.setNumber }
                         .map { s in
-                            SetLogJSON(
-                                setNumber: s.setNumber,
-                                setType: LogSetType(rawValue: s.setType),
-                                weightKg: s.weightKg,
-                                reps: s.reps,
-                                rpe: s.rpe,
-                                rir: s.rir,
-                                restSecondsAfter: s.restSecondsAfter,
-                                setDurationSeconds: s.setDurationSeconds,
-                                isPr: s.isPr ? true : nil,
-                                failed: s.failed ? true : nil,
-                                notes: s.notes
-                            )
+                            setLogJSON(from: s)
                         },
                     exerciseNotes: ex.exerciseNotes,
                     exerciseRating: ex.exerciseRating
                 )
             }
+
+        let setEvents = chronologicalSetEvents(from: sortedExercises)
 
         return WorkoutJSON(
             id: w.workoutId,
@@ -134,7 +129,125 @@ enum WorkoutExportService {
             durationMinutes: w.durationMinutes,
             workoutNotes: w.workoutNotes,
             perceivedEffort: w.perceivedEffort,
-            exercises: exerciseLogs
+            exercises: exerciseLogs,
+            setEvents: setEvents.isEmpty ? nil : setEvents
         )
+    }
+
+    private static func setLogJSON(from s: SDSetLog) -> SetLogJSON {
+        SetLogJSON(
+            setNumber: s.setNumber,
+            setType: LogSetType(rawValue: s.setType),
+            weightKg: s.weightKg,
+            reps: s.reps,
+            rpe: s.rpe,
+            rir: s.rir,
+            completedAt: s.completedAt,
+            sequenceIndex: s.sequenceIndex,
+            restSecondsAfter: s.restSecondsAfter,
+            setDurationSeconds: s.setDurationSeconds,
+            isPr: s.isPr ? true : nil,
+            failed: s.failed ? true : nil,
+            notes: s.notes
+        )
+    }
+
+    private static func chronologicalSetEvents(
+        from exercises: [SDExerciseLog]
+    ) -> [SetEventLogJSON] {
+        let performedSets = exercises.flatMap { exercise in
+            exercise.sets.map { set in (exercise, set) }
+        }
+
+        return performedSets
+            .sorted(by: isChronologicallyBefore)
+            .map { pair in
+                let exercise = pair.0
+                let set = pair.1
+                return SetEventLogJSON(
+                    sequenceIndex: set.sequenceIndex,
+                    completedAt: set.completedAt,
+                    exerciseId: exercise.exerciseId,
+                    catalogId: exercise.catalogId,
+                    exerciseName: exercise.exerciseName,
+                    exerciseOrder: exercise.order,
+                    technique: exercise.technique,
+                    supersetPairId: supersetPairId(for: exercise),
+                    supersetPartnerExerciseId: supersetPartnerExerciseId(for: exercise),
+                    supersetPosition: supersetPosition(for: exercise),
+                    supersetRound: supersetRound(for: exercise, set: set),
+                    setNumber: set.setNumber,
+                    setType: LogSetType(rawValue: set.setType),
+                    weightKg: set.weightKg,
+                    reps: set.reps,
+                    rpe: set.rpe,
+                    rir: set.rir,
+                    restSecondsAfter: set.restSecondsAfter,
+                    setDurationSeconds: set.setDurationSeconds,
+                    isPr: set.isPr ? true : nil,
+                    failed: set.failed ? true : nil,
+                    notes: set.notes
+                )
+            }
+    }
+
+    private static func isChronologicallyBefore(
+        _ lhs: (SDExerciseLog, SDSetLog),
+        _ rhs: (SDExerciseLog, SDSetLog)
+    ) -> Bool {
+        if let lhsSequence = lhs.1.sequenceIndex,
+           let rhsSequence = rhs.1.sequenceIndex,
+           lhsSequence != rhsSequence {
+            return lhsSequence < rhsSequence
+        }
+        if lhs.1.sequenceIndex != nil {
+            return true
+        }
+        if rhs.1.sequenceIndex != nil {
+            return false
+        }
+
+        if let lhsCompletedAt = lhs.1.completedAt,
+           let rhsCompletedAt = rhs.1.completedAt,
+           lhsCompletedAt != rhsCompletedAt {
+            return lhsCompletedAt < rhsCompletedAt
+        }
+        if lhs.0.order != rhs.0.order {
+            return lhs.0.order < rhs.0.order
+        }
+        return lhs.1.setNumber < rhs.1.setNumber
+    }
+
+    private static func supersetPairId(for exercise: SDExerciseLog) -> String? {
+        guard exercise.technique == "superset",
+              let partnerId = exercise.supersetWith,
+              !partnerId.isEmpty
+        else { return nil }
+
+        return [exercise.exerciseId, partnerId]
+            .sorted()
+            .joined(separator: "+")
+    }
+
+    private static func supersetPartnerExerciseId(
+        for exercise: SDExerciseLog
+    ) -> String? {
+        guard exercise.technique == "superset" else { return nil }
+        return exercise.supersetWith
+    }
+
+    private static func supersetPosition(for exercise: SDExerciseLog) -> String? {
+        guard exercise.technique == "superset",
+              let partnerId = exercise.supersetWith
+        else { return nil }
+
+        return exercise.exerciseId < partnerId ? "first" : "second"
+    }
+
+    private static func supersetRound(
+        for exercise: SDExerciseLog,
+        set: SDSetLog
+    ) -> Int? {
+        exercise.technique == "superset" ? set.setNumber : nil
     }
 }

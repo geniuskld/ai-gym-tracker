@@ -25,141 +25,240 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            // Server URL
-            Section {
-                TextField("https://example.com/api", text: $editingURL)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-            } header: {
-                Text("Sync Server URL")
-            } footer: {
-                Text("Base URL for plan sync and log upload")
-            }
+        ScrollView {
+            VStack(spacing: 16) {
+                serverSection
+                connectionActionsSection
 
-            Section {
-                Button {
-                    saveURL()
-                } label: {
-                    Text("Save")
-                        .fontWeight(.semibold)
+                if let result = testResult {
+                    testStatusSection(result)
                 }
-                .disabled(editingURL == serverURL)
 
-                Button {
-                    testConnection()
-                } label: {
-                    if isTesting {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("Testing...")
-                        }
-                    } else {
-                        Label(
-                            "Test Connection",
-                            systemImage: "antenna.radiowaves.left.and.right"
-                        )
-                    }
-                }
-                .disabled(editingURL.isEmpty || isTesting)
-            }
+                accountSection
 
-            if let result = testResult {
-                Section {
-                    switch result {
-                    case .success(let msg):
-                        Label(msg, systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                    case .failure(let msg):
-                        Label(msg, systemImage: "xmark.circle.fill")
-                            .foregroundStyle(.red)
-                    }
-                }
-            }
-
-            // Account
-            Section {
-                if isAuthenticated {
-                    HStack {
-                        Label(
-                            SyncService.savedEmail ?? "Signed in",
-                            systemImage: "person.circle.fill"
-                        )
-                        .foregroundStyle(.green)
-                        Spacer()
-                        Button("Sign Out") {
-                            SyncService.logout()
-                            isAuthenticated = false
-                            authMessage = AuthMessage(
-                                text: "Signed out",
-                                isError: false
-                            )
-                        }
-                        .foregroundStyle(.red)
-                    }
-                } else {
-                    TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
-                        .textContentType(.emailAddress)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-
-                    SecureField("Password", text: $password)
-                        .textContentType(.password)
-
-                    HStack {
-                        Button {
-                            authenticate(isRegister: false)
-                        } label: {
-                            if isAuthLoading {
-                                ProgressView()
-                            } else {
-                                Text("Sign In")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                        .disabled(
-                            email.isEmpty
-                            || password.isEmpty
-                            || isAuthLoading
-                        )
-
-                        Spacer()
-
-                        Button("Create Account") {
-                            authenticate(isRegister: true)
-                        }
-                        .disabled(
-                            email.isEmpty
-                            || password.isEmpty
-                            || isAuthLoading
-                        )
-                    }
-                }
-            } header: {
-                Text("Account")
-            }
-
-            if let msg = authMessage {
-                Section {
-                    Label(
-                        msg.text,
+                if let msg = authMessage {
+                    SettingsStatusCard(
+                        text: msg.text,
                         systemImage: msg.isError
                             ? "xmark.circle.fill"
-                            : "checkmark.circle.fill"
+                            : "checkmark.circle.fill",
+                        tint: msg.isError
+                            ? CockpitPalette.red
+                            : CockpitPalette.green
                     )
-                    .foregroundStyle(msg.isError ? .red : .green)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 18)
+            .padding(.bottom, 34)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .background(CockpitPalette.background.ignoresSafeArea())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(CockpitPalette.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .onAppear {
             editingURL = serverURL
             isAuthenticated = SyncService.isAuthenticated
         }
+    }
+
+    private var serverSection: some View {
+        CockpitPanel(spacing: 10, padding: 16) {
+            Text("Sync Server URL")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.primary)
+
+            TextField("https://example.com/api", text: $editingURL)
+                .keyboardType(.URL)
+                .textContentType(.URL)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .settingsInputShell()
+
+            Text("Base URL for plan sync and log upload")
+                .font(.caption)
+                .foregroundStyle(CockpitPalette.muted)
+        }
+    }
+
+    private var connectionActionsSection: some View {
+        CockpitPanel(spacing: 12, padding: 16) {
+            HStack(spacing: 12) {
+                Button {
+                    saveURL()
+                } label: {
+                    Label("Save", systemImage: "checkmark")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(CockpitPrimaryButtonStyle(tint: CockpitPalette.blue))
+                .disabled(editingURL == serverURL)
+                .opacity(editingURL == serverURL ? 0.45 : 1)
+
+                Button {
+                    testConnection()
+                } label: {
+                    HStack(spacing: 8) {
+                        if isTesting {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(CockpitPalette.blue)
+                            Text("Testing...")
+                        } else {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                            Text("Test")
+                        }
+                    }
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(CockpitPalette.blue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        CockpitPalette.panelElevated,
+                        in: RoundedRectangle(cornerRadius: 18)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(CockpitPalette.border)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(editingURL.isEmpty || isTesting)
+                .opacity(editingURL.isEmpty || isTesting ? 0.45 : 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func testStatusSection(_ result: TestResult) -> some View {
+        switch result {
+        case .success(let msg):
+            SettingsStatusCard(
+                text: msg,
+                systemImage: "checkmark.circle.fill",
+                tint: CockpitPalette.green
+            )
+        case .failure(let msg):
+            SettingsStatusCard(
+                text: msg,
+                systemImage: "xmark.circle.fill",
+                tint: CockpitPalette.red
+            )
+        }
+    }
+
+    private var accountSection: some View {
+        CockpitPanel(spacing: 14, padding: 16) {
+            Text("Account")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.primary)
+
+            if isAuthenticated {
+                signedInAccountRow
+            } else {
+                authForm
+            }
+        }
+    }
+
+    private var signedInAccountRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.circle.fill")
+                .font(.title2)
+                .foregroundStyle(CockpitPalette.green)
+
+            Text(SyncService.savedEmail ?? "Signed in")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(CockpitPalette.green)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Spacer()
+
+            Button("Sign Out") {
+                SyncService.logout()
+                isAuthenticated = false
+                authMessage = AuthMessage(
+                    text: "Signed out",
+                    isError: false
+                )
+            }
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(CockpitPalette.red)
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(CockpitPalette.panelElevated, in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(CockpitPalette.border)
+        }
+    }
+
+    private var authForm: some View {
+        VStack(spacing: 12) {
+            TextField("Email", text: $email)
+                .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .settingsInputShell()
+
+            SecureField("Password", text: $password)
+                .textContentType(.password)
+                .settingsInputShell()
+
+            HStack(spacing: 12) {
+                Button {
+                    authenticate(isRegister: false)
+                } label: {
+                    HStack(spacing: 8) {
+                        if isAuthLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "person.fill.checkmark")
+                        }
+                        Text("Sign In")
+                    }
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(CockpitPrimaryButtonStyle(tint: CockpitPalette.blue))
+                .disabled(authButtonsDisabled)
+                .opacity(authButtonsDisabled ? 0.45 : 1)
+
+                Button {
+                    authenticate(isRegister: true)
+                } label: {
+                    Text("Create")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(CockpitPalette.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            CockpitPalette.panelElevated,
+                            in: RoundedRectangle(cornerRadius: 18)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18)
+                                .strokeBorder(CockpitPalette.border)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(authButtonsDisabled)
+                .opacity(authButtonsDisabled ? 0.45 : 1)
+            }
+        }
+    }
+
+    private var authButtonsDisabled: Bool {
+        email.isEmpty || password.isEmpty || isAuthLoading
     }
 
     // MARK: - Actions
@@ -235,6 +334,57 @@ struct SettingsView: View {
                 )
             }
             isAuthLoading = false
+        }
+    }
+}
+
+private struct SettingsInputShell: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.body.weight(.medium))
+            .foregroundStyle(.primary)
+            .tint(CockpitPalette.blue)
+            .padding(.horizontal, 14)
+            .frame(height: 52)
+            .background(
+                CockpitPalette.panelElevated,
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(CockpitPalette.border)
+            }
+    }
+}
+
+private extension View {
+    func settingsInputShell() -> some View {
+        modifier(SettingsInputShell())
+    }
+}
+
+private struct SettingsStatusCard: View {
+    let text: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(tint)
+
+            Text(text)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(tint.opacity(0.28))
         }
     }
 }

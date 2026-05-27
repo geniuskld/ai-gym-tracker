@@ -88,13 +88,16 @@ final class ActiveWorkoutViewModel {
     private(set) var workout: SDWorkout?
     private var modelContext: ModelContext?
     private var lastSetCompletedAt: Date?
+    private var lastCompletedSetLog: SDSetLog?
+    private var historicalTemplateDurationSeconds: Int?
     private var stateBeforeFinishing: State?
     private var pendingRatingExerciseIndex: Int?
+    private var autoStartSetAfterRest = false
 
     // MARK: - Computed
 
     var currentExercise: ExerciseState? {
-        guard currentExerciseIndex < exercises.count else { return nil }
+        guard exercises.indices.contains(currentExerciseIndex) else { return nil }
         return exercises[currentExerciseIndex]
     }
 
@@ -154,11 +157,26 @@ final class ActiveWorkoutViewModel {
         pendingAdvanceToNextExercise
     }
 
+    /// True for short technique pauses where tapping the timer should enter
+    /// the next set directly instead of showing a separate Start button.
+    var restStartsNextSetImmediately: Bool {
+        autoStartSetAfterRest && !pendingAdvanceToNextExercise
+    }
+
     /// Name of the next exercise (if any)
     var nextExerciseName: String? {
         let nextIdx = currentExerciseIndex + 1
-        guard nextIdx < exercises.count else { return nil }
+        guard exercises.indices.contains(nextIdx) else { return nil }
         return exercises[nextIdx].name
+    }
+
+    var remainingWorkoutMinutesText: String? {
+        guard let seconds = estimatedRemainingWorkoutSeconds,
+              seconds > 0
+        else { return nil }
+
+        let minutes = max(1, Int(ceil(Double(seconds) / 60.0)))
+        return "~\(minutes) min left"
     }
 
     // MARK: - Start Workout
@@ -186,6 +204,11 @@ final class ActiveWorkoutViewModel {
 
         buildExercises(from: template, loggedSets: [:])
         linkSupersetPartners()
+        refreshHistoricalTimeBaseline(
+            templateId: template.templateId,
+            excludingWorkoutId: sdWorkout.workoutId,
+            context: context
+        )
         currentExerciseIndex = 0
         currentSetIndex = 0
         setPhase = .ready
@@ -215,6 +238,11 @@ final class ActiveWorkoutViewModel {
 
         buildExercises(from: template, loggedSets: loggedSets)
         linkSupersetPartners()
+        refreshHistoricalTimeBaseline(
+            templateId: template.templateId,
+            excludingWorkoutId: sdWorkout.workoutId,
+            context: context
+        )
 
         // Find first incomplete exercise/set
         for (eIdx, ex) in exercises.enumerated() {
@@ -321,8 +349,8 @@ final class ActiveWorkoutViewModel {
             flowLockWeight = step.lockWeight
             // Apply suggested weight if the set has no weight yet
             if let w = step.suggestedWeightKg,
-               step.exerciseIndex < exercises.count,
-               step.setIndex < exercises[step.exerciseIndex].sets.count,
+               exercises.indices.contains(step.exerciseIndex),
+               exercises[step.exerciseIndex].sets.indices.contains(step.setIndex),
                exercises[step.exerciseIndex].sets[step.setIndex].weightKg == nil {
                 exercises[step.exerciseIndex].sets[step.setIndex].weightKg = w
             }
@@ -333,6 +361,10 @@ final class ActiveWorkoutViewModel {
 
     // Ready phase: slide right = start set with current weight
     func readySlideRight() {
+        guard exercises.indices.contains(currentExerciseIndex),
+              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex)
+        else { return }
+
         let set = exercises[currentExerciseIndex].sets[currentSetIndex]
         // Only apply last weight if this set has no prescribed weight
         if set.weightKg == nil, let last = lastCompletedWeight {
@@ -342,6 +374,10 @@ final class ActiveWorkoutViewModel {
     }
 
     private func beginPerforming() {
+        guard exercises.indices.contains(currentExerciseIndex),
+              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex)
+        else { return }
+
         // Record actual rest duration on previous set
         if let completedAt = lastSetCompletedAt {
             let actualRest = Int(Date().timeIntervalSince(completedAt))
@@ -364,6 +400,10 @@ final class ActiveWorkoutViewModel {
 
     // Performing phase: confirm weight + reps and finish set
     func confirmPerforming(weight: Double, reps: Int) {
+        guard exercises.indices.contains(currentExerciseIndex),
+              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex)
+        else { return }
+
         setStopwatch.stop()
         exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = weight
         completeCurrentSet(reps: reps)
@@ -372,8 +412,8 @@ final class ActiveWorkoutViewModel {
     // MARK: - Core: Complete Set + Flow-Driven Progression
 
     private func completeCurrentSet(reps: Int) {
-        guard currentExerciseIndex < exercises.count,
-              currentSetIndex < exercises[currentExerciseIndex].sets.count
+        guard exercises.indices.contains(currentExerciseIndex),
+              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex)
         else { return }
 
         // Mark set as completed
@@ -390,6 +430,7 @@ final class ActiveWorkoutViewModel {
 
         // Ask flow for next step
         guard let flow = currentFlow else {
+            autoStartSetAfterRest = false
             startRest(seconds: exercises[currentExerciseIndex].restSeconds)
             return
         }
@@ -405,12 +446,15 @@ final class ActiveWorkoutViewModel {
             flowLockWeight = false
             let restSeconds = exercises[completedExIdx].restSeconds
             pendingAdvanceToNextExercise = true
+            autoStartSetAfterRest = false
             pendingRatingExerciseIndex = completedExIdx
             startRest(seconds: restSeconds)
             return
         }
 
         // Dynamic set insertion (myo-reps mini-sets)
+        guard exercises.indices.contains(nextStep.exerciseIndex) else { return }
+
         if flow.supportsDynamicSets
             && nextStep.setIndex >= exercises[nextStep.exerciseIndex].sets.count {
             let newSet = SetState(
@@ -423,6 +467,10 @@ final class ActiveWorkoutViewModel {
             exercises[nextStep.exerciseIndex].sets.append(newSet)
         }
 
+        guard exercises[nextStep.exerciseIndex].sets.indices.contains(nextStep.setIndex) else {
+            return
+        }
+
         // Apply suggested weight
         if let w = nextStep.suggestedWeightKg {
             exercises[nextStep.exerciseIndex].sets[nextStep.setIndex].weightKg = w
@@ -432,12 +480,18 @@ final class ActiveWorkoutViewModel {
         currentExerciseIndex = nextStep.exerciseIndex
         currentSetIndex = nextStep.setIndex
         flowInstruction = nextStep.instruction
+        flowLockWeight = nextStep.lockWeight
 
         // Rest or go directly
         if let rest = nextStep.restSeconds, rest > 0 {
             pendingAdvanceToNextExercise = false
+            autoStartSetAfterRest = shouldAutoStartAfterRest(
+                flow: flow,
+                nextStep: nextStep
+            )
             startRest(seconds: rest)
         } else {
+            autoStartSetAfterRest = false
             setPhase = .ready
             state = .active
         }
@@ -476,7 +530,11 @@ final class ActiveWorkoutViewModel {
     private func onRestComplete() {
         if pendingAdvanceToNextExercise {
             pendingAdvanceToNextExercise = false
+            autoStartSetAfterRest = false
             applyPendingRatingAndAdvance()
+        } else if autoStartSetAfterRest {
+            autoStartSetAfterRest = false
+            beginPerforming()
         } else {
             // Flow already set currentExerciseIndex/currentSetIndex
             setPhase = .ready
@@ -487,6 +545,7 @@ final class ActiveWorkoutViewModel {
     func finishExercise() {
         // Trigger rest-before-next-exercise so the user can rate during rest
         pendingAdvanceToNextExercise = true
+        autoStartSetAfterRest = false
         pendingRatingExerciseIndex = currentExerciseIndex
         let restSeconds = currentExercise?.restSeconds ?? 60
         startRest(seconds: restSeconds)
@@ -523,6 +582,11 @@ final class ActiveWorkoutViewModel {
     }
 
     private func advanceToNextExercise() {
+        guard !exercises.isEmpty else {
+            beginFinishing()
+            return
+        }
+
         // Find next exercise not covered by the current flow
         let coveredIndices = Set(currentFlow?.exerciseIndices ?? [])
         var nextIdx = (coveredIndices.max() ?? currentExerciseIndex) + 1
@@ -551,7 +615,9 @@ final class ActiveWorkoutViewModel {
                 completedExerciseIndex: nil,
                 completedSetIndex: nil,
                 completedReps: nil
-            ) {
+            ),
+               exercises.indices.contains(step.exerciseIndex),
+               exercises[step.exerciseIndex].sets.indices.contains(step.setIndex) {
                 currentExerciseIndex = step.exerciseIndex
                 currentSetIndex = step.setIndex
                 if let w = step.suggestedWeightKg {
@@ -570,10 +636,11 @@ final class ActiveWorkoutViewModel {
     // MARK: - Navigation (skip/jump)
 
     func jumpToExercise(_ index: Int) {
-        guard index < exercises.count else { return }
+        guard exercises.indices.contains(index) else { return }
         restTimer.stop()
         setStopwatch.stop()
         pendingAdvanceToNextExercise = false
+        autoStartSetAfterRest = false
         currentExerciseIndex = index
         let sets = exercises[index].sets
         currentSetIndex = sets.firstIndex(where: { !$0.isCompleted }) ?? 0
@@ -586,19 +653,275 @@ final class ActiveWorkoutViewModel {
         advanceToNextExercise()
     }
 
+    // MARK: - Time Estimate
+
+    private enum TimeEstimate {
+        static let liveProjectionStartProgress = 0.25
+        static let liveProjectionBlendSpan = 0.50
+        static let maxLiveProjectionWeight = 0.60
+        static let minLiveOnlyElapsedSeconds = 10 * 60
+        static let dropOrMyoMiniUnits = 0.35
+        static let warmupUnits = 0.75
+    }
+
+    private struct TimeEstimateProgress {
+        let remainingUnits: Double
+        let completedFraction: Double
+    }
+
+    private var estimatedRemainingWorkoutSeconds: Int? {
+        guard let workout,
+              let progress = timeEstimateProgress,
+              progress.remainingUnits > 0
+        else { return nil }
+
+        let elapsedSeconds = max(
+            0,
+            Int(Date.now.timeIntervalSince(workout.startedAt))
+        )
+
+        if let historicalSeconds = historicalTemplateDurationSeconds {
+            return historicallyAnchoredRemainingSeconds(
+                elapsedSeconds: elapsedSeconds,
+                historicalSeconds: historicalSeconds,
+                completedFraction: progress.completedFraction
+            )
+        }
+
+        return liveOnlyRemainingSeconds(
+            elapsedSeconds: elapsedSeconds,
+            completedFraction: progress.completedFraction
+        )
+    }
+
+    private func historicallyAnchoredRemainingSeconds(
+        elapsedSeconds: Int,
+        historicalSeconds: Int,
+        completedFraction: Double
+    ) -> Int {
+        let anchoredRemaining = max(historicalSeconds - elapsedSeconds, 0)
+        guard completedFraction >= TimeEstimate.liveProjectionStartProgress else {
+            return anchoredRemaining
+        }
+
+        let projectedTotal = projectedTotalSeconds(
+            elapsedSeconds: elapsedSeconds,
+            completedFraction: completedFraction
+        )
+        let liveWeight = liveProjectionWeight(for: completedFraction)
+        let blendedTotal = Int(
+            (Double(historicalSeconds) * (1 - liveWeight)
+             + Double(projectedTotal) * liveWeight).rounded()
+        )
+        return max(blendedTotal - elapsedSeconds, 0)
+    }
+
+    private func liveOnlyRemainingSeconds(
+        elapsedSeconds: Int,
+        completedFraction: Double
+    ) -> Int? {
+        guard completedFraction >= TimeEstimate.liveProjectionStartProgress,
+              elapsedSeconds >= TimeEstimate.minLiveOnlyElapsedSeconds
+        else {
+            return nil
+        }
+
+        let projectedTotal = projectedTotalSeconds(
+            elapsedSeconds: elapsedSeconds,
+            completedFraction: completedFraction
+        )
+        return max(projectedTotal - elapsedSeconds, 0)
+    }
+
+    private func projectedTotalSeconds(
+        elapsedSeconds: Int,
+        completedFraction: Double
+    ) -> Int {
+        Int((Double(elapsedSeconds) / completedFraction).rounded())
+    }
+
+    private func liveProjectionWeight(for completedFraction: Double) -> Double {
+        let progressPastStart = completedFraction
+            - TimeEstimate.liveProjectionStartProgress
+        let rawWeight = progressPastStart / TimeEstimate.liveProjectionBlendSpan
+        return min(TimeEstimate.maxLiveProjectionWeight, rawWeight)
+    }
+
+    private var timeEstimateProgress: TimeEstimateProgress? {
+        let total = totalEstimateUnits
+        guard total > 0,
+              let remaining = remainingSetUnitsForEstimate
+        else { return nil }
+
+        let completedFraction = min(max((total - remaining) / total, 0), 0.95)
+        return TimeEstimateProgress(
+            remainingUnits: remaining,
+            completedFraction: completedFraction
+        )
+    }
+
+    private var remainingSetUnitsForEstimate: Double? {
+        guard !exercises.isEmpty else { return nil }
+
+        guard let startIndex = estimateStartExerciseIndex else {
+            return 0
+        }
+        guard exercises.indices.contains(startIndex) else { return nil }
+
+        return exercises[startIndex...].reduce(0.0) { total, exercise in
+            total + remainingEstimateUnits(for: exercise)
+        }
+    }
+
+    private var estimateStartExerciseIndex: Int? {
+        if pendingAdvanceToNextExercise {
+            return nextExerciseIndexAfterCurrentFlow()
+        }
+        return currentFlow?.exerciseIndices.min() ?? currentExerciseIndex
+    }
+
+    private var totalEstimateUnits: Double {
+        exercises.reduce(0.0) { sum, exercise in
+            sum + totalEstimateUnits(for: exercise)
+        }
+    }
+
+    private func totalEstimateUnits(for exercise: ExerciseState) -> Double {
+        exercise.sets.map(estimateUnits).reduce(0, +)
+            + uncreatedMyoMiniSetUnits(for: exercise)
+    }
+
+    private func remainingEstimateUnits(for exercise: ExerciseState) -> Double {
+        exercise.sets
+            .filter { !$0.isCompleted }
+            .map(estimateUnits)
+            .reduce(0, +)
+            + uncreatedMyoMiniSetUnits(for: exercise)
+    }
+
+    private func estimateUnits(for set: SetState) -> Double {
+        switch set.type {
+        case "drop", "myo_mini":
+            return TimeEstimate.dropOrMyoMiniUnits
+        case "warmup":
+            return TimeEstimate.warmupUnits
+        default:
+            return 1.0
+        }
+    }
+
+    private func uncreatedMyoMiniSetUnits(
+        for exercise: ExerciseState
+    ) -> Double {
+        guard exercise.technique == "myo_reps",
+              let maxMiniSets = exercise.maxMiniSets
+        else { return 0 }
+
+        let completedMiniSets = exercise.sets.filter {
+            $0.type == "myo_mini" && $0.isCompleted
+        }.count
+        let pendingMiniSets = exercise.sets.filter {
+            $0.type == "myo_mini" && !$0.isCompleted
+        }.count
+
+        return Double(max(0, maxMiniSets - completedMiniSets - pendingMiniSets))
+            * TimeEstimate.dropOrMyoMiniUnits
+    }
+
+    private func nextExerciseIndexAfterCurrentFlow() -> Int? {
+        let coveredIndices = Set(currentFlow?.exerciseIndices ?? [])
+        var nextIdx = (coveredIndices.max() ?? currentExerciseIndex) + 1
+
+        while exercises.indices.contains(nextIdx) {
+            let exercise = exercises[nextIdx]
+            if exercise.technique == "superset",
+               let partnerIdx = exercise.supersetPartnerIndex,
+               partnerIdx < nextIdx {
+                nextIdx += 1
+            } else {
+                break
+            }
+        }
+
+        return exercises.indices.contains(nextIdx) ? nextIdx : nil
+    }
+
+    private func refreshHistoricalTimeBaseline(
+        templateId: String,
+        excludingWorkoutId: String,
+        context: ModelContext
+    ) {
+        let descriptor = FetchDescriptor<SDWorkout>(
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+
+        let workouts = (try? context.fetch(descriptor)) ?? []
+        let durations = workouts
+            .lazy
+            .filter { workout in
+                workout.templateId == templateId
+                    && workout.workoutId != excludingWorkoutId
+                    && workout.finishedAt != nil
+                    && workout.durationMinutes != nil
+            }
+            .prefix(5)
+            .compactMap { workout -> Int? in
+                guard let durationMinutes = workout.durationMinutes,
+                      durationMinutes > 0
+                else { return nil }
+                return Int((durationMinutes * 60.0).rounded())
+            }
+
+        historicalTemplateDurationSeconds = median(Array(durations))
+    }
+
+    private func median(_ values: [Int]) -> Int? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let middle = sorted.count / 2
+
+        if sorted.count.isMultiple(of: 2) {
+            return Int((Double(sorted[middle - 1]) + Double(sorted[middle])) / 2.0)
+        }
+        return sorted[middle]
+    }
+
+    private func shouldAutoStartAfterRest(
+        flow: any TechniqueFlow,
+        nextStep: TechniqueStep
+    ) -> Bool {
+        guard exercises.indices.contains(nextStep.exerciseIndex),
+              exercises[nextStep.exerciseIndex].sets.indices.contains(nextStep.setIndex)
+        else { return false }
+
+        let nextSet = exercises[nextStep.exerciseIndex].sets[nextStep.setIndex]
+        if flow is MyoRepsFlow {
+            return nextSet.type == "myo_mini"
+        }
+        if flow is StraightFlow {
+            return true
+        }
+        return false
+    }
+
     // MARK: - Exercise Notes
 
     func saveExerciseNote(
         _ note: String,
         forExerciseAt index: Int
     ) {
-        guard let workout, let context = modelContext else { return }
+        guard let workout,
+              let context = modelContext,
+              exercises.indices.contains(index)
+        else { return }
+
         let exState = exercises[index]
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let exLog = workout.exercises.first(where: {
             $0.exerciseId == exState.exerciseId
         }) {
+            applyExerciseMetadata(to: exLog, from: exState, order: index)
             exLog.exerciseNotes = trimmed.isEmpty ? nil : trimmed
         } else {
             let newLog = SDExerciseLog(
@@ -607,6 +930,8 @@ final class ActiveWorkoutViewModel {
                 exerciseName: exState.name,
                 bodyPart: exState.bodyPart,
                 order: index,
+                technique: exState.technique,
+                supersetWith: exState.supersetWith,
                 exerciseNotes: trimmed.isEmpty ? nil : trimmed
             )
             newLog.workout = workout
@@ -615,7 +940,10 @@ final class ActiveWorkoutViewModel {
     }
 
     func exerciseNote(at index: Int) -> String {
-        guard let workout else { return "" }
+        guard let workout,
+              exercises.indices.contains(index)
+        else { return "" }
+
         let exId = exercises[index].exerciseId
         return workout.exercises
             .first { $0.exerciseId == exId }?
@@ -640,7 +968,11 @@ final class ActiveWorkoutViewModel {
     // MARK: - Incremental Persistence
 
     private func persistCompletedSet() {
-        guard let workout, let context = modelContext else { return }
+        guard let workout,
+              let context = modelContext,
+              exercises.indices.contains(currentExerciseIndex),
+              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex)
+        else { return }
 
         let exState = exercises[currentExerciseIndex]
         let setState = exState.sets[currentSetIndex]
@@ -650,17 +982,32 @@ final class ActiveWorkoutViewModel {
             $0.exerciseId == exState.exerciseId
         }) {
             exerciseLog = existing
+            applyExerciseMetadata(
+                to: exerciseLog,
+                from: exState,
+                order: currentExerciseIndex
+            )
         } else {
             let newLog = SDExerciseLog(
                 exerciseId: exState.exerciseId,
                 catalogId: exState.catalogId,
                 exerciseName: exState.name,
                 bodyPart: exState.bodyPart,
-                order: currentExerciseIndex
+                order: currentExerciseIndex,
+                technique: exState.technique,
+                supersetWith: exState.supersetWith
             )
             newLog.workout = workout
             exerciseLog = newLog
         }
+
+        let completedAt = lastSetCompletedAt ?? Date()
+        let oldSet = exerciseLog.sets.first {
+            $0.setNumber == setState.setNumber
+        }
+        let sequenceIndex = oldSet?.sequenceIndex
+            ?? nextSetSequenceIndex(in: workout)
+        let preservedRestSecondsAfter = oldSet?.restSecondsAfter
 
         if let oldSet = exerciseLog.sets.first(where: {
             $0.setNumber == setState.setNumber
@@ -675,43 +1022,80 @@ final class ActiveWorkoutViewModel {
             reps: setState.reps,
             rpe: setState.rpe,
             rir: setState.rir,
+            completedAt: oldSet?.completedAt ?? completedAt,
+            sequenceIndex: sequenceIndex,
+            restSecondsAfter: preservedRestSecondsAfter,
             setDurationSeconds: setState.setDurationSeconds,
             isPr: false,
             failed: setState.failed
         )
         setLog.exerciseLog = exerciseLog
+        lastCompletedSetLog = setLog
 
         _ = saveContext(context, action: "save completed set")
     }
 
     private func persistRestDuration(_ seconds: Int) {
-        guard let workout, let context = modelContext else { return }
+        guard let workout,
+              let context = modelContext
+        else { return }
 
-        let exState = exercises[max(0, currentExerciseIndex)]
-        let prevSetIdx = currentSetIndex - 1
+        let target = lastCompletedSetLog ?? latestCompletedSetLog(in: workout)
+        target?.restSecondsAfter = seconds
+        _ = saveContext(context, action: "save rest duration")
+    }
 
-        if prevSetIdx >= 0 {
-            if let exLog = workout.exercises.first(where: {
-                $0.exerciseId == exState.exerciseId
-            }),
-               let setLog = exLog.sets.first(where: {
-                   $0.setNumber == prevSetIdx + 1
-                }) {
-                setLog.restSecondsAfter = seconds
-                _ = saveContext(context, action: "save rest duration")
-            }
-        } else if currentExerciseIndex > 0 {
-            let prevEx = exercises[currentExerciseIndex - 1]
-            if let exLog = workout.exercises.first(where: {
-                $0.exerciseId == prevEx.exerciseId
-            }),
-               let lastSet = exLog.sets.sorted(by: {
-                   $0.setNumber < $1.setNumber
-               }).last {
-                lastSet.restSecondsAfter = seconds
-                _ = saveContext(context, action: "save rest duration")
-            }
+    private func applyExerciseMetadata(
+        to exerciseLog: SDExerciseLog,
+        from exerciseState: ExerciseState,
+        order: Int
+    ) {
+        exerciseLog.catalogId = exerciseState.catalogId
+        exerciseLog.exerciseName = exerciseState.name
+        exerciseLog.bodyPart = exerciseState.bodyPart
+        exerciseLog.order = order
+        exerciseLog.technique = exerciseState.technique
+        exerciseLog.supersetWith = exerciseState.supersetWith
+    }
+
+    private func nextSetSequenceIndex(in workout: SDWorkout) -> Int {
+        let existingSequences = workout.exercises
+            .flatMap(\.sets)
+            .compactMap(\.sequenceIndex)
+
+        if let maxSequence = existingSequences.max() {
+            return maxSequence + 1
         }
+        return workout.exercises.flatMap(\.sets).count + 1
+    }
+
+    private func latestCompletedSetLog(in workout: SDWorkout) -> SDSetLog? {
+        workout.exercises
+            .flatMap(\.sets)
+            .max(by: isChronologicallyBefore)
+    }
+
+    private func isChronologicallyBefore(
+        _ lhs: SDSetLog,
+        _ rhs: SDSetLog
+    ) -> Bool {
+        if let lhsSequence = lhs.sequenceIndex,
+           let rhsSequence = rhs.sequenceIndex,
+           lhsSequence != rhsSequence {
+            return lhsSequence < rhsSequence
+        }
+        if lhs.sequenceIndex != nil {
+            return true
+        }
+        if rhs.sequenceIndex != nil {
+            return false
+        }
+        if let lhsCompletedAt = lhs.completedAt,
+           let rhsCompletedAt = rhs.completedAt,
+           lhsCompletedAt != rhsCompletedAt {
+            return lhsCompletedAt < rhsCompletedAt
+        }
+        return lhs.setNumber < rhs.setNumber
     }
 
     func saveWorkout() {
@@ -797,6 +1181,7 @@ final class ActiveWorkoutViewModel {
         flowInstruction = ""
         flowLockWeight = false
         pendingAdvanceToNextExercise = false
+        autoStartSetAfterRest = false
         pendingRating = nil
         pendingRatingExerciseIndex = nil
         restTimer.stop()

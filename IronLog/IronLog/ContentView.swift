@@ -43,6 +43,9 @@ struct ContentView: View {
             }
             .tag(Tab.settings)
         }
+        .tint(CockpitPalette.blue)
+        .preferredColorScheme(.dark)
+        .background(CockpitPalette.background)
         .onAppear {
             if !plans.isEmpty {
                 selectedTab = .workout

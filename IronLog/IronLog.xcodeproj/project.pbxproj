@@ -35,6 +35,7 @@
 		56B0A76826F3AF7234BAB66F /* RestTimerActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8C919D8CBA86E285BAD7D3 /* RestTimerActivity.swift */; };
 		5AF7E9804A9470BDF9CE2316 /* ActiveWorkoutViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A32AE65799596C49F76123 /* ActiveWorkoutViewModel.swift */; };
 		65436D67A051C3052051F92B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244B3A753BA03F21233D6AF0 /* SettingsView.swift */; };
+		6CFF3AB3CCA59E8F2B2F915A /* MyoRepsFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA72C0D623F69F4CA5B1C6F4 /* MyoRepsFlowTests.swift */; };
 		6FD87EC938E401E6E2B01662 /* SDExerciseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6F32CFD231D79A3F75DB70 /* SDExerciseLog.swift */; };
 		705B336E94DA1A1AF53B8A0C /* SDCyclingTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B6B744831A3442CBC93BAB /* SDCyclingTemplate.swift */; };
 		746B087515BBF05F7698FA4B /* RestPauseFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EBFF0127D2BB2A6364411D /* RestPauseFlow.swift */; };
@@ -195,6 +196,7 @@
 		BCE7AE6478B45DF6D5D44BA0 /* StraightFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StraightFlow.swift; sourceTree = "<group>"; };
 		C2E18CC11E698DA88F124C2A /* SupersetFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupersetFlow.swift; sourceTree = "<group>"; };
 		CA23380F3A06F84BB64A2531 /* IronLogWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IronLogWatchApp.swift; sourceTree = "<group>"; };
+		CA72C0D623F69F4CA5B1C6F4 /* MyoRepsFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyoRepsFlowTests.swift; sourceTree = "<group>"; };
 		CBCB62CBF64954BBA88C9E08 /* WorkoutSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSyncService.swift; sourceTree = "<group>"; };
 		CD16CBF0876A6590B803D157 /* HealthKitHRSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitHRSource.swift; sourceTree = "<group>"; };
 		CD46F8DEAEEB627A18216313 /* IronLogWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IronLogWatch.entitlements; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 				8A077881E4FD09953161D6AF /* CrashReporterTests.swift */,
 				7BFE15482BE5463C2BB4996F /* CyclingExpanderTests.swift */,
 				38A72882AEF4F3B8C10F7CFD /* MultipleSupersetPairsTests.swift */,
+				CA72C0D623F69F4CA5B1C6F4 /* MyoRepsFlowTests.swift */,
 				F19F41892A320ED66FE4781D /* ParsedPlanDispatchTests.swift */,
 			);
 			path = IronLogTests;
@@ -620,6 +623,7 @@
 				E0E1E196F3679819A67FF59A /* CrashReporterTests.swift in Sources */,
 				37165D0E9D225AD94DE6FB6B /* CyclingExpanderTests.swift in Sources */,
 				352E75B34A5873E46A7D761E /* MultipleSupersetPairsTests.swift in Sources */,
+				6CFF3AB3CCA59E8F2B2F915A /* MyoRepsFlowTests.swift in Sources */,
 				B867DE8AD0D742492717D318 /* ParsedPlanDispatchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

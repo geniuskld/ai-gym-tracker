@@ -1,0 +1,50 @@
+Если Xcode зависает на Connecting / Attaching to iPhone
+
+Симптомы:
+- Xcode долго висит на "Connecting to iPhone" или "Attaching to IronLog".
+- В debug view может быть mach_msg2_trap. Сам по себе это не crash приложения.
+- В логах может быть CoreDeviceError / Mercury error / "The connection was interrupted".
+
+Быстрый порядок действий:
+1. Нажать Stop в Xcode.
+2. Разблокировать iPhone и оставить экран включенным.
+3. Переподключить кабель.
+4. Если появится Trust This Computer или developer prompt - подтвердить.
+5. Запустить приложение снова.
+
+Если все еще висит:
+1. Закрыть зависший Run в Xcode.
+2. Выполнить в терминале:
+
+pkill -f 'CoreDeviceService.xpc' || true
+pkill -x debugserver || true
+pkill -x lldb-rpc-server || true
+
+3. Подождать несколько секунд.
+4. Снова запустить Run в Xcode.
+
+Быстрая диагностика:
+
+xcrun devicectl list devices
+
+Нормальное состояние:
+
+iPhone ... available (paired)
+
+Плохое состояние:
+
+iPhone ... connecting
+
+Если нужно узнать точную причину, можно попробовать установку через CLI:
+
+xcrun devicectl device install app --device EACD3538-8FC7-51B8-8573-034397D37665 --timeout 60 /path/to/IronLog.app
+
+Если в ошибке есть:
+
+kAMDMobileImageMounterDeviceLocked
+
+значит iPhone был заблокирован. Нужно разблокировать телефон и оставить экран включенным во время установки.
+
+Важно:
+- Успешная сборка под generic/platform=iOS означает, что код и signing в порядке.
+- Зависание на Connecting / Attaching обычно относится к каналу Mac <-> iPhone, а не к Swift-коду приложения.
