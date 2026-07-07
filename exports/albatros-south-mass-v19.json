@@ -1,0 +1,867 @@
+{
+ "version": "1.0",
+ "plan_version": 19,
+ "plan_type": "strength",
+ "plan_id": "albatros-south-mass",
+ "plan_name": "Альбатрос Юг -- Масса 2x/нед",
+ "schema": "2026-04-30T00:00:00Z",
+ "created_at": "2026-05-22T15:00:00Z",
+ "author": "Claude",
+ "notes": "v19: (1) Прогрессии по логам 03-18.06: Matrix 41->44, тяга гантели 14->16, рычажная 30->35, болгарские 7->8, молотки 10->12, отжимание трицепс ->41, жим плеч myo 7->8, обратные/боковые ДеньB ->6. (2) ИСПРАВЛЕН жим наклонный 40->20: в v18 ошибочно стоял ОБЩИЙ вес с грифом, реальные блины = 20 (олимп. гриф 20 не считаем). (3) Жим ногами 107 и сгибание ног 20 -- БЕЗ изменений (решение Е.: ноги устраивают, бережём энергию; шаг машины уточнить). (4) Целевые \"15 повт\" снижены до 10-12 (кроме myo-активаций и икр) -- меньше пустого объёма, ближе к отказу. Цель RIR 1-2, не полный отказ. (5) НОВОЕ: икры (ДеньA, тренажёр) и гиперэкстензия 90° (ДеньB, без веса -- остеопат, слабая поясница). (6) Французский -> seated dip машина (нет стоек под EZ). Тяга блока 26 и обратным хватом 28 -- держим вес, добиваем 3x12 без пирамидинга.",
+ "templates": [
+  {
+   "id": "day-a",
+   "name": "День A",
+   "groups": [
+    {
+     "name": "Ноги",
+     "exercises": [
+      {
+       "id": "a1",
+       "catalog_id": "leg_press_machine",
+       "name": "Жим ногами",
+       "body_part": "legs",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 40
+        },
+        {
+         "type": "warmup",
+         "reps": 12,
+         "weight_kg": 70
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 107
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 107
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 107
+        }
+       ],
+       "rest_seconds": 180,
+       "technique": "straight",
+       "tempo": "2-2-1-0",
+       "notes": "107кг. Главное движение на квадрицепс. Отдых до пульса 125 ИЛИ 180с.",
+       "stretch_focus": true
+      },
+      {
+       "id": "a3",
+       "catalog_id": "lying_leg_curl_machine",
+       "name": "Сгибание ног лежа",
+       "body_part": "legs",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 14,
+         "rir": 1,
+         "weight_kg": 20
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "myo_reps",
+       "max_mini_sets": 5,
+       "notes": "20кг myo. Хамстринги. Разгибание ног УБРАНО в v18 (ребаланс -- меньше объёма квадрицепса)."
+      },
+      {
+       "id": "a14",
+       "catalog_id": "standing_calf_raise_machine",
+       "name": "Подъём на носки в тренажёре",
+       "body_part": "legs",
+       "equipment": "machine",
+       "technique": "straight",
+       "rest_seconds": 75,
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 1,
+         "weight_kg": 40
+        },
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 1,
+         "weight_kg": 40
+        },
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 1,
+         "weight_kg": 40
+        }
+       ],
+       "notes": "НОВОЕ v19! Икроножная. Полная амплитуда: пауза 1-2с в РАСТЯЖЕНИИ внизу и в сокращении вверху -- для икр темп важнее веса. 12-15 повт (тут выше повторы оправданы, икры выносливые). Вес 40 -- ОРИЕНТИР, подбери по ощущению (RIR 1-2). Пока 1x/нед; если будет мало -- добавим в День B."
+      }
+     ]
+    },
+    {
+     "name": "Грудь + Спина (антагонисты)",
+     "exercises": [
+      {
+       "id": "a4",
+       "catalog_id": "chest_press_machine",
+       "name": "Жим от груди Matrix",
+       "body_part": "chest",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 18
+        },
+        {
+         "type": "warmup",
+         "reps": 12,
+         "weight_kg": 25
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 44
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 44
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 44
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "a6",
+       "tempo": "2-1-1-0",
+       "notes": "44кг. СУПЕРСЕТ с a6. ОДИН вес все подходы (не пирамидить). Когда 3x12 чисто -> 46.",
+       "stretch_focus": true
+      },
+      {
+       "id": "a6",
+       "catalog_id": "lat_pulldown_cable_wide",
+       "name": "Тяга верхнего блока",
+       "body_part": "back",
+       "equipment": "cable",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 10
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 26
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 26
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 26
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "a4",
+       "notes": "26кг straight, ОДИН вес. НЕ прыгать на 28 -- там повторы валятся (11->8->7). Добей стабильные 3x12, потом 28. Лопатки сводить, чувствовать широчайшую.",
+       "stretch_focus": true
+      },
+      {
+       "id": "a5",
+       "catalog_id": "pec_deck_fly_machine",
+       "name": "Fly на тренажере",
+       "body_part": "chest",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 40
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 40
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 40
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "superset",
+       "superset_with": "a9",
+       "notes": "40кг. 10-12 повт. СУПЕРСЕТ с a9. (в v18 было 37x15x2 -- подняли вес, снизили повторы, добавили 3-й подход)",
+       "stretch_focus": true
+      },
+      {
+       "id": "a9",
+       "catalog_id": "dumbbell_row_one_arm",
+       "name": "Тяга гантели одной рукой в наклоне",
+       "body_part": "back",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 16
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 16
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 16
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "superset",
+       "superset_with": "a5",
+       "notes": "16кг. УНИЛАТЕРАЛЬНОЕ (асимметрия). ПРАВАЯ первая. СУПЕРСЕТ с a5.",
+       "stretch_focus": true
+      }
+     ]
+    },
+    {
+     "name": "Спина (изоляция)",
+     "exercises": [
+      {
+       "id": "a12",
+       "catalog_id": "straight_arm_pulldown_cable",
+       "name": "Тяга прямыми руками на блоке",
+       "body_part": "back",
+       "equipment": "cable",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 15
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 15
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 15
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "straight",
+       "notes": "Изоляция широчайшей, СВЯЗЬ мозг-мышца (сколиоз), НЕ сила. ОДИН лёгкий вес ~15 на все подходы, 10-12 контролируемых, пауза-сжатие внизу. НЕ грузить до 20 -- теряется смысл."
+      }
+     ]
+    },
+    {
+     "name": "Плечи (изоляция)",
+     "exercises": [
+      {
+       "id": "a10",
+       "catalog_id": "lateral_raise_dumbbell",
+       "name": "Боковые подъемы",
+       "body_part": "shoulders",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "straight",
+       "notes": "6кг, 10-12 повт. Средняя дельта, не раскачиваться. Когда 3x12 чисто -> 8."
+      },
+      {
+       "id": "a11",
+       "catalog_id": "rear_delt_raise_dumbbell",
+       "name": "Обратные разводки в наклоне",
+       "body_part": "shoulders",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "straight",
+       "notes": "6кг, 10-12 повт. Задний пучок + осанка (важно при сколиозе)."
+      }
+     ]
+    },
+    {
+     "name": "Руки",
+     "exercises": [
+      {
+       "id": "a7",
+       "catalog_id": "incline_dumbbell_curl",
+       "name": "Бицепс наклонная скамья",
+       "body_part": "arms",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 4
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 10
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 10
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 10
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "a8",
+       "notes": "10кг (9-ки нет). Добей 3x12, ПОТОМ 12кг. На 12 пока рано -- было всего 6 повт. СУПЕРСЕТ с a8.",
+       "stretch_focus": true
+      },
+      {
+       "id": "a8",
+       "catalog_id": "cable_triceps_pushdown_rope",
+       "name": "Трицепс pushdown с канатом",
+       "body_part": "arms",
+       "equipment": "cable",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 10
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 20
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "a7",
+       "notes": "20кг. СУПЕРСЕТ с a7. Добей 3x12 (сейчас 12,10,10), потом 22."
+      },
+      {
+       "id": "a13",
+       "catalog_id": "seated_dip_machine",
+       "name": "Отжимание сидя на трицепс",
+       "body_part": "arms",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 41
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 41
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 41
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "straight",
+       "notes": "41кг straight (по факту уже дошёл). НЕ пирамидить -- ОДИН вес. Компаунд на трицепс. Когда 3x12 чисто -> 43."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "day-b",
+   "name": "День B",
+   "groups": [
+    {
+     "name": "Ноги (задняя цепь + квадрицепс)",
+     "exercises": [
+      {
+       "id": "b1",
+       "catalog_id": "hip_thrust_dumbbell",
+       "name": "Hip thrust",
+       "body_part": "legs",
+       "equipment": "barbell",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 12,
+         "weight_kg": 30
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 70
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 70
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 70
+        }
+       ],
+       "rest_seconds": 120,
+       "technique": "straight",
+       "notes": "70кг блинов (Smith). ПАУЗА 1-2с наверху, ягодицы сжимать. Добей 3x12, потом 75.",
+       "stretch_focus": false
+      },
+      {
+       "id": "b2",
+       "catalog_id": "bulgarian_split_squat_dumbbell",
+       "name": "Болгарские сплит-приседы",
+       "body_part": "legs",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 8
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 8
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 8
+        }
+       ],
+       "rest_seconds": 120,
+       "technique": "straight",
+       "notes": "8кг. Квадрицепс + ягодицы. rating 3 был тяжёлым -- следи за коленом/балансом. Когда 3x12 -> 9."
+      },
+      {
+       "id": "b3",
+       "catalog_id": "hyperextension_90",
+       "name": "Гиперэкстензия (90°)",
+       "body_part": "back",
+       "equipment": "bodyweight",
+       "technique": "straight",
+       "rest_seconds": 90,
+       "sets": [
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 2,
+         "weight_kg": 0
+        },
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 2,
+         "weight_kg": 0
+        },
+        {
+         "type": "working",
+         "reps": 15,
+         "rir": 2,
+         "weight_kg": 0
+        }
+       ],
+       "notes": "НОВОЕ v19! Рекомендация остеопата -- укрепить СЛАБУЮ поясницу. БЕЗ ВЕСА, 12-15 повт, контролируй движение. НЕ переразгибайся вверху -- поднимайся только до прямой линии тела (не зависай в гиперэкстензии). По мере укрепления -- блин к груди. Стоит после hip thrust/болгарских, чтобы не утомить разгибатели до основных движений."
+      }
+     ]
+    },
+    {
+     "name": "Грудь + плечи",
+     "exercises": [
+      {
+       "id": "b4",
+       "catalog_id": "incline_bench_press_barbell",
+       "name": "Жим штанги на наклонной скамье",
+       "body_part": "chest",
+       "equipment": "barbell",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 10
+        },
+        {
+         "type": "warmup",
+         "reps": 12,
+         "weight_kg": 15
+        },
+        {
+         "type": "working",
+         "reps": 10,
+         "rir": 2,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 10,
+         "rir": 1,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 10,
+         "rir": 1,
+         "weight_kg": 20
+        }
+       ],
+       "rest_seconds": 150,
+       "technique": "straight",
+       "tempo": "2-2-1-0",
+       "notes": "20кг БЛИНОВ (олимпийский гриф 20кг НЕ считаем; общий вес ~40). ИСПРАВЛЕНО в v19: в v18 ошибочно стоял общий вес 40. Верх грудных. Когда 3x10 чисто -> 22.5 блинов.",
+       "stretch_focus": true
+      },
+      {
+       "id": "b5",
+       "catalog_id": "shoulder_press_machine",
+       "name": "Жим на плечи сидя",
+       "body_part": "shoulders",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 5
+        },
+        {
+         "type": "working",
+         "reps": 14,
+         "rir": 1,
+         "weight_kg": 8
+        }
+       ],
+       "rest_seconds": 120,
+       "technique": "myo_reps",
+       "max_mini_sets": 5,
+       "notes": "8кг myo. Активация должна быть 12-15 повторов, потом мини-сеты.",
+       "stretch_focus": false
+      },
+      {
+       "id": "b10",
+       "catalog_id": "lateral_raise_dumbbell",
+       "name": "Боковые подъемы",
+       "body_part": "shoulders",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 6
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "straight",
+       "notes": "6кг, 10-12 повт. Средняя дельта. Когда 3x12 -> 7."
+      }
+     ]
+    },
+    {
+     "name": "Спина (изоляция + база)",
+     "exercises": [
+      {
+       "id": "b11",
+       "catalog_id": "straight_arm_pulldown_cable",
+       "name": "Тяга прямыми руками на блоке",
+       "body_part": "back",
+       "equipment": "cable",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 15
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 15
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 15
+        }
+       ],
+       "rest_seconds": 60,
+       "technique": "straight",
+       "notes": "ПРЕАКТИВАЦИЯ -- ПЕРВЫМ в блоке спины. Лёгкий вес ~15, 10-12 повт, чувствуй широчайшую. НЕ грузить до 20 (это не силовое)."
+      },
+      {
+       "id": "b7",
+       "catalog_id": "plate_loaded_row",
+       "name": "Рычажная тяга",
+       "body_part": "back",
+       "equipment": "plate_loaded",
+       "sets": [
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 35
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 35
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 35
+        }
+       ],
+       "rest_seconds": 150,
+       "technique": "straight",
+       "notes": "35кг/сторону, обе руки одновременно (следи за симметрией амплитуды -- правый отстаёт). Когда 3x12 -> 37.5.",
+       "stretch_focus": true
+      },
+      {
+       "id": "b6",
+       "catalog_id": "lat_pulldown_cable_underhand",
+       "name": "Тяга верхнего блока обратным хватом",
+       "body_part": "back",
+       "equipment": "cable",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 12
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 2,
+         "weight_kg": 28
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 28
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 28
+        }
+       ],
+       "rest_seconds": 150,
+       "technique": "straight",
+       "notes": "28кг. ОДИН вес все 3 подхода, НЕ пирамидить. Добей стабильные 3x12, потом 30.",
+       "stretch_focus": true
+      }
+     ]
+    },
+    {
+     "name": "Руки (суперсет)",
+     "exercises": [
+      {
+       "id": "b8",
+       "catalog_id": "hammer_curl_dumbbell",
+       "name": "Молотки с гантелями",
+       "body_part": "arms",
+       "equipment": "dumbbell",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 4
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 12
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 12
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 12
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "b9",
+       "notes": "12кг. СУПЕРСЕТ с b9. Добей 3x12 (сейчас последний подход проседает).",
+       "stretch_focus": false
+      },
+      {
+       "id": "b9",
+       "catalog_id": "seated_dip_machine",
+       "name": "Отжимание сидя на трицепс",
+       "body_part": "arms",
+       "equipment": "machine",
+       "sets": [
+        {
+         "type": "warmup",
+         "reps": 15,
+         "weight_kg": 20
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 36
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 36
+        },
+        {
+         "type": "working",
+         "reps": 12,
+         "rir": 1,
+         "weight_kg": 36
+        }
+       ],
+       "rest_seconds": 90,
+       "technique": "superset",
+       "superset_with": "b8",
+       "notes": "ЗАМЕНА французского жима (нет нормальных стоек под EZ-гриф). Тот же тренажёр, что отжимание в Дне A. СУПЕРСЕТ с b8 (молотки). Вес ~36 -- ОРИЕНТИР (в Дне A дошёл до 41), подбери по ощущению.",
+       "stretch_focus": true
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
